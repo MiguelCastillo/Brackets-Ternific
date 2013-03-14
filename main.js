@@ -30,7 +30,8 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	var DocumentManager     = brackets.getModule("document/DocumentManager"),
 		EditorManager       = brackets.getModule("editor/EditorManager"),
 		AppInit             = brackets.getModule("utils/AppInit"),
-		FileUtils           = brackets.getModule("file/FileUtils");
+		FileUtils           = brackets.getModule("file/FileUtils"),
+		ExtensionUtils      = brackets.getModule("utils/ExtensionUtils");
 
 	/*
 	*
@@ -217,7 +218,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 			  return c(null, httpCache[name]);
 			}
 
-			jQuery.ajax({
+			$.ajax({
 				"url": name,
 				"contentType": "text"
 			})
@@ -256,7 +257,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	remoteDocuments.prototype.ping = function (){
-		return jQuery.ajax({
+		return $.ajax({
 			"url": "http://localhost:4943/ping",
 			"type": "GET"
 		})
@@ -283,11 +284,11 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	  	// Send query to the server
-	  	return jQuery.ajax({
-			"url": "http://localhost:5923",
+	  	return $.ajax({
+			"url": "http://localhost:6343",
 			"type": "POST",
-			contentType: "application/json; charset=utf-8",
-			data: JSON.stringify(query)
+			"contentType": "application/json; charset=utf-8",
+			"data": JSON.stringify(query)
 		})
 		.pipe(function(data){
 			console.log(data);
@@ -310,9 +311,9 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	*/
 	var ternManager = (function() {
 		var onReady = $.Deferred();
-		var docs = new remoteDocuments();
-		//var docs = new localDocuments();
-		docs.onReady(onReady.resolve)
+		//var docs = new remoteDocuments();
+		var docs = new localDocuments();
+		docs.onReady(onReady.resolve);
 
 		return {
 			onReady: onReady.promise().done,
@@ -502,16 +503,27 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	}
 
 
+	var promises = [
+	  	$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
+	  	ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
+	];
 
-	// Once the app is fully loaded, we will proceed to check the theme that
-	// was last set
-	AppInit.appReady(function () {
-		ternManager.onReady(function(){
-			// Initialize any already open document that's already in focus
-			ternManager.initEditor();
 
-			// Anytime a new doc is in view, register all the junk we need to
-			$(DocumentManager).on("currentDocumentChange", ternManager.initEditor);
+	//
+	// Synchronize all calls to load resources.
+	//
+	$.when.apply($, promises).done( function( ) {
+
+		// Once the app is fully loaded, we will proceed to check the theme that
+		// was last set
+		AppInit.appReady(function () {
+			ternManager.onReady(function(){
+				// Initialize any already open document that's already in focus
+				ternManager.initEditor();
+
+				// Anytime a new doc is in view, register all the junk we need to
+				$(DocumentManager).on("currentDocumentChange", ternManager.initEditor);
+			});
 		});
 	});
 
