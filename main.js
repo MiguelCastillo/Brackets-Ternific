@@ -37,7 +37,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	* Try to load tern via requirejs to avoid having to modify brackets index.html
 	*/
 	/*
-	var ternConfig = window.require.config({
+	var ternRequire = window.require.config({
 		"baseUrl": require.toUrl("./tern"),
 		"map":{
 			"*": {
@@ -70,7 +70,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	});
 
 
-	ternConfig(["require", "exports", "module", "desktop"], function() {
+	ternRequire(["require", "exports", "module", "desktop"], function() {
 	});
 	*/
 
@@ -114,11 +114,11 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	ternDocuments.prototype.registerDoc = function(name, doc) {
 		var _self = this;
 
-	  	this.addDoc({name: name,
+		this.addDoc({name: name,
 					 doc: doc,
 					 changed: null});
 
-	  	CodeMirror.on(doc, "change", function(){
+		CodeMirror.on(doc, "change", function(){
 			_self.trackChange.apply(_self, arguments);
 		});
 	}
@@ -130,7 +130,8 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		var changed = _doc.changed;
 		if (changed == null){
 			_doc.changed = changed = {
-				from: change.from.line, to: change.from.line
+				from: change.from.line,
+				to: change.from.line
 			};
 		}
 
@@ -194,7 +195,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 				promise.fail(error);
 			}
 			else {
-			  	console.log(data);
+				console.log(data);
 				promise.resolve(data);
 			}
 		});
@@ -256,7 +257,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 	remoteDocuments.prototype.ping = function (){
 		return jQuery.ajax({
-			"url": "http://localhost:56575/ping",
+			"url": "http://localhost:4943/ping",
 			"type": "GET"
 		})
 		.promise();
@@ -264,17 +265,35 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	remoteDocuments.prototype.query = function( query ) {
-		return jQuery.ajax({
-			"url": "http://localhost:58034",
+
+
+	  	//
+ 	  	// Raw integration with the server... I have to send the file I am working with.
+	  	//
+	  	var doc = this.findDocByName( query.query.file );
+
+	  	if ( !query.files ) {
+		 	query.files = [];
+		}
+
+		query.files.push({type: "full",
+					name: doc.name,
+					text: doc.doc.getValue()
+				});
+
+
+	  	// Send query to the server
+	  	return jQuery.ajax({
+			"url": "http://localhost:5923",
 			"type": "POST",
 			contentType: "application/json; charset=utf-8",
 			data: JSON.stringify(query)
 		})
 		.pipe(function(data){
-		  	console.log(data);
+			console.log(data);
 			return data;
-		},
-		function(error){
+		}, function(error){
+ 			console.log(error);
 		})
 		.promise();
 	}
@@ -291,8 +310,8 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	*/
 	var ternManager = (function() {
 		var onReady = $.Deferred();
-		//var docs = new remoteDocuments();
-	  	var docs = new localDocuments();
+		var docs = new remoteDocuments();
+		//var docs = new localDocuments();
 		docs.onReady(onReady.resolve)
 
 		return {
@@ -387,23 +406,23 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	ternManager.renameVar = function(cm) {
-	  	var query = ternManager.buildQuery(cm, "refs");
+		var query = ternManager.buildQuery(cm, "refs");
 
-	  	ternManager._docs.query(query)
+		ternManager._docs.query(query)
 			.done(function(data) {
 				var perFile = {};
 
-			  	for (var i = 0; i < data.refs.length; ++i) {
+				for (var i = 0; i < data.refs.length; ++i) {
 					var use = data.refs[i];
 					(perFile[use.file] || (perFile[use.file] = [])).push(use);
 				}
 
-			  	for (var file in perFile) {
+				for (var file in perFile) {
 					var refs = perFile[file], doc = ternManager._docs.findDocByName(file).doc;
 					refs.sort(function(a, b) { return b.start - a.start; });
 
-				  	for (var i = 0; i < refs.length; ++i) {
-					  	console.log(refs[i]);
+					for (var i = 0; i < refs.length; ++i) {
+						console.log(refs[i]);
 						//doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
 					}
 				}
@@ -438,7 +457,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	ternManager.buildQuery = function(cm, query) {
-		var startPos, endPos;
+		var startPos, endPos, offset = 0, files = [];
 
 		// 1. Let's make sure we have a query object
 		//
@@ -473,16 +492,12 @@ define(["require", "exports", "module"], function (require, exports, module) {
 			startPos = endPos;
 		}
 
-
-		// 3. Specify the document name.
-		// TODO: document needs to be remote server friendly
 		var doc = ternManager._docs.findDocByInstance(cm.getDoc());
-		if( doc ){
-			query.file = doc.name;
-		}
+		query.file = doc.name;
 
-		return {
-			query: query
+	  	return {
+			query: query,
+			files: files
 		};
 	}
 
@@ -501,5 +516,3 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	});
 
 });
-
-
