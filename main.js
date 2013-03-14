@@ -113,10 +113,12 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 	ternDocuments.prototype.registerDoc = function(name, doc) {
 		var _self = this;
-		var data = {name: name, doc: doc, changed: null};
-		this.docs.push(data);
-		this._server.addFile(name);
-		CodeMirror.on(doc, "change", function(){
+
+	  	this.addDoc({name: name,
+					 doc: doc,
+					 changed: null});
+
+	  	CodeMirror.on(doc, "change", function(){
 			_self.trackChange.apply(_self, arguments);
 		});
 	}
@@ -144,32 +146,6 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 		if (changed.from > change.from.line) {
 			changed.from = change.from.line;
-		}
-	}
-
-
-	var httpCache = {};
-	ternDocuments.prototype.getFile = function getFile(name, c) {
-		if (/^https?:\/\//.test(name)) {
-			if (httpCache[name]){
-			  return c(null, httpCache[name]);
-			}
-
-			jQuery.ajax({
-				"url": name,
-				"type": "text"
-			})
-			.done(function(data, status) {
-				httpCache[name] = data;
-				c(null, data);
-			})
-			.fail(function(){
-				c(null, "");
-			});
-		}
-		else {
-			var doc = this.findDocByName(name);
-			return c(null, doc ? doc.doc.getValue() : "");
 		}
 	}
 
@@ -218,12 +194,46 @@ define(["require", "exports", "module"], function (require, exports, module) {
 				promise.fail(error);
 			}
 			else {
+			  	console.log(data);
 				promise.resolve(data);
 			}
 		});
 
 		return promise.promise();
 	}
+
+
+	localDocuments.prototype.addDoc = function (doc) {
+		this.docs.push(doc);
+		this._server.addFile(doc.name);
+	}
+
+
+	var httpCache = {};
+	localDocuments.prototype.getFile = function (name, c) {
+		if (/^https?:\/\//.test(name)) {
+			if (httpCache[name]){
+			  return c(null, httpCache[name]);
+			}
+
+			jQuery.ajax({
+				"url": name,
+				"contentType": "text"
+			})
+			.done(function(data, status) {
+				httpCache[name] = data;
+				c(null, data);
+			})
+			.fail(function(){
+				c(null, "");
+			});
+		}
+		else {
+			var doc = this.findDocByName(name);
+			return c(null, doc ? doc.doc.getValue() : "");
+		}
+	}
+
 
 
 
@@ -237,13 +247,6 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		setTimeout(function(){
 			_self.ready.resolve(_self);
 		}, 1);
-
-
-		this._server = {
-			addFile: function(file) {
-				console.log("addFile: " + file);
-			}
-		};
 	}
 
 
@@ -262,12 +265,13 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 	remoteDocuments.prototype.query = function( query ) {
 		return jQuery.ajax({
-			"url": "http://localhost:56575",
+			"url": "http://localhost:58034",
 			"type": "POST",
 			contentType: "application/json; charset=utf-8",
 			data: JSON.stringify(query)
 		})
 		.pipe(function(data){
+		  	console.log(data);
 			return data;
 		},
 		function(error){
@@ -276,12 +280,19 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	}
 
 
+	remoteDocuments.prototype.addDoc = function(doc) {
+		this.docs.push(doc);
+	}
+
+
+
 	/**
 	*  Controls the interaction between brackets and tern
 	*/
 	var ternManager = (function() {
 		var onReady = $.Deferred();
-		var docs = new remoteDocuments();//new localDocuments();
+		//var docs = new remoteDocuments();
+	  	var docs = new localDocuments();
 		docs.onReady(onReady.resolve)
 
 		return {
@@ -313,12 +324,12 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		var keyMap = {
 			"name": "ternBindings",
 			"Ctrl-I": ternManager.findType,
-			"Ctrl-M": function(cm) {
+			"Ctrl-.": function(cm) {
 				CodeMirror.showHint(cm, ternManager.showHint, {async: true});
 			},
 			"Alt-.": ternManager.jumpToDef,
 			"Alt-,": ternManager.jumpBack,
-			"Ctrl-Q": ternManager.renameVar
+			"Ctrl-R": ternManager.renameVar
 		};
 
 		// Register key events
@@ -341,11 +352,9 @@ define(["require", "exports", "module"], function (require, exports, module) {
 					completions.push({text: completion.name, className: className});
 				}
 
-				console.log(completions);
-
 				c({
-					from: cm.posFromIndex(data.from + query.offset),
-					to: cm.posFromIndex(data.to + query.offset),
+					from: cm.posFromIndex(data.from),
+					to: cm.posFromIndex(data.to),
 					list: completions
 				});
 			})
@@ -361,10 +370,8 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 		ternManager._docs.query(query)
 			.done( function(data) {
-				console.log(data);
 			})
 			.fail(function( error ){
-
 			});
 	}
 
@@ -380,7 +387,30 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	ternManager.renameVar = function(cm) {
-		console.log("renameVar");
+	  	var query = ternManager.buildQuery(cm, "refs");
+
+	  	ternManager._docs.query(query)
+			.done(function(data) {
+				var perFile = {};
+
+			  	for (var i = 0; i < data.refs.length; ++i) {
+					var use = data.refs[i];
+					(perFile[use.file] || (perFile[use.file] = [])).push(use);
+				}
+
+			  	for (var file in perFile) {
+					var refs = perFile[file], doc = ternManager._docs.findDocByName(file).doc;
+					refs.sort(function(a, b) { return b.start - a.start; });
+
+				  	for (var i = 0; i < refs.length; ++i) {
+					  	console.log(refs[i]);
+						//doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
+					}
+				}
+			})
+			.fail(function(error) {
+
+			});
 	}
 
 
@@ -471,4 +501,5 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	});
 
 });
+
 
