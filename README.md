@@ -11,14 +11,14 @@ I have been spending lots of time on cleanly integrating tern in brackets withou
 Loading tern in brackets
 =============
 
-Requirements:
+Requirements:<br>
 1. We need nodejs because that how tern is currently tracking dependencies.<br>
-2. Github command line.<br><br>
+2. Github command line.<br>
 
-Setup:
-1. Download the extension and add it in brackets.
-2. Download https://github.com/MiguelCastillo/tern in place it in the same directory as the extension
-3. Go to tern directory and run "npm install"
+Setup:<br>
+1. Download the extension and add it in brackets.<br>
+2. Download https://github.com/MiguelCastillo/tern in place it in the same directory as the extension<br>
+3. Go to tern directory and run "npm install"<br>
 
 That's it...  Place you cursor anywhere and press Ctrl-. to get your hints!
 
