@@ -33,50 +33,46 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		FileUtils           = brackets.getModule("file/FileUtils"),
 		ExtensionUtils      = brackets.getModule("utils/ExtensionUtils");
 
-	/*
+
+ 	/*
+	*  Had to modify tern and acorn to be able to make them requirejs friendly...
 	*
-	* Try to load tern via requirejs to avoid having to modify brackets index.html
 	*/
-	/*
 	var ternRequire = window.require.config({
-		"baseUrl": require.toUrl("./tern"),
+	  	"baseUrl": require.toUrl("./tern"),
 		"map":{
 			"*": {
-				"acorn": "../acorn/acorn",
-				"acorn/acorn_loose": "../acorn/acorn_loose",
-				"acorn/util/walk": "../acorn/util/walk"
+				"acorn": "node_modules/acorn/acorn",
+				"acorn/acorn_loose": "node_modules/acorn/acorn_loose",
+				"acorn/util/walk": "node_modules/acorn/util/walk"
 			}
 		},
 		"shim":{
 			"acorn/acorn_loose": {
-				deps:["acorn"]
-			},
-			"acorn/util/walk": {
-				deps:["acorn"]
-			},
-			"desktop" :{
-				deps:["tern"]
+				deps: ["acorn"]
 			},
 			"tern": {
-				deps:["infer", "acorn", "condense", "acorn/acorn_loose", "acorn/util/walk"]
+				deps: ["acorn", "infer", "condense", "env", "jsdoc" ]
 			},
-			"infer": {
-				deps: ["acorn", "acorn/acorn_loose", "acorn/util/walk", "env", "jsdoc"]
+		  	"condense": {
+			  	deps: ["infer"]
 			},
-			"condense": {
-				deps: ["infer"]
+		  	"env": {
+			  	deps: ["infer"]
+			},
+            "jsdoc": {
+                deps: ["infer"]
+            },
+		  	"infer": {
+			 	deps: ["acorn/acorn_loose", "acorn/util/walk"]
 			}
 		},
-		waitTimeout: 30
+		waitSeconds: 60
 	});
 
 
-	ternRequire(["require", "exports", "module", "desktop"], function() {
-	});
-	*/
 
-
-	/**
+  	/**
 	* tern server, which manager all the processing with an in process
 	* service.
 	*/
@@ -160,25 +156,28 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		ternDocuments.apply(this, arguments);
 		var _self = this;
 
-		//
-		// Load up all the definitions that we will need to start with.
-		//
-		require(["text!./tern/ecma5.json", "text!./tern/browser.json",
-				 "text!./tern/plugin/requirejs/requirejs.json", "text!./tern/jquery.json"],
-			function( _ecma5Env, _browserEnv, _requireEnv, _jQueryEnv ) {
-				var environment = Array.prototype.slice.call(arguments, 0);
-				$.each(environment.slice(0), function(index, item){
-					environment[index] = JSON.parse(item);
-				});
+	  	ternRequire(["tern"], function(tern) {
 
-				_self._server = new tern.Server({
-					getFile: function(){
-						_self.getFile.apply(_self, arguments);
-					},
-					environment: environment
-				});
+		  	//
+			// Load up all the definitions that we will need to start with.
+			//
+			require(["text!./tern/ecma5.json", "text!./tern/browser.json",
+					 "text!./tern/plugin/requirejs/requirejs.json", "text!./tern/jquery.json"],
+				function( _ecma5Env, _browserEnv, _requireEnv, _jQueryEnv ) {
+					var environment = Array.prototype.slice.call(arguments, 0);
+					$.each(environment.slice(0), function(index, item){
+						environment[index] = JSON.parse(item);
+					});
 
-				_self.ready.resolve(_self);
+					_self._server = new tern.Server({
+						getFile: function(){
+							_self.getFile.apply(_self, arguments);
+						},
+						environment: environment
+					});
+
+					_self.ready.resolve(_self);
+			});
 		});
 	}
 
@@ -268,13 +267,13 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	remoteDocuments.prototype.query = function( query ) {
 
 
-	  	//
- 	  	// Raw integration with the server... I have to send the file I am working with.
-	  	//
-	  	var doc = this.findDocByName( query.query.file );
+		//
+		// Raw integration with the server... I have to send the file I am working with.
+		//
+		var doc = this.findDocByName( query.query.file );
 
-	  	if ( !query.files ) {
-		 	query.files = [];
+		if ( !query.files ) {
+			query.files = [];
 		}
 
 		query.files.push({type: "full",
@@ -283,9 +282,9 @@ define(["require", "exports", "module"], function (require, exports, module) {
 				});
 
 
-	  	// Send query to the server
-	  	return $.ajax({
-			"url": "http://localhost:6343",
+		// Send query to the server
+		return $.ajax({
+			"url": "http://localhost:22922",
 			"type": "POST",
 			"contentType": "application/json; charset=utf-8",
 			"data": JSON.stringify(query)
@@ -294,7 +293,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 			console.log(data);
 			return data;
 		}, function(error){
- 			console.log(error);
+			console.log(error);
 		})
 		.promise();
 	}
@@ -496,7 +495,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		var doc = ternManager._docs.findDocByInstance(cm.getDoc());
 		query.file = doc.name;
 
-	  	return {
+		return {
 			query: query,
 			files: files
 		};
@@ -504,8 +503,8 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	var promises = [
-	  	$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
-	  	ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
+		$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
+		ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
 	];
 
 
