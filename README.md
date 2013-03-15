@@ -12,9 +12,10 @@ Loading tern in brackets
 =============
 
 Requirements:
-1. We need nodejs because that how tern is currently tracking dependencies.
-2. Github command line.
+1. We need nodejs because that how tern is currently tracking dependencies.<br>
+2. Github command line.<br><br>
 
+Setup:
 1. Download the extension and add it in brackets.
 2. Download https://github.com/MiguelCastillo/tern in place it in the same directory as the extension
 3. Go to tern directory and run "npm install"
