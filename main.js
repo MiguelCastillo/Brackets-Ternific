@@ -34,45 +34,20 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		ExtensionUtils      = brackets.getModule("utils/ExtensionUtils");
 
 
- 	/*
-	*  Had to modify tern and acorn to be able to make them requirejs friendly...
-	*
-	*/
 	var ternRequire = window.require.config({
 	  	"baseUrl": require.toUrl("./tern"),
 		"map":{
 			"*": {
-				"acorn": "node_modules/acorn/acorn",
+				"acorn/acorn": "node_modules/acorn/acorn",
 				"acorn/acorn_loose": "node_modules/acorn/acorn_loose",
 				"acorn/util/walk": "node_modules/acorn/util/walk"
 			}
 		},
-		"shim":{
-			"acorn/acorn_loose": {
-				deps: ["acorn"]
-			},
-			"tern": {
-				deps: ["acorn", "infer", "condense", "env", "jsdoc" ]
-			},
-		  	"condense": {
-			  	deps: ["infer"]
-			},
-		  	"env": {
-			  	deps: ["infer"]
-			},
-            "jsdoc": {
-                deps: ["infer"]
-            },
-		  	"infer": {
-			 	deps: ["acorn/acorn_loose", "acorn/util/walk"]
-			}
-		},
-		waitSeconds: 60
+		waitSeconds: 5
 	});
 
 
-
-  	/**
+    /**
 	* tern server, which manager all the processing with an in process
 	* service.
 	*/
@@ -502,7 +477,21 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	}
 
 
-	var promises = [
+    var BracketsHintProvider = {
+        hasHints: function (editor, implicitChar){
+
+        },
+        getHints: function (implicitChar) {
+
+        },
+        insertHint: function (hint) {
+
+        }
+    }
+
+
+
+    var promises = [
 		$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
 		ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
 	];
