@@ -12,7 +12,7 @@ Loading tern in brackets
 =============
 
 Requirements:<br>
-1. We need nodejs because that how tern is currently tracking dependencies.<br>
+1. We need nodejs because that's how tern is currently tracking dependencies.<br>
 2. Github command line.<br>
 
 Setup:<br>
