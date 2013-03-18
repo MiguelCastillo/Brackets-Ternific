@@ -95,7 +95,6 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	ternManager.getHints = function(cm, c) {
 	  	cm = cm || _editor._codeMirror;
 		var query = ternManager.buildQuery(cm, "completions");
-		var promise = $.Deferred();
 
 		return ternManager._ternProvider.query(query).pipe(function(data) {
 			var completions = [];
@@ -110,7 +109,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 				completions.push($.extend({value: completion.name, type: completionType.type, icon: completionType.icon}, {completion: completion, type: completionType}));
 			}
-			
+
 			var response = {
 				from: cm.posFromIndex(data.from),
 				to: cm.posFromIndex(data.to),
@@ -120,7 +119,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			if ( typeof c === "" ) {
 				c(response);
 			}
-			
+
 			return response;
 		}, function(error){
 			return null;

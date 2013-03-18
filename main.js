@@ -51,12 +51,15 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 		Hints.prototype.getHints = function (implicitChar) {
-			return TernManager.getHints().pipe(function(response) {
+			var promise = $.Deferred();
+
+			TernManager.getHints().done(function(response) {
 				var query = "";
 			  	var hints = HintsTransform(response.list, query);
-				console.log(hints);
-				return hints;
+				promise.resolve(hints);
 			});
+
+			return promise;
 		}
 
 
