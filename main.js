@@ -163,7 +163,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 		this._server.request( query, function(error, data) {
 			if (error) {
-				promise.fail(error);
+				promise.reject(error);
 			}
 			else {
 				console.log(data);
@@ -196,7 +196,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 				httpCache[name] = data;
 				c(null, data);
 			})
-			.fail(function(){
+			.reject(function(){
 				c(null, "");
 			});
 		}
