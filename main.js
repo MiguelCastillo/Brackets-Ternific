@@ -35,19 +35,15 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
 
 	var ternRequire = window.require.config({
-	  	"baseUrl": require.toUrl("./tern"),
-		"map":{
-			"*": {
-				"acorn/acorn": "node_modules/acorn/acorn",
-				"acorn/acorn_loose": "node_modules/acorn/acorn_loose",
-				"acorn/util/walk": "node_modules/acorn/util/walk"
-			}
+		"baseUrl": require.toUrl("./tern/"),
+		"paths": {
+			"acorn": "node_modules/acorn"
 		},
 		waitSeconds: 5
 	});
 
 
-    /**
+	/**
 	* tern server, which manager all the processing with an in process
 	* service.
 	*/
@@ -131,9 +127,9 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		ternDocuments.apply(this, arguments);
 		var _self = this;
 
-	  	ternRequire(["tern"], function(tern) {
+		ternRequire(["tern"], function(tern) {
 
-		  	//
+			//
 			// Load up all the definitions that we will need to start with.
 			//
 			require(["text!./tern/ecma5.json", "text!./tern/browser.json",
@@ -301,7 +297,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		var editor = EditorManager.getCurrentFullEditor();
 
 		// Make sure we have a valid editor
-		if (!editor && !editor._codeMirror) {
+		if (!editor || !editor._codeMirror) {
 			return;
 		}
 
@@ -477,21 +473,21 @@ define(["require", "exports", "module"], function (require, exports, module) {
 	}
 
 
-    var BracketsHintProvider = {
-        hasHints: function (editor, implicitChar){
+	var BracketsHintProvider = {
+		hasHints: function (editor, implicitChar){
 
-        },
-        getHints: function (implicitChar) {
+		},
+		getHints: function (implicitChar) {
 
-        },
-        insertHint: function (hint) {
+		},
+		insertHint: function (hint) {
 
-        }
-    }
+		}
+	}
 
 
 
-    var promises = [
+	var promises = [
 		$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
 		ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
 	];

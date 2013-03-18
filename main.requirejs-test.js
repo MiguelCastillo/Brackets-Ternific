@@ -34,26 +34,12 @@ define(["require", "exports", "module"], function (require, exports, module) {
 		ExtensionUtils      = brackets.getModule("utils/ExtensionUtils");
 
   	/*
-	* Circular dependecies:
-	* http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requiesjs-amd
-	*
-	* Nice requireJs example:
-	* http://stackoverflow.com/questions/11031485/require-js-is-hurting-my-brain-some-fundamental-questions-about-the-way-it-load
-	*
-	*/
-  	//  I am really jumping through hoops here!
-
-  	/*
     * requirejs support in tern
 	*/
 	var ternRequire = window.require.config({
-	  	"baseUrl": require.toUrl("./tern"),
-		"map":{
-			"*": {
-				"acorn/acorn": "node_modules/acorn/acorn",
-				"acorn/acorn_loose": "node_modules/acorn/acorn_loose",
-				"acorn/util/walk": "node_modules/acorn/util/walk"
-			}
+		"baseUrl": require.toUrl("./tern/"),
+		"paths": {
+			"acorn": "node_modules/acorn"
 		},
 		waitSeconds: 5
 	});
