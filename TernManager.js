@@ -31,11 +31,11 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		DOUBLE_QUOTE    = "\"";
 
 	var _ternProvider = null,
-		_editor = null;
+		_cm = null;
 
 
 	/**
-	*  Controls the interaction between brackets and tern
+	*  Controls the interaction between codemirror and tern
 	*/
 	var ternManager = (function() {
 		var onReady = $.Deferred();
@@ -50,46 +50,54 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	})();
 
 
-	ternManager.registerEditor = function ( editor ) {
-		// Make sure we have a valid editor
-		if (!editor || !editor._codeMirror) {
-			return;
+	/**
+	* Register a document with tern
+	*
+	* @param: cm is a code mirror instance we will be operating on.
+	* We register listeners for keybinding and we also extract the
+	* document content and feed it to tern.
+	*
+	* @param: file is just a file object.  The only thing we currenly
+	* use is the fullPath, which also includes the file name.  We
+	* map the code mirror instance to that file name.
+	*
+	*/
+	ternManager.registerDoc = function ( cm, file ) {
+		if (!cm) {
+			throw new TypeError("CodeMirror instance must be valid");
 		}
 
-		var cm = editor._codeMirror;
+		if (!file) {
+			throw new TypeError("File object must be valid");
+		}
 
 		// if already bound, then exit...
 		if ( cm._ternBindings ){
 			return;
 		}
 
-		_editor = editor;
-		cm._ternBindings = ternManager;
+		_cm = cm;
+		_cm._ternBindings = ternManager;
 
-		var file = editor.document.file,
-			keyMap = {
+		var keyMap = {
 			  "name": "ternBindings",
 			  "Ctrl-I": ternManager.findType,
 			  "Alt-.": ternManager.jumpToDef,
 			  "Alt-,": ternManager.jumpBack,
 			  "Ctrl-R": ternManager.renameVar
-		  };
+		};
 
 		// Register key events
-		cm.addKeyMap(keyMap);
+		_cm.addKeyMap(keyMap);
 		_ternProvider.registerDoc(file.fullPath, cm.getDoc());
 	}
 
 
-	ternManager.unregisterEditor = function ( editor ) {
-		// Make sure we have a valid editor
-		if (!editor || !editor._codeMirror) {
-			return;
-		}
-
-		var cm = editor._codeMirror;
-
-		// if already bound, then exit...
+	/**
+	* Unregister a previously registered document.  We simply unbind
+	* any keybindings we have registered
+	*/
+	ternManager.unregisterDoc = function ( cm ) {
 		if ( !cm._ternBindings ) {
 			return;
 		}
@@ -99,10 +107,15 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	}
 
 
-	ternManager.canHint = function (_char) {
+	/**
+	* Utility function that helps determine if the the parameter _char
+	* is one that we can start or continue hinting on.  There are some
+	* characters that are not hintable.
+	*/
+	ternManager.canHint = function (_char, cm) {
 		// Support for inner mode
 		// var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
-		var cm = getCM();
+		cm = cm || getCM();
 
 		if (_char == null || maybeIdentifier(_char)) {
 			var cursor = cm.getCursor();
@@ -114,68 +127,98 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	}
 
 
-	ternManager.insertHint = function(hint, hints) {
-	  	var cm = getCM();
+	/**
+	* Inserts a hint from the hints object.
+	* The idea here is that getHints is called first to build a valid list of hints.
+	* Then select one of the hint items from hints returned by getHints.  The selected
+	* hint and the hints object are the parameters you supply in insertHint.
+	*
+	* 1. call getHints.
+	* 2. select a hint from the hints returned by getHints
+	* 3. feed the selected hint and the list of hints back in insertHint
+	*/
+	ternManager.insertHint = function( hint, hints ) {
+		if ( !hint || !hints ) {
+			throw new TypeError("Must provide valid hint and hints object as they are returned by calling getHints");
+		}
 
-	  	var completion  = hint.value,
-		  	cursor      = cm.getCursor(),
-		  	token       = cm.getTokenAt(cursor),
-		  	query       = hints.query.details.text,
-		  	start       = {line: cursor.line, ch: cursor.ch - query.length},
-		  	end         = {line: cursor.line, ch: (token ? token.end : cursor.ch)};
+		cm = hints.cm || getCM();
 
-	    // Replace the current token with the completion
-        cm.getDoc().replaceRange(completion, start, end);
+		var completion  = hint.value,
+			cursor      = cm.getCursor(),
+			token       = cm.getTokenAt(cursor),
+			query       = hints.query.details.text,
+			start       = {line: cursor.line, ch: cursor.ch - query.length},
+			end         = {line: cursor.line, ch: (token ? token.end : cursor.ch)};
+
+		// Replace the current token with the completion
+		cm.getDoc().replaceRange(completion, start, end);
+
+		if ( ternManager.trace === true ) {
+			console.log(hint, hints);
+		}
 	}
 
 
-	ternManager.getHints = function(cm) {
-		cm = cm || getCM();
+	/**
+	* Interface to ask tern for hints.  You can pass in any particular code
+	* mirror instance you want to operate on or let ternManager pick the last
+	* code mirror instance that was registered via registerDoc.
+	*/
+	ternManager.getHints = function( cm ) {
 		var query = buildQuery(cm, "completions");
 
-		return _ternProvider.query(query).pipe(function(data) {
-			var completions = [];
+		return _ternProvider.query(query.data)
+			.pipe(function(data) {
+				var completions = [];
 
-			for (var i = 0; i < data.completions.length; ++i) {
-				var completion = data.completions[i],
-					completionType = typeDetails(completion.type),
-					className = completionType.icon;
+				for (var i = 0; i < data.completions.length; i++) {
+					var completion = data.completions[i],
+						completionType = typeDetails(completion.type),
+						className = completionType.icon;
 
-				if (completion.guess) {
-					className += " Tern-completion-guess";
+					if (completion.guess) {
+						className += " Tern-completion-guess";
+					}
+
+					var _completion = {
+						value: completion.name,
+						type: completionType.name,
+						icon: completionType.icon,
+						className: className,
+						_completion: completion,
+						_type: completionType
+					};
+
+					completions.push(_completion);
 				}
 
-				var _completion = {
-					value: completion.name,
-					type: completionType.type,
-					icon: completionType.icon,
-					className: className,
-				  	_completion: completion,
-				  	_type: completionType
+				query.tern = data;
+				query.details = queryDetails(query);
+
+				var _hints = {
+					list: completions,
+					query: query,
+					cm: query.cm
 				};
 
-				completions.push(_completion);
-			}
+				if ( ternManager.trace === true ) {
+					console.log(_hints);
+				}
 
-		  	query.details = queryDetails(data);
-
-		  	var hints = {
-				list: completions,
-				query: query
-			};
-
-			return hints;
-		},
-		function(error) {
-			return error;
-		});
+				return _hints;
+			},
+			function(error) {
+				return error;
+			});
 	}
 
 
-	ternManager.findType = function(cm) {
+	ternManager.findType = function( cm ) {
 		var query = buildQuery(cm, "type");
 
-		_ternProvider.query(query).done( function(data) {
+		_ternProvider.query(query.data)
+			.pipe( function(data) {
 				var findTypeType = typeDetails(data.type),
 					className = findTypeType.icon;
 
@@ -185,16 +228,22 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 				var _findType = {
 					value: data.name,
-					type: findTypeType.type,
+					type: findTypeType.name,
 					icon: findTypeType.icon,
 					className: className,
-				  	_find: data,
-				  	_type: findTypeType
+					query: query,
+					_find: data,
+					_type: findTypeType,
 				};
 
-				console.log(_findType);
-			})
-			.fail(function( error ){
+				if ( ternManager.trace === true ) {
+					console.log(_findType);
+				}
+
+				return _findType;
+			},
+			function( error ) {
+				return error;
 			});
 	}
 
@@ -212,8 +261,8 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	ternManager.renameVar = function(cm) {
 		var query = buildQuery(cm, "refs");
 
-		_ternProvider.query(query)
-			.done(function(data) {
+		_ternProvider.query(query.data)
+			.pipe(function(data) {
 				var perFile = {};
 
 				for (var i = 0; i < data.refs.length; ++i) {
@@ -230,13 +279,23 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 						//doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
 					}
 				}
-			})
-			.fail(function(error) {
 
+				return perFile;
+			},
+			function(error) {
+				return error;
 			});
 	}
 
 
+	/**
+	* Build a query that corresponds to the code mirror instance. The
+	* returned object is an object with details that tern will use to
+	* query the document.  The object returned also has the instance of
+	* code mirror the query belongs to.  This is needed to complete the
+	* full between a query and operating on the document the query of
+	* done against.
+	*/
 	function buildQuery (cm, query) {
 		cm = cm || getCM();
 
@@ -283,56 +342,69 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		query.file = doc.name;
 
 		return {
-			query: query,
-			files: files
+			data: {
+				query: query,
+				files: files
+			},
+			cm: cm
 		};
 	}
 
 
-  	function queryDetails(query) {
-	  	var cm = getCM();
-
-	  	if ( query ) {
-			var from = cm.posFromIndex(query.from);
-			var to = cm.posFromIndex(query.to);
+	/**
+	* Gets more details about the query itself.  One of the things it
+	* provides is the text for the query...  E.g. What is tern searching
+	* for when we are asking for feedback.
+	*/
+	function queryDetails( _query ) {
+		if ( _query ) {
+			var cm = _query.cm, query = _query.tern;
+			var from = cm.posFromIndex(query.from), to = cm.posFromIndex(query.to);
 			var queryText = cm.getDoc().getRange(from, to);
 
-			return {
-				from: from,
-				to: to,
-				text: queryText
-			};
-		}
-	  	else {
-			var cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
+			var cursor = cm.getCursor();
+			var _from = cm.indexFromPos(cursor);
+			var pos = cm.posFromIndex(cursor);
 
-			// Find some details about the query
 			var details = {
-				text: "",
-				cursor: cursor,
-				token: token
+				text: queryText,
+				from: from,
+				to: to
 			};
-
-			if (details.token) {
-				if (details.token.string !== ".") {
-					var length = details.token.string.length - (details.token.end - details.token.start);
-					details.text = details.token.string.substring(0, length).trim();
-				}
-			}
 
 			return details;
 		}
+
+		/**
+		* This code is here just as a reference for myself...  I used something like
+		* this at some point and don't want to remove it just yet.  I am testing performance
+		* implication of calling getRange over calling getCursor + getTokenAt...
+		else {
+			var cm = getCM(), cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
+			var from = cm.indexFromPos(cm.getCursor());
+
+			var queryText = "";
+
+			if (token && token.string !== ".") {
+				var length = token.string.length - (token.end - token.start);
+				queryText = details.token.string.substring(0, length).trim();
+			}
+
+			// Find some details about the query
+			var details = {
+				text: queryText,
+				from: from,
+				to: {}
+			};
+
+			return details;
+		}
+		*/
 	}
 
 
-
-  	function getCM(cm) {
-		if ( !cm ) {
-			// Change the current editor in view
-			cm = _editor && _editor._codeMirror;
-		}
-
-		return cm;
+	function getCM( cm ) {
+		return cm || _cm;
 	}
 
 
@@ -357,10 +429,14 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 		return {
 			icon: "Tern-completion Tern-completion-" + suffix,
-			type: suffix
+			name: suffix
 		};
 	}
 
+
+	///
+	///  The functions below were taken from brackets javascript hinting engine.
+	///
 
 	/**
 	 * Is the string key perhaps a valid JavaScript identifier?

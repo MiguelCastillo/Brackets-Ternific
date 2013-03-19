@@ -49,11 +49,11 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 		Hints.prototype.getHints = function (implicitChar) {
-		  	var _self = this;
+			var _self = this;
 			var promise = $.Deferred();
 
 			TernManager.getHints().done(function(hints) {
-			  	_self.hints = hints;
+				_self.hints = hints;
 				var transformedHints = HintsTransform(hints.list, hints.query.details.text);
 				promise.resolve(transformedHints);
 			})
@@ -66,10 +66,10 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 		Hints.prototype.insertHint = function ($hintObj) {
-		  	var hint = $hintObj.data("token");
-		  	TernManager.insertHint(hint, this.hints);
+			var hint = $hintObj.data("token");
+			TernManager.insertHint(hint, this.hints);
 
-		  	// Return false to indicate that another hinting session is not needed
+			// Return false to indicate that another hinting session is not needed
 			return false;
 		}
 
@@ -84,10 +84,12 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 		 * @param {Editor} previous - the previous editor context
 		 */
 		function handleActiveEditorChange(event, current, previous) {
-			TernManager.registerEditor(current);
+			if ( current ) {
+				TernManager.registerDoc(current._codeMirror, current.document.file);
+			}
 
 			if ( previous ) {
-				TernManager.unregisterEditor(previous);
+				TernManager.unregisterDoc(previous._codeMirror);
 			}
 		}
 
