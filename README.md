@@ -17,7 +17,7 @@ Requirements:<br>
 
 Setup:<br>
 1. Download the extension and add it in brackets.<br>
-2. Download https://github.com/marijnh/tern ann place it in the same directory as the extension<br>
+2. Download https://github.com/marijnh/tern and place it in the same directory as the extension<br>
 3. Go to tern directory and run "npm install". This will download acorn so you are set with dependencies<br>
 
 
