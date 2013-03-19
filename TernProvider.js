@@ -123,7 +123,7 @@ define(function(require, exports, module) {
 			//
 			// Load up all the definitions that we will need to start with.
 			//
-			require(["text!./tern/ecma5.json", "text!./tern/browser.json",
+			require(["text!./reserved.json", "text!./tern/ecma5.json", "text!./tern/browser.json",
 					 "text!./tern/plugin/requirejs/requirejs.json", "text!./tern/jquery.json"],
 				function( _ecma5Env, _browserEnv, _requireEnv, _jQueryEnv ) {
 					var environment = Array.prototype.slice.call(arguments, 0);

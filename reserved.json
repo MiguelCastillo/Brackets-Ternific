@@ -1,0 +1,78 @@
+{
+  "!name": "reseverd",
+  "break": {
+    "!type": ""
+  },
+  "case": {
+    "!type": ""
+  },
+  "catch": {
+    "!type": ""
+  },
+  "continue": {
+    "!type": ""
+  },
+  "debugger": {
+    "!type": ""
+  },
+  "default": {
+    "!type": ""
+  },
+  "delete": {
+    "!type": ""
+  },
+  "do": {
+    "!type": ""
+  },
+  "else": {
+    "!type": ""
+  },
+  "finally": {
+    "!type": ""
+  },
+  "for": {
+    "!type": ""
+  },
+  "function": {
+    "!type": ""
+  },
+  "if": {
+    "!type": ""
+  },
+  "instanceOf": {
+    "!type": ""
+  },
+  "new": {
+    "!type": ""
+  },
+  "return": {
+    "!type": ""
+  },
+  "switch": {
+    "!type": ""
+  },
+  "this": {
+    "!type": ""
+  },
+  "throw": {
+    "!type": ""
+  },
+  "try": {
+    "!type": ""
+  },
+  "typeof": {
+    "!type": ""
+  },
+  "var": {
+    "!type": ""
+  },
+  "void": {
+    "!type": ""
+  },
+  "while": {
+    "!type": ""
+  },
+  "with": {
+    "!type": ""
+  }
+}
