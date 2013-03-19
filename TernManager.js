@@ -25,19 +25,27 @@
 
 define(["require", "exports", "module", "TernProvider"], function(require, exports, module, TernProvider) {
 
+	var EditorManager   = brackets.getModule("editor/EditorManager");
+
+	var SINGLE_QUOTE    = "\'",
+		DOUBLE_QUOTE    = "\"";
+
+	var _ternProvider = null,
+		_editor = null;
+
+
 	/**
 	*  Controls the interaction between brackets and tern
 	*/
-	var _editor = null;
 	var ternManager = (function() {
 		var onReady = $.Deferred();
-		//var ternProvider = new TernProvider.remote();
-		var ternProvider = new TernProvider.local();
-		ternProvider.onReady(onReady.resolve);
+
+		//_ternProvider = new TernProvider.remote();
+		_ternProvider = new TernProvider.local();
+		_ternProvider.onReady(onReady.resolve);
 
 		return {
-			onReady: onReady.promise().done,
-			_ternProvider: ternProvider
+			onReady: onReady.promise().done
 		};
 	})();
 
@@ -49,31 +57,31 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		}
 
 		var cm = editor._codeMirror;
-	  	_editor = editor;
 
 		// if already bound, then exit...
 		if ( cm._ternBindings ){
 			return;
 		}
 
+		_editor = editor;
 		cm._ternBindings = ternManager;
 
-		var file = editor.document.file;
-		var keyMap = {
-			"name": "ternBindings",
-			"Ctrl-I": ternManager.findType,
-			"Alt-.": ternManager.jumpToDef,
-			"Alt-,": ternManager.jumpBack,
-			"Ctrl-R": ternManager.renameVar
-		};
+		var file = editor.document.file,
+			keyMap = {
+			  "name": "ternBindings",
+			  "Ctrl-I": ternManager.findType,
+			  "Alt-.": ternManager.jumpToDef,
+			  "Alt-,": ternManager.jumpBack,
+			  "Ctrl-R": ternManager.renameVar
+		  };
 
 		// Register key events
 		cm.addKeyMap(keyMap);
-		ternManager._ternProvider.registerDoc(file.fullPath, cm.getDoc());
+		_ternProvider.registerDoc(file.fullPath, cm.getDoc());
 	}
 
 
-    ternManager.unregisterEditor = function ( editor ) {
+	ternManager.unregisterEditor = function ( editor ) {
 		// Make sure we have a valid editor
 		if (!editor || !editor._codeMirror) {
 			return;
@@ -86,53 +94,96 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			return;
 		}
 
-        cm.removeKeyMap( "ternBindings" );
-        delete cm._ternBindings;
-    }
+		cm.removeKeyMap( "ternBindings" );
+		delete cm._ternBindings;
+	}
 
 
+	ternManager.canHint = function (_char) {
+		// Support for inner mode
+		// var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
+		var cm = getCM();
 
-	ternManager.getHints = function(cm, c) {
-	  	cm = cm || _editor._codeMirror;
-		var query = ternManager.buildQuery(cm, "completions");
+		if (_char == null || maybeIdentifier(_char)) {
+			var cursor = cm.getCursor();
+			var token = cm.getTokenAt(cursor);
+			return hintable(token);
+		}
 
-		return ternManager._ternProvider.query(query).pipe(function(data) {
+		return false;
+	}
+
+
+	ternManager.getHints = function(cm) {
+		cm = cm || getCM();
+		var query = buildQuery(cm, "completions");
+
+		return _ternProvider.query(query).pipe(function(data) {
 			var completions = [];
+
 			for (var i = 0; i < data.completions.length; ++i) {
 				var completion = data.completions[i],
 					completionType = typeDetails(completion.type),
 					className = completionType.icon;
 
-				if (data.guess) {
+				if (completion.guess) {
 					className += " Tern-completion-guess";
 				}
 
-				completions.push($.extend({value: completion.name, type: completionType.type, icon: completionType.icon}, {completion: completion, type: completionType}));
+				var _completion = {
+					value: completion.name,
+					type: completionType.type,
+					icon: completionType.icon,
+					className: className
+				};
+
+				$.extend(_completion, {
+					completion: completion,
+					type: completionType
+				});
+
+				completions.push(_completion);
 			}
 
-			var response = {
+			var hints = {
 				from: cm.posFromIndex(data.from),
 				to: cm.posFromIndex(data.to),
 				list: completions
 			};
 
-			if ( typeof c === "" ) {
-				c(response);
-			}
-
-			return response;
-		}, function(error){
-			return null;
+		  	console.log(hints);
+			return hints;
+		},
+		function(error) {
+			return error;
 		});
 	}
 
 
 	ternManager.findType = function(cm) {
-	  	cm = cm || _editor._codeMirror;
-		var query = ternManager.buildQuery(cm, "type");
+		var query = buildQuery(cm, "type");
 
-		ternManager._ternProvider.query(query)
+		_ternProvider.query(query)
 			.done( function(data) {
+				var findTypeType = typeDetails(data.type),
+					className = findTypeType.icon;
+
+				if (data.guess) {
+					className += " Tern-completion-guess";
+				}
+
+				var _findType = {
+					value: data.name,
+					type: findTypeType.type,
+					icon: findTypeType.icon,
+					className: className
+				};
+
+				$.extend(_findType, {
+					find: data
+				});
+
+			  	console.log(_findType);
 			})
 			.fail(function( error ){
 			});
@@ -140,22 +191,19 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 
 	ternManager.jumpToDef = function(cm) {
-	  	cm = cm || _editor._codeMirror;
 		console.log("jumpToDef");
 	}
 
 
 	ternManager.jumpBack = function(cm) {
-	  	cm = cm || _editor._codeMirror;
 		console.log("jumpBack");
 	}
 
 
 	ternManager.renameVar = function(cm) {
-	  	cm = cm || _editor._codeMirror;
-		var query = ternManager.buildQuery(cm, "refs");
+		var query = buildQuery(cm, "refs");
 
-		ternManager._ternProvider.query(query)
+		_ternProvider.query(query)
 			.done(function(data) {
 				var perFile = {};
 
@@ -165,7 +213,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 				}
 
 				for (var file in perFile) {
-					var refs = perFile[file], doc = ternManager._ternProvider.findDocByName(file).doc;
+					var refs = perFile[file], doc = _ternProvider.findDocByName(file).doc;
 					refs.sort(function(a, b) { return b.start - a.start; });
 
 					for (var i = 0; i < refs.length; ++i) {
@@ -180,8 +228,14 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	}
 
 
-	ternManager.buildQuery = function(cm, query) {
-	  	cm = cm || _editor._codeMirror;
+	function buildQuery (cm, query) {
+		cm = cm || getCM();
+
+		if ( !cm ) {
+			throw new TypeError("Invalid CodeMirror instance");
+		}
+
+
 		var startPos, endPos, offset = 0, files = [];
 
 		// 1. Let's make sure we have a query object
@@ -217,13 +271,23 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			startPos = endPos;
 		}
 
-		var doc = ternManager._ternProvider.findDocByInstance(cm.getDoc());
+		var doc = _ternProvider.findDocByInstance(cm.getDoc());
 		query.file = doc.name;
 
 		return {
 			query: query,
 			files: files
 		};
+	}
+
+
+	function getCM(cm) {
+		if ( !cm ) {
+			// Change the current editor in view
+			cm = _editor && _editor._codeMirror;
+		}
+
+		return cm;
 	}
 
 
@@ -247,14 +311,45 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		}
 
 		return {
-		  	icon: "Tern-completion Tern-completion-" + suffix,
-		  	type: suffix
+			icon: "Tern-completion Tern-completion-" + suffix,
+			type: suffix
 		};
 	}
 
 
-    exports.ternManager = ternManager;
-    return ternManager;
+	/**
+	 * Is the string key perhaps a valid JavaScript identifier?
+	 *
+	 * @param {string} key - the string to test
+	 * @return {boolean} - could key be a valid identifier?
+	 */
+	function maybeIdentifier(key) {
+		return (/[0-9a-z_.\$]/i).test(key) ||
+			(key.indexOf(SINGLE_QUOTE) === 0) ||
+			(key.indexOf(DOUBLE_QUOTE) === 0);
+	}
+
+	/**
+	 * Is the token's class hintable? (A very conservative test.)
+	 *
+	 * @param {Object} token - the token to test for hintability
+	 * @return {boolean} - could the token be hintable?
+	 */
+	function hintable(token) {
+		switch (token.className) {
+		case "comment":
+		case "number":
+		case "regexp":
+			return false;
+		default:
+			return true;
+		}
+	}
+
+
+
+	exports.ternManager = ternManager;
+	return ternManager;
 
 });
 

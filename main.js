@@ -38,15 +38,13 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
   	function InitHints () {
 		var jsMode = "javascript";
 
-		var session     = null;
-
 
 		function Hints () {
 		}
 
 
 		Hints.prototype.hasHints = function (editor, implicitChar) {
-			return true;
+		  	return TernManager.canHint(implicitChar);
 		}
 
 
@@ -57,6 +55,8 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 				var query = "";
 			  	var hints = HintsTransform(response.list, query);
 				promise.resolve(hints);
+			}).fail(function(error) {
+			  	promise.reject(error);
 			});
 
 			return promise;
@@ -66,6 +66,7 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 		Hints.prototype.insertHint = function (hint) {
 
 		}
+
 
 
 		/*
@@ -78,7 +79,7 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 		 * @param {Editor} previous - the previous editor context
 		 */
 		function handleActiveEditorChange(event, current, previous) {
-			TernManager.registerEditor(current);
+		  	TernManager.registerEditor(current);
 
 			if ( previous ) {
 				TernManager.unregisterEditor(previous);
