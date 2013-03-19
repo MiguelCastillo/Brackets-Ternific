@@ -35,7 +35,7 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 		CodeHintManager 	= brackets.getModule("editor/CodeHintManager");
 
 
-  	function InitHints () {
+	function InitHints () {
 		var jsMode = "javascript";
 
 
@@ -44,29 +44,29 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 		Hints.prototype.hasHints = function (editor, implicitChar) {
-		  	return TernManager.canHint(implicitChar);
+			return TernManager.canHint(implicitChar);
 		}
 
 
 		Hints.prototype.getHints = function (implicitChar) {
 			var promise = $.Deferred();
 
-			TernManager.getHints().done(function(response) {
-				var query = "";
-			  	var hints = HintsTransform(response.list, query);
-				promise.resolve(hints);
-			}).fail(function(error) {
-			  	promise.reject(error);
+			TernManager.getHints().done(function(hints) {
+				var transformedHints = HintsTransform(hints.list, hints.query.details.text);
+				promise.resolve(transformedHints);
+			})
+			.fail(function(error) {
+				promise.reject(error);
 			});
 
 			return promise;
 		}
 
 
-		Hints.prototype.insertHint = function (hint) {
-
+		Hints.prototype.insertHint = function ($hint) {
+			// Return false to indicate that another hinting session is not needed
+			return false;
 		}
-
 
 
 		/*
@@ -79,7 +79,7 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 		 * @param {Editor} previous - the previous editor context
 		 */
 		function handleActiveEditorChange(event, current, previous) {
-		  	TernManager.registerEditor(current);
+			TernManager.registerEditor(current);
 
 			if ( previous ) {
 				TernManager.unregisterEditor(previous);
@@ -99,7 +99,7 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 
-  	var promises = [
+	var promises = [
 		$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
 		ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
 	];

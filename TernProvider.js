@@ -23,7 +23,6 @@
  */
 
 
-
 define(function(require, exports, module) {
 
 	var ternRequire = window.require.config({
@@ -152,6 +151,17 @@ define(function(require, exports, module) {
 
 	localDocuments.prototype.query = function( query ) {
 		var promise = $.Deferred();
+		var doc = this.findDocByName( query.query.file );
+
+		if ( !query.files ) {
+			query.files = [];
+		}
+
+		query.files.push({type: "full",
+					name: doc.name,
+					text: doc.doc.getValue()
+				});
+
 
 		this._server.request( query, function(error, data) {
 			if (error) {

@@ -148,10 +148,10 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			var hints = {
 				from: cm.posFromIndex(data.from),
 				to: cm.posFromIndex(data.to),
-				list: completions
+				list: completions,
+				query: query
 			};
 
-		  	console.log(hints);
 			return hints;
 		},
 		function(error) {
@@ -183,7 +183,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 					find: data
 				});
 
-			  	console.log(_findType);
+				console.log(_findType);
 			})
 			.fail(function( error ){
 			});
@@ -235,8 +235,8 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			throw new TypeError("Invalid CodeMirror instance");
 		}
 
-
 		var startPos, endPos, offset = 0, files = [];
+		var cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
 
 		// 1. Let's make sure we have a query object
 		//
@@ -274,9 +274,25 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		var doc = _ternProvider.findDocByInstance(cm.getDoc());
 		query.file = doc.name;
 
+
+		// Find some details about the query
+		var details = {
+			text: "",
+			cursor: cursor,
+			token: token
+		};
+
+		if (details.token) {
+			if (details.token.string !== ".") {
+				var length = details.token.string.length - (details.token.end - details.cursor.ch);
+				details.text = details.token.string.substring(0, length).trim();
+			}
+		}
+
 		return {
 			query: query,
-			files: files
+			files: files,
+			details: details
 		};
 	}
 
@@ -329,6 +345,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			(key.indexOf(DOUBLE_QUOTE) === 0);
 	}
 
+
 	/**
 	 * Is the token's class hintable? (A very conservative test.)
 	 *
@@ -345,7 +362,6 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			return true;
 		}
 	}
-
 
 
 	exports.ternManager = ternManager;
