@@ -166,7 +166,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	* code mirror instance that was registered via registerDoc.
 	*/
 	ternManager.getHints = function( cm ) {
-		var query = buildQuery(cm, "completions");
+		var query = buildQuery(cm, {type: "completions", types: true});
 
 		return _ternProvider.query(query.data)
 			.pipe(function(data) {
@@ -215,7 +215,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 
 	ternManager.findType = function( cm ) {
-		var query = buildQuery(cm, "type");
+		var query = buildQuery(cm, {type: "type"});
 
 		_ternProvider.query(query.data)
 			.pipe( function(data) {
@@ -259,7 +259,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 
 	ternManager.renameVar = function(cm) {
-		var query = buildQuery(cm, "refs");
+		var query = buildQuery(cm, {type: "refs"});
 
 		_ternProvider.query(query.data)
 			.pipe(function(data) {
@@ -359,17 +359,13 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	function queryDetails( _query ) {
 		if ( _query ) {
 			var cm = _query.cm, query = _query.tern;
-			var from = cm.posFromIndex(query.from), to = cm.posFromIndex(query.to);
-			var queryText = cm.getDoc().getRange(from, to);
-
-			var cursor = cm.getCursor();
-			var _from = cm.indexFromPos(cursor);
-			var pos = cm.posFromIndex(cursor);
+			var start = cm.posFromIndex(query.start), end = cm.posFromIndex(query.end);
+			var queryText = cm.getDoc().getRange(start, end);
 
 			var details = {
 				text: queryText,
-				from: from,
-				to: to
+				start: start,
+				end: end
 			};
 
 			return details;
