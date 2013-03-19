@@ -118,7 +118,7 @@ define(function(require, exports, module) {
 		ternDocuments.apply(this, arguments);
 		var _self = this;
 
-		ternRequire(["tern"], function(tern) {
+		ternRequire(["tern", "plugin/requirejs/requirejs"], function(tern) {
 
 			//
 			// Load up all the definitions that we will need to start with.

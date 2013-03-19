@@ -49,7 +49,14 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 		Hints.prototype.getHints = function (implicitChar) {
-			var _self = this;
+		  	// If it is not an implicit hint start and it is not a
+		  	// character that be used for hinting, then we don not
+		  	// make any hinting requests.
+		  	if ( implicitChar !== null && TernManager.canHint(implicitChar) === false ) {
+				return null;
+			}
+
+		  	var _self = this;
 			var promise = $.Deferred();
 
 			TernManager.getHints().done(function(hints) {
