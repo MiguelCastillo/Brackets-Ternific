@@ -114,6 +114,21 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	}
 
 
+	ternManager.insertHint = function(hint, hints) {
+	  	var cm = getCM();
+
+	  	var completion  = hint.value,
+		  	cursor      = cm.getCursor(),
+		  	token       = cm.getTokenAt(cursor),
+		  	query       = hints.query.details.text,
+		  	start       = {line: cursor.line, ch: cursor.ch - query.length},
+		  	end         = {line: cursor.line, ch: (token ? token.end : cursor.ch)};
+
+	    // Replace the current token with the completion
+        cm.getDoc().replaceRange(completion, start, end);
+	}
+
+
 	ternManager.getHints = function(cm) {
 		cm = cm || getCM();
 		var query = buildQuery(cm, "completions");
@@ -134,20 +149,17 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 					value: completion.name,
 					type: completionType.type,
 					icon: completionType.icon,
-					className: className
+					className: className,
+				  	_completion: completion,
+				  	_type: completionType
 				};
-
-				$.extend(_completion, {
-					completion: completion,
-					type: completionType
-				});
 
 				completions.push(_completion);
 			}
 
-			var hints = {
-				from: cm.posFromIndex(data.from),
-				to: cm.posFromIndex(data.to),
+		  	query.details = queryDetails(data);
+
+		  	var hints = {
 				list: completions,
 				query: query
 			};
@@ -163,8 +175,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	ternManager.findType = function(cm) {
 		var query = buildQuery(cm, "type");
 
-		_ternProvider.query(query)
-			.done( function(data) {
+		_ternProvider.query(query).done( function(data) {
 				var findTypeType = typeDetails(data.type),
 					className = findTypeType.icon;
 
@@ -176,12 +187,10 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 					value: data.name,
 					type: findTypeType.type,
 					icon: findTypeType.icon,
-					className: className
+					className: className,
+				  	_find: data,
+				  	_type: findTypeType
 				};
-
-				$.extend(_findType, {
-					find: data
-				});
 
 				console.log(_findType);
 			})
@@ -236,7 +245,6 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		}
 
 		var startPos, endPos, offset = 0, files = [];
-		var cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
 
 		// 1. Let's make sure we have a query object
 		//
@@ -274,30 +282,51 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 		var doc = _ternProvider.findDocByInstance(cm.getDoc());
 		query.file = doc.name;
 
-
-		// Find some details about the query
-		var details = {
-			text: "",
-			cursor: cursor,
-			token: token
-		};
-
-		if (details.token) {
-			if (details.token.string !== ".") {
-				var length = details.token.string.length - (details.token.end - details.cursor.ch);
-				details.text = details.token.string.substring(0, length).trim();
-			}
-		}
-
 		return {
 			query: query,
-			files: files,
-			details: details
+			files: files
 		};
 	}
 
 
-	function getCM(cm) {
+  	function queryDetails(query) {
+	  	var cm = getCM();
+
+	  	if ( query ) {
+			var from = cm.posFromIndex(query.from);
+			var to = cm.posFromIndex(query.to);
+			var queryText = cm.getDoc().getRange(from, to);
+
+			return {
+				from: from,
+				to: to,
+				text: queryText
+			};
+		}
+	  	else {
+			var cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
+
+			// Find some details about the query
+			var details = {
+				text: "",
+				cursor: cursor,
+				token: token
+			};
+
+			if (details.token) {
+				if (details.token.string !== ".") {
+					var length = details.token.string.length - (details.token.end - details.token.start);
+					details.text = details.token.string.substring(0, length).trim();
+				}
+			}
+
+			return details;
+		}
+	}
+
+
+
+  	function getCM(cm) {
 		if ( !cm ) {
 			// Change the current editor in view
 			cm = _editor && _editor._codeMirror;
