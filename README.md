@@ -21,6 +21,14 @@ Setup:<br>
 3. Go to tern directory and run "npm install". This will download acorn so you are set with dependencies<br>
 
 
+Credit
+=============
+
+1. Brackets' javascript hinting has been used and code has been lifted and integrated into this extension.<br>
+2. Code has been taken from tern demo.js in order to make tern integration possible.  Thanks Marijn!<br>
+
+
+
 License
 =============
 
