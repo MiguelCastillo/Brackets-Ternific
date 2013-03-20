@@ -170,6 +170,10 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	ternManager.getHints = function( cm ) {
 		cm = getCM(cm);
 
+	  	if ( !cm ){
+		 	return $.Deferred().reject();
+		}
+
 		return _ternProvider.query(cm, {type: "completions", types: true})
 			.pipe(function(data, query) {
 				var completions = [];
@@ -216,7 +220,11 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	ternManager.findType = function( cm ) {
 		cm = getCM(cm);
 
-		_ternProvider.query(cm, "type")
+	  	if ( !cm ){
+		 	return $.Deferred().reject();
+		}
+
+	  	_ternProvider.query(cm, "type")
 			.pipe( function(data) {
 				var findTypeType = typeDetails(data.type),
 					className = findTypeType.icon;
@@ -260,7 +268,11 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	ternManager.renameVar = function(cm) {
 		cm = getCM(cm);
 
-		_ternProvider.query( cm, "refs" )
+	  	if ( !cm ){
+		 	return $.Deferred().reject();
+		}
+
+	  	_ternProvider.query( cm, "refs" )
 			.pipe(function(data) {
 				var perFile = {};
 
@@ -355,47 +367,6 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 	exports.ternManager = ternManager;
 	return ternManager;
-
-
-
-
-		/*
-		cm = cm || getCM();
-		var query = TernDemo.query(cm, {type: "completions", types: true});
-
-		return TernDemo.hints(cm).pipe(function(data){
-			console.log(data);
-				var completions = [];
-
-				for (var i = 0; i < data.list.length; i++) {
-					var completion = data.list[i];
-
-					var _completion = {
-						value: completion.text,
-						_completion: completion
-					};
-
-					completions.push(_completion);
-				}
-
-				query.cm = cm;
-				query.tern = data;
-				query.details = queryDetails(query);
-
-				var _hints = {
-					list: completions,
-					query: query,
-					cm: query.cm
-				};
-
-				if ( ternManager.trace === true ) {
-					console.log(_hints);
-				}
-
-				return _hints;
-		});
-		*/
-
 
 });
 
