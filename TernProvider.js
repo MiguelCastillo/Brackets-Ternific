@@ -23,15 +23,7 @@
  */
 
 
-define(function(require, exports, module) {
-
-	var ternRequire = window.require.config({
-		"baseUrl": require.toUrl("./tern/"),
-		"paths": {
-			"acorn": "node_modules/acorn"
-		},
-		waitSeconds: 5
-	});
+define(["require", "exports", "module"], function(require, exports, module) {
 
 
 	/**
@@ -70,45 +62,85 @@ define(function(require, exports, module) {
 	}
 
 
-	ternDocuments.prototype.registerDoc = function(name, doc) {
+	ternDocuments.prototype.findDocByCM = function(cm) {
+		return this.findDocByProperty("cm", cm);
+	}
+
+
+	ternDocuments.prototype.register = function(cm, name) {
 		var _self = this;
 
 		this.addDoc({name: name,
-					 doc: doc,
+					 cm: cm,
+					 doc: cm.getDoc(),
 					 changed: null});
-
-		CodeMirror.on(doc, "change", function(){
-			_self.trackChange.apply(_self, arguments);
-		});
 	}
 
 
-	ternDocuments.prototype.trackChange = function (doc, change) {
-		var _doc = this.findDocByInstance(doc);
+	ternDocuments.prototype.unregister = function(cm) {
 
-		var changed = _doc.changed;
-		if (changed == null){
-			_doc.changed = changed = {
-				from: change.from.line,
-				to: change.from.line
+	}
+
+
+	/**
+	* Build a query that corresponds to the code mirror instance. The
+	* returned object is an object with details that tern will use to
+	* query the document.  The object returned also has the instance of
+	* code mirror the query belongs to.  This is needed to complete the
+	* full between a query and operating on the document the query of
+	* done against.
+	*/
+	ternDocuments.prototype.buildQuery = function( cm, query ) {
+		if ( !cm ) {
+			throw new TypeError("Invalid CodeMirror instance");
+		}
+
+		var startPos, endPos, offset = 0, files = [];
+
+		// 1. Let's make sure we have a query object
+		//
+		if (typeof query == "string") {
+			query = {
+				type: query
 			};
 		}
 
-		var end = change.from.line + (change.text.length - 1);
+		// 2. Define a range where the intellence will be applied on
+		//
+		if (query.end == null && query.start == null) {
+			endPos = cm.getCursor("end");
+			query.end = cm.indexFromPos(endPos);
 
-		if (change.from.line < changed.to) {
-			changed.to = changed.to - (change.to.line - end);
+			if (cm.somethingSelected()) {
+				startPos = cm.getCursor("start")
+				query.start = cm.indexFromPos(startPos);
+			}
+		}
+		else {
+			endPos = query.end
+			query.end = cm.indexFromPos(endPos);
+
+			if (query.start != null) {
+				startPos = query.start;
+				query.start = cm.indexFromPos(startPos);
+			}
 		}
 
-		if (end >= changed.to) {
-			changed.to = end + 1;
+		if ( !startPos ) {
+			startPos = endPos;
 		}
 
-		if (changed.from > change.from.line) {
-			changed.from = change.from.line;
-		}
+		var doc = this.findDocByCM(cm);
+		query.file = doc.name;
+
+		return {
+			data: {
+				query: query,
+				files: files
+			},
+			doc: doc
+		};
 	}
-
 
 
 	/**
@@ -117,6 +149,14 @@ define(function(require, exports, module) {
 	function localDocuments() {
 		ternDocuments.apply(this, arguments);
 		var _self = this;
+
+		var ternRequire = window.require.config({
+			"baseUrl": require.toUrl("./tern/"),
+			"paths": {
+				"acorn": "node_modules/acorn"
+			},
+			waitSeconds: 5
+		});
 
 		ternRequire(["tern", "plugin/requirejs/requirejs"], function(tern) {
 
@@ -149,26 +189,28 @@ define(function(require, exports, module) {
 	localDocuments.prototype.constructor = localDocuments;
 
 
-	localDocuments.prototype.query = function( query ) {
+	localDocuments.prototype.query = function( cm, settings ) {
 		var promise = $.Deferred();
-		var doc = this.findDocByName( query.query.file );
+		var query = this.buildQuery( cm, settings ), queryData = query.data, queryDoc = query.doc;
 
-		if ( !query.files ) {
-			query.files = [];
+		if ( !queryData.files ) {
+			queryData.files = [];
 		}
 
-		query.files.push({type: "full",
-					name: doc.name,
-					text: doc.doc.getValue()
+		queryData.files.push({type: "full",
+					name: queryDoc.name,
+					text: queryDoc.doc.getValue()
 				});
 
 
-		this._server.request( query, function(error, data) {
+		this._server.request( queryData, function(error, data) {
 			if (error) {
 				promise.reject(error);
 			}
 			else {
-				promise.resolve(data);
+				query.result = data;
+				query.details = queryDetails(query);
+				promise.resolve(data, query);
 			}
 		});
 
@@ -197,7 +239,7 @@ define(function(require, exports, module) {
 				httpCache[name] = data;
 				c(null, data);
 			})
-			.reject(function(){
+			.fail(function(){
 				c(null, "");
 			});
 		}
@@ -206,7 +248,6 @@ define(function(require, exports, module) {
 			return c(null, doc ? doc.doc.getValue() : "");
 		}
 	}
-
 
 
 
@@ -236,30 +277,24 @@ define(function(require, exports, module) {
 	}
 
 
-	remoteDocuments.prototype.query = function( query ) {
+	remoteDocuments.prototype.query = function( cm, settings ) {
+		var query = this.buildQuery( cm, settings ), queryData = query.data, queryDoc = query.doc;
 
-
-		//
-		// Raw integration with the server... I have to send the file I am working with.
-		//
-		var doc = this.findDocByName( query.query.file );
-
-		if ( !query.files ) {
-			query.files = [];
+		if ( !queryData.files ) {
+			queryData.files = [];
 		}
 
-		query.files.push({type: "full",
-					name: doc.name,
-					text: doc.doc.getValue()
+		queryData.files.push({type: "full",
+					name: queryDoc.name,
+					text: queryDoc.doc.getValue()
 				});
-
 
 		// Send query to the server
 		return $.ajax({
 			"url": "http://localhost:22922",
 			"type": "POST",
 			"contentType": "application/json; charset=utf-8",
-			"data": JSON.stringify(query)
+			"data": JSON.stringify(queryData)
 		})
 		.pipe(function(data){
 			console.log(data);
@@ -276,6 +311,29 @@ define(function(require, exports, module) {
 	}
 
 
+
+	/**
+	* Gets more details about the query itself.  One of the things it
+	* provides is the text for the query...  E.g. What is tern searching
+	* for when we are asking for feedback.
+	*/
+	function queryDetails( query ) {
+		if ( query ) {
+			var cm = query.doc.cm, result = query.result;
+			var start = cm.posFromIndex(result.start), end = cm.posFromIndex(result.end);
+			var queryText = cm.getDoc().getRange(start, end);
+
+			var details = {
+				text: queryText,
+				start: start,
+				end: end
+			};
+
+			return details;
+		}
+	}
+
+
 	exports.TernDocuments = {
 		remote: remoteDocuments,
 		local: localDocuments
@@ -288,3 +346,4 @@ define(function(require, exports, module) {
 	}
 
 });
+

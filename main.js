@@ -44,19 +44,19 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 
 
 		Hints.prototype.hasHints = function (editor, implicitChar) {
-			return TernManager.canHint(implicitChar);
+			return TernManager.canHint(implicitChar, editor._codeMirror, editor.document.file);
 		}
 
 
 		Hints.prototype.getHints = function (implicitChar) {
-		  	// If it is not an implicit hint start and it is not a
-		  	// character that be used for hinting, then we don not
-		  	// make any hinting requests.
-		  	if ( implicitChar !== null && TernManager.canHint(implicitChar) === false ) {
+			// If it is not an implicit hint start and it is not a
+			// character that be used for hinting, then we don not
+			// make any hinting requests.
+			if ( implicitChar !== null && TernManager.canHint(implicitChar) === false ) {
 				return null;
 			}
 
-		  	var _self = this;
+			var _self = this;
 			var promise = $.Deferred();
 
 			TernManager.getHints().done(function(hints) {
@@ -92,11 +92,11 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
 		 */
 		function handleActiveEditorChange(event, current, previous) {
 			if ( current ) {
-				TernManager.registerDoc(current._codeMirror, current.document.file);
+				TernManager.register(current._codeMirror, current.document.file);
 			}
 
 			if ( previous ) {
-				TernManager.unregisterDoc(previous._codeMirror);
+				TernManager.unregister(previous._codeMirror);
 			}
 		}
 

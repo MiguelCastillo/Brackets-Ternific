@@ -62,7 +62,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	* map the code mirror instance to that file name.
 	*
 	*/
-	ternManager.registerDoc = function ( cm, file ) {
+	ternManager.register = function ( cm, file ) {
 		if (!cm) {
 			throw new TypeError("CodeMirror instance must be valid");
 		}
@@ -89,7 +89,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 		// Register key events
 		_cm.addKeyMap(keyMap);
-		_ternProvider.registerDoc(file.fullPath, cm.getDoc());
+		_ternProvider.register( cm, file.fullPath );
 	}
 
 
@@ -97,12 +97,13 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	* Unregister a previously registered document.  We simply unbind
 	* any keybindings we have registered
 	*/
-	ternManager.unregisterDoc = function ( cm ) {
+	ternManager.unregister = function ( cm ) {
 		if ( !cm._ternBindings ) {
 			return;
 		}
 
 		cm.removeKeyMap( "ternBindings" );
+		_ternProvider.unregister(cm);
 		delete cm._ternBindings;
 	}
 
@@ -112,17 +113,18 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	* is one that we can start or continue hinting on.  There are some
 	* characters that are not hintable.
 	*/
-	ternManager.canHint = function (_char, cm) {
+	ternManager.canHint = function (_char, cm, fiename) {
 		// Support for inner mode
 		// var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
-		cm = cm || getCM();
 
 		if (_char == null || maybeIdentifier(_char)) {
-			var cursor = cm.getCursor();
-			var token = cm.getTokenAt(cursor);
+			_cm = getCM(cm);
+			var cursor = _cm.getCursor();
+			var token = _cm.getTokenAt(cursor);
 			return hintable(token);
 		}
 
+		_cm = null;
 		return false;
 	}
 
@@ -142,7 +144,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			throw new TypeError("Must provide valid hint and hints object as they are returned by calling getHints");
 		}
 
-		cm = hints.cm || getCM();
+		cm = hints.cm;
 
 		var completion  = hint.value,
 			cursor      = cm.getCursor(),
@@ -166,10 +168,10 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 	* code mirror instance that was registered via registerDoc.
 	*/
 	ternManager.getHints = function( cm ) {
-		var query = buildQuery(cm, {type: "completions", types: true});
+		cm = getCM(cm);
 
-		return _ternProvider.query(query.data)
-			.pipe(function(data) {
+		return _ternProvider.query(cm, {type: "completions", types: true})
+			.pipe(function(data, query) {
 				var completions = [];
 
 				for (var i = 0; i < data.completions.length; i++) {
@@ -193,13 +195,10 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 					completions.push(_completion);
 				}
 
-				query.tern = data;
-				query.details = queryDetails(query);
-
 				var _hints = {
 					list: completions,
 					query: query,
-					cm: query.cm
+					cm: cm
 				};
 
 				if ( ternManager.trace === true ) {
@@ -215,9 +214,9 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 
 	ternManager.findType = function( cm ) {
-		var query = buildQuery(cm, {type: "type"});
+		cm = getCM(cm);
 
-		_ternProvider.query(query.data)
+		_ternProvider.query(cm, "type")
 			.pipe( function(data) {
 				var findTypeType = typeDetails(data.type),
 					className = findTypeType.icon;
@@ -231,7 +230,7 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 					type: findTypeType.name,
 					icon: findTypeType.icon,
 					className: className,
-					query: query,
+					query: data.query,
 					_find: data,
 					_type: findTypeType,
 				};
@@ -259,9 +258,9 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 
 	ternManager.renameVar = function(cm) {
-		var query = buildQuery(cm, {type: "refs"});
+		cm = getCM(cm);
 
-		_ternProvider.query(query.data)
+		_ternProvider.query( cm, "refs" )
 			.pipe(function(data) {
 				var perFile = {};
 
@@ -285,117 +284,6 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 			function(error) {
 				return error;
 			});
-	}
-
-
-	/**
-	* Build a query that corresponds to the code mirror instance. The
-	* returned object is an object with details that tern will use to
-	* query the document.  The object returned also has the instance of
-	* code mirror the query belongs to.  This is needed to complete the
-	* full between a query and operating on the document the query of
-	* done against.
-	*/
-	function buildQuery (cm, query) {
-		cm = cm || getCM();
-
-		if ( !cm ) {
-			throw new TypeError("Invalid CodeMirror instance");
-		}
-
-		var startPos, endPos, offset = 0, files = [];
-
-		// 1. Let's make sure we have a query object
-		//
-		if (typeof query == "string") {
-			query = {
-				type: query
-			};
-		}
-
-		// 2. Define a range where the intellence will be applied on
-		//
-		if (query.end == null && query.start == null) {
-			endPos = cm.getCursor("end");
-			query.end = cm.indexFromPos(endPos);
-
-			if (cm.somethingSelected()) {
-				startPos = cm.getCursor("start")
-				query.start = cm.indexFromPos(startPos);
-			}
-		}
-		else {
-			endPos = query.end
-			query.end = cm.indexFromPos(endPos);
-
-			if (query.start != null) {
-				startPos = query.start;
-				query.start = cm.indexFromPos(startPos);
-			}
-		}
-
-		if ( !startPos ) {
-			startPos = endPos;
-		}
-
-		var doc = _ternProvider.findDocByInstance(cm.getDoc());
-		query.file = doc.name;
-
-		return {
-			data: {
-				query: query,
-				files: files
-			},
-			cm: cm
-		};
-	}
-
-
-	/**
-	* Gets more details about the query itself.  One of the things it
-	* provides is the text for the query...  E.g. What is tern searching
-	* for when we are asking for feedback.
-	*/
-	function queryDetails( _query ) {
-		if ( _query ) {
-			var cm = _query.cm, query = _query.tern;
-			var start = cm.posFromIndex(query.start), end = cm.posFromIndex(query.end);
-			var queryText = cm.getDoc().getRange(start, end);
-
-			var details = {
-				text: queryText,
-				start: start,
-				end: end
-			};
-
-			return details;
-		}
-
-		/**
-		* This code is here just as a reference for myself...  I used something like
-		* this at some point and don't want to remove it just yet.  I am testing performance
-		* implication of calling getRange over calling getCursor + getTokenAt...
-		else {
-			var cm = getCM(), cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
-			var from = cm.indexFromPos(cm.getCursor());
-
-			var queryText = "";
-
-			if (token && token.string !== ".") {
-				var length = token.string.length - (token.end - token.start);
-				queryText = details.token.string.substring(0, length).trim();
-			}
-
-			// Find some details about the query
-			var details = {
-				text: queryText,
-				from: from,
-				to: {}
-			};
-
-			return details;
-		}
-		*/
 	}
 
 
@@ -467,6 +355,47 @@ define(["require", "exports", "module", "TernProvider"], function(require, expor
 
 	exports.ternManager = ternManager;
 	return ternManager;
+
+
+
+
+		/*
+		cm = cm || getCM();
+		var query = TernDemo.query(cm, {type: "completions", types: true});
+
+		return TernDemo.hints(cm).pipe(function(data){
+			console.log(data);
+				var completions = [];
+
+				for (var i = 0; i < data.list.length; i++) {
+					var completion = data.list[i];
+
+					var _completion = {
+						value: completion.text,
+						_completion: completion
+					};
+
+					completions.push(_completion);
+				}
+
+				query.cm = cm;
+				query.tern = data;
+				query.details = queryDetails(query);
+
+				var _hints = {
+					list: completions,
+					query: query,
+					cm: query.cm
+				};
+
+				if ( ternManager.trace === true ) {
+					console.log(_hints);
+				}
+
+				return _hints;
+		});
+		*/
+
 
 });
 
