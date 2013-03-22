@@ -294,13 +294,13 @@ define(["require", "exports", "module"], function (require, exports, module) {
             waitSeconds: 5
         });
 
-        ternRequire(["tern", "plugin/requirejs/requirejs"], function(tern) {
+        ternRequire(["tern", "plugin/requirejs/requirejs", "plugin/node/node"], function(tern) {
 
             //
             // Load up all the definitions that we will need to start with.
             //
-            require(["text!./reserved.json", "text!./tern/ecma5.json", "text!./tern/browser.json",
-                     "text!./tern/plugin/requirejs/requirejs.json", "text!./tern/jquery.json"],
+            require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json",
+                     "text!./tern/plugin/requirejs/requirejs.json", "text!./tern/plugin/node/node.json"],
                 function( _ecma5Env, _browserEnv, _requireEnv, _jQueryEnv ) {
                     var environment = Array.prototype.slice.call(arguments, 0);
                     $.each(environment.slice(0), function(index, item){
@@ -311,7 +311,8 @@ define(["require", "exports", "module"], function (require, exports, module) {
                         getFile: function(){
                             _self.getFile.apply(_self, arguments);
                         },
-                        environment: environment
+                        environment: environment,
+                        async: true
                     });
 
                     _self.ready.resolve(_self);
