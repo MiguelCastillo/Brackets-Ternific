@@ -3,19 +3,21 @@
 *
 */
 
+/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
+/*global define, $, brackets, window */
 
 /** Brackets Extension to load line navigator CodeMirror addon */
 define(["require", "exports", "module", "TernManager"], function (require, exports, module, TernManager) {
-	"use strict";
+    "use strict";
 
-	var StringUtils     = brackets.getModule("utils/StringUtils");
+    var StringUtils = brackets.getModule("utils/StringUtils");
 
-  	var MAX_DISPLAYED_HINTS = 100,
-		SINGLE_QUOTE    = "\'",
-		DOUBLE_QUOTE    = "\"";
+    var MAX_DISPLAYED_HINTS = 100,
+        SINGLE_QUOTE    = "\'",
+        DOUBLE_QUOTE    = "\"";
 
 
-	function HintsTransform(hints, query) {
+    function HintsTransform(hints, query) {
 
         var trimmedQuery,
             filteredHints,
@@ -173,10 +175,10 @@ define(["require", "exports", "module", "TernManager"], function (require, expor
     }
 
 
-  	exports.HintsTransform = {
-		apply: HintsTransform
-	}
+    exports.HintsTransform = {
+        apply: HintsTransform
+    };
 
-	return HintsTransform;
+    return HintsTransform;
 
 });

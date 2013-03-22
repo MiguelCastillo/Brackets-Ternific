@@ -23,115 +23,116 @@
  */
 
 
+
+/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
+/*global define, $, brackets, window */
+
 /** Brackets Extension to load line navigator CodeMirror addon */
 define(["require", "exports", "module", "TernManager", "HintsTransform"], function (require, exports, module, TernManager, HintsTransform) {
-	"use strict";
+    "use strict";
 
-	var DocumentManager     = brackets.getModule("document/DocumentManager"),
-		EditorManager       = brackets.getModule("editor/EditorManager"),
-		AppInit             = brackets.getModule("utils/AppInit"),
-		FileUtils           = brackets.getModule("file/FileUtils"),
-		ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
-		CodeHintManager 	= brackets.getModule("editor/CodeHintManager");
-
-
-	function InitHints () {
-		var jsMode = "javascript";
+    var DocumentManager = brackets.getModule("document/DocumentManager"),
+        EditorManager   = brackets.getModule("editor/EditorManager"),
+        AppInit         = brackets.getModule("utils/AppInit"),
+        FileUtils       = brackets.getModule("file/FileUtils"),
+        ExtensionUtils  = brackets.getModule("utils/ExtensionUtils"),
+        CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
 
-		function Hints () {
-		}
+    function InitHints() {
+        var jsMode = "javascript";
 
 
-		Hints.prototype.hasHints = function (editor, implicitChar) {
-			return TernManager.canHint(implicitChar, editor._codeMirror, editor.document.file);
-		}
+        function Hints() {
+        }
 
 
-		Hints.prototype.getHints = function (implicitChar) {
-			// If it is not an implicit hint start and it is not a
-			// character that be used for hinting, then we don not
-			// make any hinting requests.
-			if ( implicitChar !== null && TernManager.canHint(implicitChar) === false ) {
-				return null;
-			}
-
-			var _self = this;
-			var promise = $.Deferred();
-
-			TernManager.getHints().done(function(hints) {
-				_self.hints = hints;
-				var transformedHints = HintsTransform(hints.list, hints.query.details.text);
-				promise.resolve(transformedHints);
-			})
-			.fail(function(error) {
-				promise.reject(error);
-			});
-
-			return promise;
-		}
+        Hints.prototype.hasHints = function (editor, implicitChar) {
+            return TernManager.canHint(implicitChar, editor._codeMirror, editor.document.file);
+        };
 
 
-		Hints.prototype.insertHint = function ($hintObj) {
-			var hint = $hintObj.data("token");
-			TernManager.insertHint(hint, this.hints);
+        Hints.prototype.getHints = function (implicitChar) {
+            // If it is not an implicit hint start and it is not a
+            // character that be used for hinting, then we don not
+            // make any hinting requests.
+            if (implicitChar !== null && TernManager.canHint(implicitChar) === false) {
+                return null;
+            }
 
-			// Return false to indicate that another hinting session is not needed
-			return false;
-		}
+            var _self = this;
+            var promise = $.Deferred();
 
+            TernManager.getHints().done(function (hints) {
+                _self.hints = hints;
+                var transformedHints = HintsTransform(hints.list, hints.query.details.text);
+                promise.resolve(transformedHints);
+            }).fail(function (error) {
+                promise.reject(error);
+            });
 
-		/*
-		 * Handle the activeEditorChange event fired by EditorManager.
-		 * Uninstalls the change listener on the previous editor
-		 * and installs a change listener on the new editor.
-		 *
-		 * @param {Event} event - editor change event (ignored)
-		 * @param {Editor} current - the new current editor context
-		 * @param {Editor} previous - the previous editor context
-		 */
-		function handleActiveEditorChange(event, current, previous) {
-			if ( current ) {
-				TernManager.register(current._codeMirror, current.document.file);
-			}
-
-			if ( previous ) {
-				TernManager.unregister(previous._codeMirror);
-			}
-		}
+            return promise;
+        };
 
 
-		var jsHints = new Hints();
-		CodeHintManager.registerHintProvider(jsHints, [jsMode], 0);
+        Hints.prototype.insertHint = function ($hintObj) {
+            var hint = $hintObj.data("token");
+            TernManager.insertHint(hint, this.hints);
 
-		// uninstall/install change listener as the active editor changes
-		$(EditorManager).on("activeEditorChange", handleActiveEditorChange);
-
-		// immediately install the current editor
-		handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
-	}
+            // Return false to indicate that another hinting session is not needed
+            return false;
+        };
 
 
+        /*
+         * Handle the activeEditorChange event fired by EditorManager.
+         * Uninstalls the change listener on the previous editor
+         * and installs a change listener on the new editor.
+         *
+         * @param {Event} event - editor change event (ignored)
+         * @param {Editor} current - the new current editor context
+         * @param {Editor} previous - the previous editor context
+         */
+        function handleActiveEditorChange(event, current, previous) {
+            if (current) {
+                TernManager.register(current._codeMirror, current.document.file);
+            }
 
-	var promises = [
-		$.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
-		ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
-	];
+            if (previous) {
+                TernManager.unregister(previous._codeMirror);
+            }
+        }
+
+
+        var jsHints = new Hints();
+        CodeHintManager.registerHintProvider(jsHints, [jsMode], 0);
+
+        // uninstall/install change listener as the active editor changes
+        $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+
+        // immediately install the current editor
+        handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
+    }
 
 
 
-	//
-	// Synchronize all calls to load resources.
-	//
-	$.when.apply($, promises).done( function( ) {
+    var promises = [
+        $.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
+        ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
+    ];
 
-		// Once the app is fully loaded, we will proceed to check the theme that
-		// was last set
-		AppInit.appReady(function () {
-			TernManager.onReady(function() {
-				InitHints();
-			});
-		});
-	});
+
+
+    //
+    // Synchronize all calls to load resources.
+    //
+    $.when.apply($, promises).done(function () {
+
+        // Once the app is fully loaded, we will proceed to check the theme that
+        // was last set
+        AppInit.appReady(function () {
+            TernManager.onReady(InitHints);
+        });
+    });
 
 });
