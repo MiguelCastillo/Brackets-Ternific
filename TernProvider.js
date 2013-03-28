@@ -25,8 +25,27 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
 /*global define, $, brackets, window, CodeMirror */
 
-define(["require", "exports", "module"], function (require, exports, module) {
-    'use strict';
+define(["require", "exports", "module", "TernDemo"], function (require, exports, module, TernDemo) {
+    "use strict";
+
+    var FileUtils        = brackets.getModule("file/FileUtils"),
+        NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem,
+        ProjectManager   = brackets.getModule("project/ProjectManager");
+
+
+    var ternRequire = window.require.config({
+        "baseUrl": require.toUrl("./tern/"),
+        "paths": {
+            "acorn": "node_modules/acorn"
+        },
+        waitSeconds: 5
+    });
+
+
+    var baseUrl = function() {
+      return FileUtils.canonicalizeFolderPath(ProjectManager.getProjectRoot().fullPath);
+    }
+
 
     /**
     * @constructor
@@ -73,19 +92,25 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
     ternDocuments.prototype.register = function (cm, name) {
         var _self = this;
+        var docMeta = this.findDocByName(name);
 
-        var docMeta = {
-            name: name,
-            cm: cm,
-            doc: cm.getDoc(),
-            changed: null,
-            _trackChange: function () {
-                _self.trackChange.apply(_self, arguments);
-            }
-        };
+        if (!docMeta || !docMeta.cm) {
+              docMeta = {
+                name: name,
+                cm: cm,
+                doc: cm.getDoc(),
+                changed: null,
+                _trackChange: function (cm, change) {
+                    TernDemo.setCurrentDocument(docMeta);
+                    TernDemo.setDocs(_self.docs);
+                    TernDemo.setServer(_self._server)
+                    TernDemo.trackChange(docMeta.doc, change);
+                }
+            };
 
-        this.addDoc(docMeta);
-        CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
+            this.addDoc(docMeta);
+            CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
+        }
     };
 
 
@@ -93,80 +118,6 @@ define(["require", "exports", "module"], function (require, exports, module) {
         var docMeta = this.findDocByCM(cm);
         CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
     };
-
-
-    ternDocuments.prototype.trackChange = function (doc, change) {
-        var docMeta = this.findDocByInstance(doc);
-
-        var changed = docMeta.changed;
-        if (!changed) {
-            docMeta.changed = changed = {
-                from: change.from.line,
-                to: change.from.line
-            };
-        }
-
-        var end = change.from.line + (change.text.length - 1);
-
-        if (change.from.line < changed.to) {
-            changed.to = changed.to - (change.to.line - end);
-        }
-
-        if (end >= changed.to) {
-            changed.to = end + 1;
-        }
-
-        if (changed.from > change.from.line) {
-            changed.from = change.from.line;
-        }
-    };
-
-
-    ternDocuments.prototype.getFragmentAround = function (cm, start, end) {
-        var minIndent = null, minLine = null, endLine, tabSize = cm.getOption("tabSize");
-
-        for (var p = start.line - 1, min = Math.max(0, p - 50); p >= min; --p) {
-            var line = cm.getLine(p), fn = line.search(/\bfunction\b/);
-            if (fn < 0) {
-                continue;
-            }
-
-            var indent = CodeMirror.countColumn(line, null, tabSize);
-            if (minIndent != null && minIndent <= indent) {
-                continue;
-            }
-
-            if (cm.getTokenAt(CodeMirror.Pos(p, fn + 1)).type != "keyword") {
-                continue;
-            }
-
-            minIndent = indent;
-            minLine = p;
-        }
-
-        if (minLine == null) {
-            minLine = min;
-        }
-
-        var max = Math.min(cm.lastLine(), start.line + 20);
-        if (minIndent == null || minIndent == CodeMirror.countColumn(cm.getLine(start.line), null, tabSize)) {
-            endLine = max;
-        }
-        else for (endLine = start.line + 1; endLine < max; ++endLine) {
-            var indent = CodeMirror.countColumn(cm.getLine(endLine), null, tabSize);
-            if (indent <= minIndent) {
-                break;
-            }
-        }
-
-        var from = CodeMirror.Pos(minLine, 0);
-        var docMeta = this.findDocByCM(cm);
-        return {type: "part",
-                name: docMeta.name,
-                offset: cm.indexFromPos(from),
-                text: cm.getRange(from, CodeMirror.Pos(endLine, 0))
-        };
-    }
 
 
 
@@ -179,102 +130,16 @@ define(["require", "exports", "module"], function (require, exports, module) {
     * done against.
     */
     ternDocuments.prototype.buildQuery = function( cm, query, allowFragments ) {
-        if ( !cm ) {
-            throw new TypeError("Invalid CodeMirror instance");
-        }
-
-        var startPos, endPos, offset = 0, files = [];
-
-        // 1. Let's make sure we have a query object
-        //
-        if (typeof query == "string") {
-            query = {
-                type: query
-            };
-        }
-
-        // 2. Define a range where the intellence will be applied on
-        //
-        if (query.end == null && query.start == null) {
-            endPos = cm.getCursor("end");
-            query.end = cm.indexFromPos(endPos);
-
-            if (cm.somethingSelected()) {
-                startPos = cm.getCursor("start")
-                query.start = cm.indexFromPos(startPos);
-            }
-        }
-        else {
-            endPos = query.end
-            query.end = cm.indexFromPos(endPos);
-
-            if (query.start != null) {
-                startPos = query.start;
-                query.start = cm.indexFromPos(startPos);
-            }
-        }
-
-        if ( !startPos ) {
-            startPos = endPos;
-        }
-
         var docMeta = this.findDocByCM(cm);
+        TernDemo.setCurrentDocument(docMeta);
+        TernDemo.setDocs(this.docs);
+        TernDemo.setServer(this._server)
 
-
-        // This help in the process of doing requests without having to
-        // resend the whole document content again, which can be a time
-        // consuming operation.
-        if ( docMeta.changed ) {
-            var change = docMeta.changed;
-
-            // If the change is large enough to potentially cause a negative
-            // performance impact...
-            //
-            var processChange = (cm.lineCount() > 100) &&
-                                (allowFragments !== false) &&
-                                (change.to - change.from < 100) &&
-                                (change.from <= startPos.line) &&
-                                (change.to > endPos.line);
-
-            if ( processChange ) {
-                var docFragment = this.getFragmentAround(cm, startPos, endPos);
-                files.push( docFragment );
-                query.file = "#0";
-                offset = files[0].offset;
-
-                if (query.start != null) {
-                    query.start -= offset;
-                }
-
-                query.end -= offset;
-            }
-            else {
-                files.push({type: "full",
-                        name: docMeta.name,
-                        text: cm.getValue()
-                    });
-
-                query.file = docMeta.name;
-                docMeta.changed = null;
-            }
-        }
-        else {
-            query.file = docMeta.name;
-            files.push({type: "full",
-                    name: docMeta.name,
-                    text: cm.getValue()
-                });
-        }
-
-
-        return {
-            data: {
-                query: query,
-                files: files
-            },
-            offset: offset,
-            doc: docMeta
-        };
+        var _query = TernDemo.buildRequest(cm, query, allowFragments);
+        _query.data = _query.request;
+        _query.doc = docMeta;
+        delete _query.request;
+        return _query;
     }
 
 
@@ -285,14 +150,6 @@ define(["require", "exports", "module"], function (require, exports, module) {
     function localDocuments() {
         ternDocuments.apply(this, arguments);
         var _self = this;
-
-        var ternRequire = window.require.config({
-            "baseUrl": require.toUrl("./tern/"),
-            "paths": {
-                "acorn": "node_modules/acorn"
-            },
-            waitSeconds: 5
-        });
 
         ternRequire(["tern", "plugin/requirejs/requirejs", "plugin/node/node"], function(tern) {
 
@@ -312,7 +169,12 @@ define(["require", "exports", "module"], function (require, exports, module) {
                             _self.getFile.apply(_self, arguments);
                         },
                         environment: environment,
-                        async: true
+                        async: true,
+                        pluginOptions: {
+                            "requireJS":{
+                                baseURL: ""//baseUrl()
+                            }
+                        }
                     });
 
                     _self.ready.resolve(_self);
@@ -346,12 +208,13 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
     localDocuments.prototype.addDoc = function (doc) {
         this.docs.push(doc);
-        this._server.addFile(doc.name);
+        this._server.addFile(doc.name, doc.doc.getValue());
     }
 
 
-    var httpCache = {};
+    var httpCache = {}, inProgress= {};
     localDocuments.prototype.getFile = function (name, c) {
+        var _self = this;
         if (/^https?:\/\//.test(name)) {
             if (httpCache[name]){
               return c(null, httpCache[name]);
@@ -371,10 +234,53 @@ define(["require", "exports", "module"], function (require, exports, module) {
         }
         else {
             var docMeta = this.findDocByName(name);
-            return c(null, docMeta ? docMeta.doc.getValue() : "");
+
+            if ( docMeta ){
+                c(null, docMeta.doc.getValue());
+            }
+            else if (name.charAt(0) != '/') {
+              console.log(name);
+              return c(null, "");
+
+                if (name in inProgress){
+                    inProgress[name].done(function(text){
+                        c(null, text);
+                    }).fail(function(error){
+                        c(error, null);
+                    });
+
+                    return;
+                }
+
+                try {
+                      var fileEntry = new NativeFileSystem.FileEntry(name);
+                      inProgress[name] = FileUtils.readAsText(fileEntry).done(function(text){
+                          console.log("loaded file", name);
+                          var docMeta = {
+                              name: name,
+                              doc: new CodeMirror.Doc(text, "javascript"),
+                              changed: null
+                          };
+
+                          _self.addDoc(docMeta);
+                          c(null, text);
+                      }).fail(function(error){
+                          c(error, null);
+                      }).always(function(){
+                          console.log("deleting inprogress");
+                          delete inProgress[name];
+                      });
+                  }
+                  catch(ex) {
+                      c("Error creating file reader", null);
+                  }
+            }
+            else {
+                c(null, "");
+            }
+
         }
     }
-
 
 
     /**
@@ -384,9 +290,15 @@ define(["require", "exports", "module"], function (require, exports, module) {
         ternDocuments.apply(this, arguments);
         var _self = this;
 
-        setTimeout(function(){
-            _self.ready.resolve(_self);
-        }, 1);
+        ternRequire(['text!.tern-port'], function(ternport) {
+            _self.port = ternport;
+            _self.ping().done(function(){
+                console.log("Tern Remote Server is ready");
+                _self.ready.resolve(_self);
+            }).fail(function(){
+                throw "Tern Server is not running";
+            });
+        });
     }
 
 
@@ -396,7 +308,7 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
     remoteDocuments.prototype.ping = function (){
         return $.ajax({
-            "url": "http://localhost:4943/ping",
+            "url": "http://localhost:" + this.port + "/ping",
             "type": "GET"
         })
         .promise();
@@ -409,13 +321,12 @@ define(["require", "exports", "module"], function (require, exports, module) {
 
         // Send query to the server
         $.ajax({
-            "url": "http://localhost:8969",
+            "url": "http://localhost:" + this.port,
             "type": "POST",
             "contentType": "application/json; charset=utf-8",
             "data": JSON.stringify(queryData)
         })
         .done(function(data){
-            console.log(data);
             query.result = data;
             query.details = queryDetails(query);
             promise.resolve(data, query);
@@ -442,14 +353,14 @@ define(["require", "exports", "module"], function (require, exports, module) {
     */
     function queryDetails( query ) {
         if ( query ) {
-            var cm = query.doc.cm, result = query.result;
-            var start = cm.posFromIndex(result.start + query.offset), end = cm.posFromIndex(result.end + query.offset);
-            var queryText = cm.getDoc().getRange(start, end);
+            var result = query.result;
+            result.start.line += query.offsetLines;
+            result.end.line += query.offsetLines;
 
             var details = {
-                text: queryText,
-                start: start,
-                end: end
+                text: query.doc.cm.getDoc().getRange(result.start, result.end),
+                start: result.start,
+                end: result.end
             };
 
             return details;

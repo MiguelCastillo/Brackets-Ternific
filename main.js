@@ -38,21 +38,20 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
         ExtensionUtils  = brackets.getModule("utils/ExtensionUtils"),
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
-
     function InitHints() {
         var jsMode = "javascript";
 
 
-        function Hints() {
+        function TernHints() {
         }
 
 
-        Hints.prototype.hasHints = function (editor, implicitChar) {
+        TernHints.prototype.hasHints = function (editor, implicitChar) {
             return TernManager.canHint(implicitChar, editor._codeMirror, editor.document.file);
         };
 
 
-        Hints.prototype.getHints = function (implicitChar) {
+        TernHints.prototype.getHints = function (implicitChar) {
             // If it is not an implicit hint start and it is not a
             // character that be used for hinting, then we don not
             // make any hinting requests.
@@ -75,7 +74,7 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
         };
 
 
-        Hints.prototype.insertHint = function ($hintObj) {
+        TernHints.prototype.insertHint = function ($hintObj) {
             var hint = $hintObj.data("token");
             TernManager.insertHint(hint, this.hints);
 
@@ -104,8 +103,8 @@ define(["require", "exports", "module", "TernManager", "HintsTransform"], functi
         }
 
 
-        var jsHints = new Hints();
-        CodeHintManager.registerHintProvider(jsHints, [jsMode], 0);
+        var jsHints = new TernHints();
+        CodeHintManager.registerHintProvider(jsHints, [jsMode], 1);
 
         // uninstall/install change listener as the active editor changes
         $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
