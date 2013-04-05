@@ -42,8 +42,8 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
     });
 
 
-    var baseUrl = function() {
-      return FileUtils.canonicalizeFolderPath(ProjectManager.getProjectRoot().fullPath);
+    var baseUrl = function () {
+        return FileUtils.canonicalizeFolderPath(ProjectManager.getProjectRoot().fullPath);
     }
 
 
@@ -116,7 +116,9 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
 
     ternDocuments.prototype.unregister = function (cm) {
         var docMeta = this.findDocByCM(cm);
-        CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+        if ( docMeta ) {
+            CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+        }
     };
 
 
@@ -151,30 +153,25 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
         ternDocuments.apply(this, arguments);
         var _self = this;
 
-        ternRequire(["tern", "plugin/requirejs/requirejs", "plugin/node/node"], function(tern) {
+        ternRequire(["tern", "plugin/requirejs", "plugin/node"], function(tern) {
 
             //
             // Load up all the definitions that we will need to start with.
             //
-            require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json",
-                     "text!./tern/plugin/requirejs/requirejs.json", "text!./tern/plugin/node/node.json"],
-                function( _ecma5Env, _browserEnv, _requireEnv, _jQueryEnv ) {
-                    var environment = Array.prototype.slice.call(arguments, 0);
-                    $.each(environment.slice(0), function(index, item){
-                        environment[index] = JSON.parse(item);
+            require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"],
+                function( _ecma5Defs, _browserDefs, _requireDefs, _jQueryDefs ) {
+                    var defs = Array.prototype.slice.call(arguments, 0);
+                    $.each(defs.slice(0), function(index, item){
+                        defs[index] = JSON.parse(item);
                     });
 
                     _self._server = new tern.Server({
                         getFile: function(){
                             _self.getFile.apply(_self, arguments);
                         },
-                        environment: environment,
-                        async: true,
-                        pluginOptions: {
-                            "requireJS":{
-                                baseURL: ""//baseUrl()
-                            }
-                        }
+                        defs: defs,
+                        debug: true,
+                        plugins: {requirejs: {}}
                     });
 
                     _self.ready.resolve(_self);
@@ -354,13 +351,13 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
     function queryDetails( query ) {
         if ( query ) {
             var result = query.result;
-            result.start.line += query.offsetLines;
-            result.end.line += query.offsetLines;
+            var start = CodeMirror.Pos(result.start.line + query.offsetLines, result.start.ch),
+                end = CodeMirror.Pos(result.end.line + query.offsetLines, result.end.ch);
 
             var details = {
-                text: query.doc.cm.getDoc().getRange(result.start, result.end),
-                start: result.start,
-                end: result.end
+                text: query.doc.cm.getDoc().getRange(start, end),
+                start: start,
+                end: end
             };
 
             return details;

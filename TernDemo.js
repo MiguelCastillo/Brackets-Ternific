@@ -127,7 +127,6 @@ define(['require', 'exports', 'module'], function(require, exports, module) {
 
     function sendDoc(doc) {
       server.request({files: [{type: "full", name: doc.name, text: doc.doc.getValue()}]}, function(error) {
-        console.log("update sent");
         if (error) return displayError(error);
         else doc.changed = null;
       });
