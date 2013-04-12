@@ -22,15 +22,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
-/*global define, $, brackets, window, CodeMirror */
-
 define(function (require, exports, module) {
     "use strict";
-
-    var FileUtils        = brackets.getModule("file/FileUtils"),
-        NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem,
-        ProjectManager   = brackets.getModule("project/ProjectManager");
 
     var TernDemo     = require("TernDemo"),
         ProjectFiles = require("ProjectFiles");
