@@ -7,14 +7,15 @@
 /*global define, $, brackets, window */
 
 /** Brackets Extension to load line navigator CodeMirror addon */
-define(["require", "exports", "module", "TernManager"], function (require, exports, module, TernManager) {
+define(function (require, exports, module) {
     "use strict";
 
     var StringUtils = brackets.getModule("utils/StringUtils");
+    var HintHelper  = require("HintHelper");
 
     var MAX_DISPLAYED_HINTS = 100,
-        SINGLE_QUOTE    = "\'",
-        DOUBLE_QUOTE    = "\"";
+        SINGLE_QUOTE        = HintHelper.SINGLE_QUOTE,
+        DOUBLE_QUOTE        = HintHelper.DOUBLE_QUOTE;
 
 
     function HintsTransform(hints, query) {

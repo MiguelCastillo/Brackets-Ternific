@@ -25,13 +25,15 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
 /*global define, $, brackets, window, CodeMirror */
 
-define(["require", "exports", "module", "TernDemo"], function (require, exports, module, TernDemo) {
+define(function (require, exports, module) {
     "use strict";
 
     var FileUtils        = brackets.getModule("file/FileUtils"),
         NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem,
         ProjectManager   = brackets.getModule("project/ProjectManager");
 
+    var TernDemo     = require("TernDemo"),
+        ProjectFiles = require("ProjectFiles");
 
     var ternRequire = window.require.config({
         "baseUrl": require.toUrl("./tern/"),
@@ -42,11 +44,6 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
     });
 
 
-    var baseUrl = function () {
-        return FileUtils.canonicalizeFolderPath(ProjectManager.getProjectRoot().fullPath);
-    }
-
-
     /**
     * @constructor
     *
@@ -54,9 +51,10 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
     * with tern.
     */
     function ternDocuments(options) {
-        this.ready = $.Deferred();
-        this.docs = [];
-        this.onReady = this.ready.promise().done;
+        var _self = this;
+        _self.ready = $.Deferred();
+        _self.docs = [];
+        _self.onReady = _self.ready.promise().done;
     }
 
 
@@ -95,7 +93,7 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
         var docMeta = this.findDocByName(name);
 
         if (!docMeta || !docMeta.cm) {
-              docMeta = {
+            docMeta = {
                 name: name,
                 cm: cm,
                 doc: cm.getDoc(),
@@ -103,7 +101,7 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
                 _trackChange: function (cm, change) {
                     TernDemo.setCurrentDocument(docMeta);
                     TernDemo.setDocs(_self.docs);
-                    TernDemo.setServer(_self._server)
+                    TernDemo.setServer(_self._server);
                     TernDemo.trackChange(docMeta.doc, change);
                 }
             };
@@ -135,14 +133,14 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
         var docMeta = this.findDocByCM(cm);
         TernDemo.setCurrentDocument(docMeta);
         TernDemo.setDocs(this.docs);
-        TernDemo.setServer(this._server)
+        TernDemo.setServer(this._server);
 
         var _query = TernDemo.buildRequest(cm, query, allowFragments);
         _query.data = _query.request;
         _query.doc = docMeta;
         delete _query.request;
         return _query;
-    }
+    };
 
 
 
@@ -150,31 +148,34 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
     *  Interface to operate against a local instance of tern
     */
     function localDocuments() {
-        ternDocuments.apply(this, arguments);
         var _self = this;
+        ternDocuments.apply(_self, arguments);
 
-        ternRequire(["tern", "plugin/requirejs", "plugin/node"], function(tern) {
+        ternRequire(["lib/tern", "plugin/requirejs", "plugin/node"], function(tern) {
 
             //
             // Load up all the definitions that we will need to start with.
             //
-            require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"],
-                function( _ecma5Defs, _browserDefs, _requireDefs, _jQueryDefs ) {
-                    var defs = Array.prototype.slice.call(arguments, 0);
-                    $.each(defs.slice(0), function(index, item){
-                        defs[index] = JSON.parse(item);
-                    });
+            require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
+                var defs = Array.prototype.slice.call(arguments, 0);
+                $.each(defs.slice(0), function(index, item){
+                    defs[index] = JSON.parse(item);
+                });
 
-                    _self._server = new tern.Server({
-                        getFile: function(){
-                            _self.getFile.apply(_self, arguments);
-                        },
-                        defs: defs,
-                        debug: true,
-                        plugins: {requirejs: {}}
-                    });
+                _self._server = new tern.Server({
+                    getFile: function(){
+                        _self.getFile.apply(_self, arguments);
+                    },
+                    defs: defs,
+                    debug: true,
+                    async: true,
+                    plugins: {
+                        requirejs: {
+                        }
+                    }
+                });
 
-                    _self.ready.resolve(_self);
+                _self.ready.resolve(_self);
             });
         });
     }
@@ -200,13 +201,13 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
         });
 
         return promise.promise();
-    }
+    };
 
 
     localDocuments.prototype.addDoc = function (doc) {
         this.docs.push(doc);
         this._server.addFile(doc.name, doc.doc.getValue());
-    }
+    };
 
 
     var httpCache = {}, inProgress= {};
@@ -214,14 +215,14 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
         var _self = this;
         if (/^https?:\/\//.test(name)) {
             if (httpCache[name]){
-              return c(null, httpCache[name]);
+                return c(null, httpCache[name]);
             }
 
             $.ajax({
                 "url": name,
                 "contentType": "text"
             })
-            .done(function(data, status) {
+            .done(function(data) {
                 httpCache[name] = data;
                 c(null, data);
             })
@@ -235,11 +236,11 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
             if ( docMeta ){
                 c(null, docMeta.doc.getValue());
             }
-            else if (name.charAt(0) != '/') {
-              console.log(name);
-              return c(null, "");
+            // I don't know why module.js is causing problems when loading the file... But
+            // I am going to skip it for now...
+            else if (name.charAt(0) != '/' && name !== "module.js") {
 
-                if (name in inProgress){
+                if (name in inProgress) {
                     inProgress[name].done(function(text){
                         c(null, text);
                     }).fail(function(error){
@@ -250,42 +251,46 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
                 }
 
                 try {
-                      var fileEntry = new NativeFileSystem.FileEntry(name);
-                      inProgress[name] = FileUtils.readAsText(fileEntry).done(function(text){
-                          console.log("loaded file", name);
-                          var docMeta = {
-                              name: name,
-                              doc: new CodeMirror.Doc(text, "javascript"),
-                              changed: null
-                          };
+                    ProjectFiles.openFile(name).done(function(fileReader){
+                        inProgress[name] = fileReader.readAsText().done(function(text){
+                            console.log("Tern loaded file", name);
 
-                          _self.addDoc(docMeta);
-                          c(null, text);
-                      }).fail(function(error){
-                          c(error, null);
-                      }).always(function(){
-                          console.log("deleting inprogress");
-                          delete inProgress[name];
-                      });
-                  }
-                  catch(ex) {
-                      c("Error creating file reader", null);
-                  }
+                            var docMeta = {
+                                name: name,
+                                doc: new CodeMirror.Doc(text, "javascript"),
+                                changed: null
+                            };
+
+                            _self.addDoc(docMeta);
+                            c(null, text);
+                        })
+                        .fail(function(error){
+                            console.log("Tern error loading ", name);
+                            c(error, null);
+                        })
+                        .always(function() {
+                            delete inProgress[name];
+                        });
+                    });
+                }
+                catch(e){
+                    c(null, "");
+                }
             }
             else {
                 c(null, "");
             }
 
         }
-    }
+    };
 
 
     /**
     *  Interface to operate against a remote tern server
     */
     function remoteDocuments() {
-        ternDocuments.apply(this, arguments);
         var _self = this;
+        ternDocuments.apply(_self, arguments);
 
         ternRequire(['text!.tern-port'], function(ternport) {
             _self.port = ternport;
@@ -309,7 +314,7 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
             "type": "GET"
         })
         .promise();
-    }
+    };
 
 
     remoteDocuments.prototype.query = function( cm, settings ) {
@@ -334,12 +339,12 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
         });
 
         return promise.promise();
-    }
+    };
 
 
     remoteDocuments.prototype.addDoc = function(doc) {
         this.docs.push(doc);
-    }
+    };
 
 
 
@@ -369,13 +374,13 @@ define(["require", "exports", "module", "TernDemo"], function (require, exports,
     exports.TernDocuments = {
         remote: remoteDocuments,
         local: localDocuments
-    }
+    };
 
 
     return {
         remote: remoteDocuments,
         local: localDocuments
-    }
+    };
 
 });
 

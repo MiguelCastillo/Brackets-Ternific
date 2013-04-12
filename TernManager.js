@@ -25,13 +25,11 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
 /*global define, $, brackets, window */
 
-define(["require", "exports", "module", "TernProvider"], function (require, exports, module, TernProvider) {
+define(function (require, exports, module) {
     'use strict';
 
-    var EditorManager = brackets.getModule("editor/EditorManager");
-
-    var SINGLE_QUOTE    = "\'",
-        DOUBLE_QUOTE    = "\"";
+    var TernProvider = require("TernProvider"),
+        HintsHelper  = require("HintHelper");
 
     var _ternProvider = null,
         _cm = null;
@@ -93,7 +91,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
         // Register key events
         _cm.addKeyMap(keyMap);
         _ternProvider.register(cm, file.fullPath);
-    }
+    };
 
 
     /**
@@ -108,7 +106,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
         cm.removeKeyMap( "ternBindings" );
         _ternProvider.unregister(cm);
         delete cm._ternBindings;
-    }
+    };
 
 
     /**
@@ -116,20 +114,20 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
     * is one that we can start or continue hinting on.  There are some
     * characters that are not hintable.
     */
-    ternManager.canHint = function (_char, cm, fiename) {
+    ternManager.canHint = function (_char, cm) {
         // Support for inner mode
         // var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
 
-        if (_char == null || maybeIdentifier(_char)) {
+        if (!_char || HintsHelper.maybeIdentifier(_char)) {
             _cm = getCM(cm);
             var cursor = _cm.getCursor();
             var token = _cm.getTokenAt(cursor);
-            return hintable(token);
+            return HintsHelper.hintable(token);
         }
 
         _cm = null;
         return false;
-    }
+    };
 
 
     /**
@@ -162,7 +160,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
         if ( ternManager.trace === true ) {
             console.log(hint, hints);
         }
-    }
+    };
 
 
     /**
@@ -177,13 +175,13 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
             return $.Deferred().reject();
         }
 
-        return _ternProvider.query(cm, {type: "completions", types: true})
+        return _ternProvider.query(cm, {type: "completions", types: true, docs: true})
             .pipe(function(data, query) {
                 var completions = [];
 
                 for (var i = 0; i < data.completions.length; i++) {
                     var completion = data.completions[i],
-                        completionType = typeDetails(completion.type),
+                        completionType = HintsHelper.typeDetails(completion.type),
                         className = completionType.icon;
 
                     if (completion.guess) {
@@ -217,7 +215,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
             function(error) {
                 return error;
             });
-    }
+    };
 
 
     ternManager.findType = function( cm ) {
@@ -229,7 +227,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
 
         _ternProvider.query(cm, "type")
             .pipe( function(data) {
-                var findTypeType = typeDetails(data.type),
+                var findTypeType = HintsHelper.typeDetails(data.type),
                     className = findTypeType.icon;
 
                 if (data.guess) {
@@ -243,7 +241,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
                     className: className,
                     query: data.query,
                     _find: data,
-                    _type: findTypeType,
+                    _type: HintsHelper.findTypeType
                 };
 
                 if ( ternManager.trace === true ) {
@@ -255,17 +253,17 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
             function( error ) {
                 return error;
             });
-    }
+    };
 
 
     ternManager.jumpToDef = function(cm) {
         console.log("jumpToDef");
-    }
+    };
 
 
     ternManager.jumpBack = function(cm) {
         console.log("jumpBack");
-    }
+    };
 
 
     ternManager.renameVar = function(cm) {
@@ -277,18 +275,18 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
 
         _ternProvider.query( cm, "refs" )
             .pipe(function(data) {
-                var perFile = {};
+                var perFile = {}, i;
 
-                for (var i = 0; i < data.refs.length; ++i) {
+                for (i = 0; i < data.refs.length; ++i) {
                     var use = data.refs[i];
                     (perFile[use.file] || (perFile[use.file] = [])).push(use);
                 }
 
                 for (var file in perFile) {
                     var refs = perFile[file], doc = _ternProvider.findDocByName(file).doc;
-                    refs.sort(function(a, b) { return b.start - a.start; });
+                    refs.sort(refSort);
 
-                    for (var i = 0; i < refs.length; ++i) {
+                    for (i = 0; i < refs.length; ++i) {
                         console.log(refs[i]);
                         //doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
                     }
@@ -299,7 +297,7 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
             function(error) {
                 return error;
             });
-    }
+    };
 
 
     function getCM( cm ) {
@@ -307,64 +305,8 @@ define(["require", "exports", "module", "TernProvider"], function (require, expo
     }
 
 
-    function typeDetails (type) {
-        var suffix;
-
-        if (type == "?") {
-            suffix = "unknown";
-        }
-        else if (type == "number" || type == "string" || type == "bool") {
-            suffix = type;
-        }
-        else if (/^fn\(/.test(type)) {
-            suffix = "fn";
-        }
-        else if (/^\[/.test(type)) {
-            suffix = "array";
-        }
-        else {
-            suffix = "object";
-        }
-
-        return {
-            icon: "Tern-completion Tern-completion-" + suffix,
-            name: suffix
-        };
-    }
-
-
-    ///
-    ///  The functions below were taken from brackets javascript hinting engine.
-    ///
-
-    /**
-     * Is the string key perhaps a valid JavaScript identifier?
-     *
-     * @param {string} key - the string to test
-     * @return {boolean} - could key be a valid identifier?
-     */
-    function maybeIdentifier(key) {
-        return (/[0-9a-z_.\$]/i).test(key) ||
-            (key.indexOf(SINGLE_QUOTE) === 0) ||
-            (key.indexOf(DOUBLE_QUOTE) === 0);
-    }
-
-
-    /**
-     * Is the token's class hintable? (A very conservative test.)
-     *
-     * @param {Object} token - the token to test for hintability
-     * @return {boolean} - could the token be hintable?
-     */
-    function hintable(token) {
-        switch (token.className) {
-        case "comment":
-        case "number":
-        case "regexp":
-            return false;
-        default:
-            return true;
-        }
+    function refSort(a, b) {
+        return b.start - a.start;
     }
 
 
