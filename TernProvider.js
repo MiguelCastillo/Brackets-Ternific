@@ -116,7 +116,7 @@ define(function (require, exports, module) {
         TernDemo.setDocs(_self.docs);
         TernDemo.setServer(_self._server);
 
-        docMeta._trackChange = function (cm, change) {
+        docMeta._trackChange = function (cm1, change) {
             TernDemo.trackChange(docMeta.doc, change);
         };
 
@@ -198,20 +198,25 @@ define(function (require, exports, module) {
 
 
     localDocuments.prototype.query = function( cm, settings ) {
+        var _self = this;
         var promise = $.Deferred();
-        var query = this.buildQuery( cm, settings ),
-            queryData = query.data;
 
-        this._server.request( queryData, function(error, data) {
-            if (error) {
-                promise.reject(error);
-            }
-            else {
-                query.result = data;
-                query.details = queryDetails(query);
-                promise.resolve(data, query);
-            }
-        });
+        // Throttle the query request so that doc changes enough time to be processed
+        setTimeout(function(){
+            var query = _self.buildQuery( cm, settings ),
+                queryData = query.data;
+
+            _self._server.request( queryData, function(error, data) {
+                if (error) {
+                    promise.reject(error);
+                }
+                else {
+                    query.result = data;
+                    query.details = queryDetails(query);
+                    promise.resolve(data, query);
+                }
+            });
+        }, 100);
 
         return promise.promise();
     };
@@ -259,7 +264,10 @@ define(function (require, exports, module) {
             }
             else {
                 try {
+                    // Get a file reader
                     ProjectFiles.openFile(name).done(function(fileReader){
+
+                        // Read the content of the file
                         inProgress[name] = fileReader.readAsText().done(function(text){
                             //console.log("Tern loaded file", name);
 
