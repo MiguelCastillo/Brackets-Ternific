@@ -216,7 +216,7 @@ define(function (require, exports, module) {
                     promise.resolve(data, query);
                 }
             });
-        }, 100);
+        }, 1);
 
         return promise.promise();
     };
