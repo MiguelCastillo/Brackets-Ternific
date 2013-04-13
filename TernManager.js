@@ -54,11 +54,11 @@ define(function (require, exports, module) {
     /**
     * Register a document with tern
     *
-    * @param: cm is a code mirror instance we will be operating on.
+    * @param cm is a code mirror instance we will be operating on.
     * We register listeners for keybinding and we also extract the
     * document content and feed it to tern.
     *
-    * @param: file is just a file object.  The only thing we currenly
+    * @param file is just a file object.  The only thing we currenly
     * use is the fullPath, which also includes the file name.  We
     * map the code mirror instance to that file name.
     *
@@ -70,11 +70,6 @@ define(function (require, exports, module) {
 
         if (!file) {
             throw new TypeError("File object must be valid");
-        }
-
-        // if already bound, then exit...
-        if (cm._ternBindings) {
-            return;
         }
 
         // Unregister the current code mirror instance.
@@ -106,9 +101,9 @@ define(function (require, exports, module) {
             return;
         }
 
-        cm.removeKeyMap( "ternBindings" );
-        _ternProvider.unregister(cm);
+        cm.removeKeyMap("ternBindings");
         delete cm._ternBindings;
+        _ternProvider.unregister(cm);
     };
 
 

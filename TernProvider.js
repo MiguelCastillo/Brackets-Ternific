@@ -93,13 +93,7 @@ define(function (require, exports, module) {
                 name: name,
                 cm: cm,
                 doc: cm.getDoc(),
-                changed: null,
-                _trackChange: function (cm, change) {
-                    TernDemo.setCurrentDocument(docMeta);
-                    TernDemo.setDocs(_self.docs);
-                    TernDemo.setServer(_self._server);
-                    TernDemo.trackChange(docMeta.doc, change);
-                }
+                changed: null
             };
 
             this.addDoc(docMeta);
@@ -112,30 +106,33 @@ define(function (require, exports, module) {
         // dependency as resolved by tern, and later that partial document
         // is actually open needing registration.
         //
-        else if(!docMeta.cm) {
+        else {
             docMeta.cm = cm;
             docMeta.doc = cm.getDoc();
-            docMeta._trackChange = function (cm, change) {
-                console.log("change", cm);
-                TernDemo.setCurrentDocument(docMeta);
-                TernDemo.setDocs(_self.docs);
-                TernDemo.setServer(_self._server);
-                TernDemo.trackChange(docMeta.doc, change);
-            };
+            docMeta.changed = null;
         }
 
-        if (docMeta && docMeta.doc) {
-            CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
-        }
+        TernDemo.setCurrentDocument(docMeta);
+        TernDemo.setDocs(_self.docs);
+        TernDemo.setServer(_self._server);
 
+        docMeta._trackChange = function (cm, change) {
+            TernDemo.trackChange(docMeta.doc, change);
+        };
+
+        CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
         return docMeta;
     };
 
 
     ternDocuments.prototype.unregister = function (cm) {
         var docMeta = this.findDocByCM(cm);
-        if (docMeta && docMeta.doc) {
-            CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+        if (docMeta) {
+            delete docMeta.cm;
+
+            if (docMeta.doc && docMeta._trackChange) {
+                CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+            }
         }
     };
 
@@ -150,14 +147,9 @@ define(function (require, exports, module) {
     * done against.
     */
     ternDocuments.prototype.buildQuery = function( cm, query, allowFragments ) {
-        var docMeta = this.findDocByCM(cm);
-        TernDemo.setCurrentDocument(docMeta);
-        TernDemo.setDocs(this.docs);
-        TernDemo.setServer(this._server);
-
         var _query = TernDemo.buildRequest(cm, query, allowFragments);
         _query.data = _query.request;
-        _query.doc = docMeta;
+        _query.doc = this.findDocByCM(cm);
         delete _query.request;
         return _query;
     };
@@ -258,18 +250,14 @@ define(function (require, exports, module) {
             if ( docMeta ){
                 c(null, docMeta.doc.getValue());
             }
+            else if (name in inProgress) {
+                inProgress[name].done(function(text){
+                    c(null, text);
+                }).fail(function(error){
+                    c(error, null);
+                });
+            }
             else {
-
-                if (name in inProgress) {
-                    inProgress[name].done(function(text){
-                        c(null, text);
-                    }).fail(function(error){
-                        c(error, null);
-                    });
-
-                    return;
-                }
-
                 try {
                     ProjectFiles.openFile(name).done(function(fileReader){
                         inProgress[name] = fileReader.readAsText().done(function(text){
@@ -298,7 +286,7 @@ define(function (require, exports, module) {
                 }
                 catch(e){
                     console.log(name, e);
-                    c(null, "");
+                    c(e, null);
                 }
             }
         }
