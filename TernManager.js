@@ -77,6 +77,9 @@ define(function (require, exports, module) {
             return;
         }
 
+        // Unregister the current code mirror instance.
+        ternManager.unregister(_cm);
+
         _cm = cm;
         _cm._ternBindings = ternManager;
 
@@ -99,7 +102,7 @@ define(function (require, exports, module) {
     * any keybindings we have registered
     */
     ternManager.unregister = function (cm) {
-        if (!cm._ternBindings) {
+        if (!cm || !cm._ternBindings) {
             return;
         }
 

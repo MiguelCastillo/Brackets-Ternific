@@ -54,10 +54,6 @@ define(function (require, exports, module) {
         if (current) {
             TernManager.register(current._codeMirror, current.document.file);
         }
-
-        if (previous) {
-            TernManager.unregister(previous._codeMirror);
-        }
     }
 
 

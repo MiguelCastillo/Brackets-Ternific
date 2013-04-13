@@ -85,7 +85,10 @@ define(function (require, exports, module) {
         var _self = this;
         var docMeta = this.findDocByName(name);
 
-        if (!docMeta || !docMeta.cm) {
+        //
+        // If the document has not been registered, then we set one up
+        //
+        if (!docMeta) {
             docMeta = {
                 name: name,
                 cm: cm,
@@ -100,14 +103,38 @@ define(function (require, exports, module) {
             };
 
             this.addDoc(docMeta);
+        }
+        //
+        // If the document exists but has not been registered, then we
+        // update the properties that need updating and setup up a change
+        // tracking callback.
+        // This particular case happens when a document is loaded as a
+        // dependency as resolved by tern, and later that partial document
+        // is actually open needing registration.
+        //
+        else if(!docMeta.cm) {
+            docMeta.cm = cm;
+            docMeta.doc = cm.getDoc();
+            docMeta._trackChange = function (cm, change) {
+                console.log("change", cm);
+                TernDemo.setCurrentDocument(docMeta);
+                TernDemo.setDocs(_self.docs);
+                TernDemo.setServer(_self._server);
+                TernDemo.trackChange(docMeta.doc, change);
+            };
+        }
+
+        if (docMeta && docMeta.doc) {
             CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
         }
+
+        return docMeta;
     };
 
 
     ternDocuments.prototype.unregister = function (cm) {
         var docMeta = this.findDocByCM(cm);
-        if ( docMeta ) {
+        if (docMeta && docMeta.doc) {
             CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
         }
     };
@@ -180,7 +207,8 @@ define(function (require, exports, module) {
 
     localDocuments.prototype.query = function( cm, settings ) {
         var promise = $.Deferred();
-        var query = this.buildQuery( cm, settings ), queryData = query.data, queryDoc = query.doc;
+        var query = this.buildQuery( cm, settings ),
+            queryData = query.data;
 
         this._server.request( queryData, function(error, data) {
             if (error) {
@@ -206,6 +234,7 @@ define(function (require, exports, module) {
     var httpCache = {}, inProgress= {};
     localDocuments.prototype.getFile = function (name, c) {
         var _self = this;
+
         if (/^https?:\/\//.test(name)) {
             if (httpCache[name]){
                 return c(null, httpCache[name]);
@@ -219,8 +248,8 @@ define(function (require, exports, module) {
                 httpCache[name] = data;
                 c(null, data);
             })
-            .fail(function(){
-                c(null, "");
+            .fail(function(err){
+                c(err, null);
             });
         }
         else {
@@ -229,9 +258,7 @@ define(function (require, exports, module) {
             if ( docMeta ){
                 c(null, docMeta.doc.getValue());
             }
-            // I don't know why module.js is causing problems when loading the file... But
-            // I am going to skip it for now...
-            else if (name.charAt(0) != '/' && name !== "module.js") {
+            else {
 
                 if (name in inProgress) {
                     inProgress[name].done(function(text){
@@ -246,10 +273,10 @@ define(function (require, exports, module) {
                 try {
                     ProjectFiles.openFile(name).done(function(fileReader){
                         inProgress[name] = fileReader.readAsText().done(function(text){
-                            console.log("Tern loaded file", name);
+                            //console.log("Tern loaded file", name);
 
                             var docMeta = {
-                                name: name,
+                                name: ProjectFiles.resolveName(name),
                                 doc: new CodeMirror.Doc(text, "javascript"),
                                 changed: null
                             };
@@ -258,22 +285,22 @@ define(function (require, exports, module) {
                             c(null, text);
                         })
                         .fail(function(error){
-                            console.log("Tern error loading ", name);
                             c(error, null);
                         })
                         .always(function() {
                             delete inProgress[name];
                         });
+                    })
+                    .fail(function(error){
+                        console.log(name, error);
+                        c(error, null);
                     });
                 }
                 catch(e){
+                    console.log(name, e);
                     c(null, "");
                 }
             }
-            else {
-                c(null, "");
-            }
-
         }
     };
 
@@ -312,7 +339,8 @@ define(function (require, exports, module) {
 
     remoteDocuments.prototype.query = function( cm, settings ) {
         var promise = $.Deferred();
-        var query = this.buildQuery( cm, settings ), queryData = query.data, queryDoc = query.doc;
+        var query = this.buildQuery( cm, settings ),
+            queryData = query.data;
 
         // Send query to the server
         $.ajax({

@@ -28,7 +28,6 @@ define(function (require, exports, module) {
     'use strict';
 
     var FileUtils        = brackets.getModule("file/FileUtils"),
-        NativeFileError  = brackets.getModule("file/NativeFileError"),
         NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem,
         ProjectManager   = brackets.getModule("project/ProjectManager");
 
@@ -82,15 +81,11 @@ define(function (require, exports, module) {
                 });
             }
             else {
-                // Wrap this thing so that I can provide a uniform interface for
-                // reading and writing files.
-                var reader = new NativeFileSystem.FileReader();
-
                 var fileReader = {
                     readAsText: function() {
                         return FileUtils.readAsText(fileEntry);
                     }
-                }
+                };
 
                 deferred.resolve(fileReader);
             }
@@ -99,6 +94,11 @@ define(function (require, exports, module) {
 
 
         return deferred;
+    };
+
+
+    ProjectFiles.prototype.resolveName = function(fileName) {
+        return FileUtils.canonicalizeFolderPath(currentProject.fullPath) + "/" + fileName;
     };
 
 
