@@ -1,0 +1,10 @@
+{
+    "name": "tern-hints",
+    "description": "Tern integration with Brackets",
+    "version": "0.1.0",
+    "author": "Miguel Castillo <mahchagnu@gmail.com>",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/MiguelCastillo/Brackets-Tern.git"
+    }
+}
