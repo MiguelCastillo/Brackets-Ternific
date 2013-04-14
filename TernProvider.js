@@ -43,7 +43,7 @@ define(function (require, exports, module) {
     * ternDocument is a set of interfaces that facilitate the interaction
     * with tern.
     */
-    function ternDocuments(options) {
+    function TernProvider(options) {
         var _self = this;
         _self.ready = $.Deferred();
         _self.docs = [];
@@ -51,12 +51,12 @@ define(function (require, exports, module) {
     }
 
 
-    ternDocuments.prototype.query = function (query) {
+    TernProvider.prototype.query = function (query) {
         throw "Must implement";
     };
 
 
-    ternDocuments.prototype.findDocByProperty = function (_propName, data) {
+    TernProvider.prototype.findDocByProperty = function (_propName, data) {
         var index = 0, length = this.docs.length;
         for (index = 0; index < length; index++) {
             if (this.docs[index][_propName] === data) {
@@ -66,22 +66,22 @@ define(function (require, exports, module) {
     };
 
 
-    ternDocuments.prototype.findDocByName = function (name) {
+    TernProvider.prototype.findDocByName = function (name) {
         return this.findDocByProperty("name", name);
     };
 
 
-    ternDocuments.prototype.findDocByInstance = function (doc) {
+    TernProvider.prototype.findDocByInstance = function (doc) {
         return this.findDocByProperty("doc", doc);
     };
 
 
-    ternDocuments.prototype.findDocByCM = function (cm) {
+    TernProvider.prototype.findDocByCM = function (cm) {
         return this.findDocByProperty("cm", cm);
     };
 
 
-    ternDocuments.prototype.register = function (cm, name) {
+    TernProvider.prototype.register = function (cm, name) {
         var _self = this;
         var docMeta = this.findDocByName(name);
 
@@ -125,7 +125,7 @@ define(function (require, exports, module) {
     };
 
 
-    ternDocuments.prototype.unregister = function (cm) {
+    TernProvider.prototype.unregister = function (cm) {
         var docMeta = this.findDocByCM(cm);
         if (docMeta) {
             delete docMeta.cm;
@@ -146,7 +146,7 @@ define(function (require, exports, module) {
     * full between a query and operating on the document the query of
     * done against.
     */
-    ternDocuments.prototype.buildQuery = function( cm, query, allowFragments ) {
+    TernProvider.prototype.buildQuery = function( cm, query, allowFragments ) {
         var _query = TernDemo.buildRequest(cm, query, allowFragments);
         _query.data = _query.request;
         _query.doc = this.findDocByCM(cm);
@@ -159,9 +159,9 @@ define(function (require, exports, module) {
     /**
     *  Interface to operate against a local instance of tern
     */
-    function localDocuments() {
+    function LocalProvider() {
         var _self = this;
-        ternDocuments.apply(_self, arguments);
+        TernProvider.apply(_self, arguments);
 
         ternRequire(["lib/tern", "plugin/requirejs", "plugin/node"], function(tern) {
 
@@ -193,11 +193,11 @@ define(function (require, exports, module) {
     }
 
 
-    localDocuments.prototype = new ternDocuments;
-    localDocuments.prototype.constructor = localDocuments;
+    LocalProvider.prototype = new TernProvider;
+    LocalProvider.prototype.constructor = LocalProvider;
 
 
-    localDocuments.prototype.query = function( cm, settings ) {
+    LocalProvider.prototype.query = function( cm, settings ) {
         var _self = this;
         var promise = $.Deferred();
 
@@ -212,7 +212,6 @@ define(function (require, exports, module) {
                 }
                 else {
                     query.result = data;
-                    query.details = queryDetails(query);
                     promise.resolve(data, query);
                 }
             });
@@ -222,14 +221,14 @@ define(function (require, exports, module) {
     };
 
 
-    localDocuments.prototype.addDoc = function (doc) {
+    LocalProvider.prototype.addDoc = function (doc) {
         this.docs.push(doc);
         this._server.addFile(doc.name, doc.doc.getValue());
     };
 
 
     var httpCache = {}, inProgress= {};
-    localDocuments.prototype.getFile = function (name, c) {
+    LocalProvider.prototype.getFile = function (name, c) {
         var _self = this;
 
         if (/^https?:\/\//.test(name)) {
@@ -304,9 +303,9 @@ define(function (require, exports, module) {
     /**
     *  Interface to operate against a remote tern server
     */
-    function remoteDocuments() {
+    function RemoteProvider() {
         var _self = this;
-        ternDocuments.apply(_self, arguments);
+        TernProvider.apply(_self, arguments);
 
         ternRequire(['text!.tern-port'], function(ternport) {
             _self.port = ternport;
@@ -320,11 +319,11 @@ define(function (require, exports, module) {
     }
 
 
-    remoteDocuments.prototype = new ternDocuments;
-    remoteDocuments.prototype.constructor = remoteDocuments;
+    RemoteProvider.prototype = new TernProvider;
+    RemoteProvider.prototype.constructor = RemoteProvider;
 
 
-    remoteDocuments.prototype.ping = function (){
+    RemoteProvider.prototype.ping = function (){
         return $.ajax({
             "url": "http://localhost:" + this.port + "/ping",
             "type": "GET"
@@ -333,7 +332,7 @@ define(function (require, exports, module) {
     };
 
 
-    remoteDocuments.prototype.query = function( cm, settings ) {
+    RemoteProvider.prototype.query = function( cm, settings ) {
         var promise = $.Deferred();
         var query = this.buildQuery( cm, settings ),
             queryData = query.data;
@@ -347,7 +346,6 @@ define(function (require, exports, module) {
         })
         .done(function(data){
             query.result = data;
-            query.details = queryDetails(query);
             promise.resolve(data, query);
         })
         .fail(function(error){
@@ -359,45 +357,19 @@ define(function (require, exports, module) {
     };
 
 
-    remoteDocuments.prototype.addDoc = function(doc) {
+    RemoteProvider.prototype.addDoc = function(doc) {
         this.docs.push(doc);
     };
 
 
 
-    /**
-    * Gets more details about the query itself.  One of the things it
-    * provides is the text for the query...  E.g. What is tern searching
-    * for when we are asking for feedback.
-    */
-    function queryDetails( query ) {
-        if ( query ) {
-            var result = query.result;
-            var start = CodeMirror.Pos(result.start.line + query.offsetLines, result.start.ch),
-                end = CodeMirror.Pos(result.end.line + query.offsetLines, result.end.ch);
-
-            var details = {
-                text: query.doc.cm.getDoc().getRange(start, end),
-                start: start,
-                end: end
-            };
-
-            return details;
-        }
-    }
-
-
-
-    exports.TernDocuments = {
-        remote: remoteDocuments,
-        local: localDocuments
+    exports.TernProvider = {
+        remote: RemoteProvider,
+        local: LocalProvider
     };
 
 
-    return {
-        remote: remoteDocuments,
-        local: localDocuments
-    };
+    return exports.TernProvider;
 
 });
 

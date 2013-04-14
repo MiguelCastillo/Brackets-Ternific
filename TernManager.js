@@ -28,8 +28,10 @@
 define(function (require, exports, module) {
     'use strict';
 
-    var TernProvider = require("TernProvider"),
-        HintsHelper  = require("HintHelper");
+    var TernProvider   = require("TernProvider"),
+        TernHints      = require("TernHints"),
+        TernReferences = require("TernReferences"),
+        TernTypes      = require("TernTypes");
 
     var _ternProvider = null,
         _cm = null;
@@ -46,8 +48,13 @@ define(function (require, exports, module) {
         _ternProvider.onReady(onReady.resolve);
 
         return {
+            ternHints: new TernHints(_ternProvider),
+            ternReferences: new TernReferences(_ternProvider),
+            ternTypes: new TernTypes(_ternProvider),
+			ternProvider: _ternProvider,
             onReady: onReady.promise().done
         };
+
     })();
 
 
@@ -80,10 +87,18 @@ define(function (require, exports, module) {
 
         var keyMap = {
             "name": "ternBindings",
-            "Ctrl-I": ternManager.findType,
-            "Alt-.": ternManager.jumpToDef,
-            "Alt-,": ternManager.jumpBack,
-            "Ctrl-R": ternManager.renameVar
+            "Ctrl-I": function(){
+                ternManager.ternTypes.findType(_cm);
+            },
+            "Alt-.": function() {
+                //ternManager.jumpToDef
+            },
+            "Alt-,": function() {
+                //ternManager.jumpBack
+            },
+            "Ctrl-R": function() {
+                ternManager.ternReferences.findReferences(_cm);
+            }
         };
 
         // Register key events
@@ -105,207 +120,6 @@ define(function (require, exports, module) {
         delete cm._ternBindings;
         _ternProvider.unregister(cm);
     };
-
-
-    /**
-    * Utility function that helps determine if the the parameter _char
-    * is one that we can start or continue hinting on.  There are some
-    * characters that are not hintable.
-    */
-    ternManager.canHint = function (_char, cm) {
-        // Support for inner mode
-        // var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
-
-        if (!_char || HintsHelper.maybeIdentifier(_char)) {
-            _cm = getCM(cm);
-            var cursor = _cm.getCursor();
-            var token = _cm.getTokenAt(cursor);
-            return HintsHelper.hintable(token);
-        }
-
-        _cm = null;
-        return false;
-    };
-
-
-    /**
-    * Inserts a hint from the hints object.
-    * The idea here is that getHints is called first to build a valid list of hints.
-    * Then select one of the hint items from hints returned by getHints.  The selected
-    * hint and the hints object are the parameters you supply in insertHint.
-    *
-    * 1. call getHints.
-    * 2. select a hint from the hints returned by getHints
-    * 3. feed the selected hint and the list of hints back in insertHint
-    */
-    ternManager.insertHint = function( hint, hints ) {
-        if ( !hint || !hints ) {
-            throw new TypeError("Must provide valid hint and hints object as they are returned by calling getHints");
-        }
-
-        var cm = hints.cm;
-
-        var completion  = hint.value,
-            cursor      = cm.getCursor(),
-            token       = cm.getTokenAt(cursor),
-            query       = hints.query.details.text,
-            start       = {line: cursor.line, ch: cursor.ch - query.length},
-            end         = {line: cursor.line, ch: (token ? token.end : cursor.ch)};
-
-        // Replace the current token with the completion
-        cm.getDoc().replaceRange(completion, start, end);
-
-        if ( ternManager.trace === true ) {
-            console.log(hint, hints);
-        }
-    };
-
-
-    /**
-    * Interface to ask tern for hints.  You can pass in any particular code
-    * mirror instance you want to operate on or let ternManager pick the last
-    * code mirror instance that was registered via registerDoc.
-    */
-    ternManager.getHints = function( cm ) {
-        cm = getCM(cm);
-
-        if ( !cm ){
-            return $.Deferred().reject();
-        }
-
-        return _ternProvider.query(cm, {type: "completions", types: true, docs: true})
-            .pipe(function(data, query) {
-                var completions = [];
-
-                for (var i = 0; i < data.completions.length; i++) {
-                    var completion = data.completions[i],
-                        completionType = HintsHelper.typeDetails(completion.type),
-                        className = completionType.icon;
-
-                    if (completion.guess) {
-                        className += " Tern-completion-guess";
-                    }
-
-                    var _completion = {
-                        value: completion.name,
-                        type: completionType.name,
-                        icon: completionType.icon,
-                        className: className,
-                        _completion: completion,
-                        _type: completionType
-                    };
-
-                    completions.push(_completion);
-                }
-
-                var _hints = {
-                    list: completions,
-                    query: query,
-                    cm: cm
-                };
-
-                if ( ternManager.trace === true ) {
-                    console.log(_hints);
-                }
-
-                return _hints;
-            },
-            function(error) {
-                return error;
-            });
-    };
-
-
-    ternManager.findType = function( cm ) {
-        cm = getCM(cm);
-
-        if ( !cm ){
-            return $.Deferred().reject();
-        }
-
-        _ternProvider.query(cm, "type")
-            .pipe( function(data) {
-                var findTypeType = HintsHelper.typeDetails(data.type),
-                    className = findTypeType.icon;
-
-                if (data.guess) {
-                    className += " Tern-completion-guess";
-                }
-
-                var _findType = {
-                    value: data.name,
-                    type: findTypeType.name,
-                    icon: findTypeType.icon,
-                    className: className,
-                    query: data.query,
-                    _find: data,
-                    _type: HintsHelper.findTypeType
-                };
-
-                if ( ternManager.trace === true ) {
-                    console.log(_findType);
-                }
-
-                return _findType;
-            },
-            function( error ) {
-                return error;
-            });
-    };
-
-
-    ternManager.jumpToDef = function(cm) {
-        console.log("jumpToDef");
-    };
-
-
-    ternManager.jumpBack = function(cm) {
-        console.log("jumpBack");
-    };
-
-
-    ternManager.renameVar = function(cm) {
-        cm = getCM(cm);
-
-        if ( !cm ){
-            return $.Deferred().reject();
-        }
-
-        _ternProvider.query( cm, "refs" )
-            .pipe(function(data) {
-                var perFile = {}, i;
-
-                for (i = 0; i < data.refs.length; ++i) {
-                    var use = data.refs[i];
-                    (perFile[use.file] || (perFile[use.file] = [])).push(use);
-                }
-
-                for (var file in perFile) {
-                    var refs = perFile[file], doc = _ternProvider.findDocByName(file).doc;
-                    refs.sort(refSort);
-
-                    for (i = 0; i < refs.length; ++i) {
-                        console.log(refs[i]);
-                        //doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
-                    }
-                }
-
-                return perFile;
-            },
-            function(error) {
-                return error;
-            });
-    };
-
-
-    function getCM( cm ) {
-        return cm || _cm;
-    }
-
-
-    function refSort(a, b) {
-        return b.start - a.start;
-    }
 
 
     exports.ternManager = ternManager;
