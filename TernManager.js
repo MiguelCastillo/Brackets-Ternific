@@ -43,8 +43,8 @@ define(function (require, exports, module) {
     var ternManager = (function () {
         var onReady = $.Deferred();
 
-        //_ternProvider = new TernProvider.remote();
-        _ternProvider = new TernProvider.local();
+        //_ternProvider = new TernProvider.Remote();
+        _ternProvider = new TernProvider.Local();
         _ternProvider.onReady(onReady.resolve);
 
         return {

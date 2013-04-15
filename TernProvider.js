@@ -25,8 +25,8 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var TernDemo     = require("TernDemo"),
-        ProjectFiles = require("ProjectFiles");
+    var TernDemo   = require("TernDemo"),
+        fileLoader = require("FileLoader");
 
     var ternRequire = window.require.config({
         "baseUrl": require.toUrl("./tern/"),
@@ -47,6 +47,7 @@ define(function (require, exports, module) {
         var _self = this;
         _self.ready = $.Deferred();
         _self.docs = [];
+        _self.currentDocument = null;
         _self.onReady = _self.ready.promise().done;
     }
 
@@ -112,6 +113,7 @@ define(function (require, exports, module) {
             docMeta.changed = null;
         }
 
+        _self.currentDocument = docMeta;
         TernDemo.setCurrentDocument(docMeta);
         TernDemo.setDocs(_self.docs);
         TernDemo.setServer(_self._server);
@@ -227,75 +229,28 @@ define(function (require, exports, module) {
     };
 
 
-    var httpCache = {}, inProgress= {};
     LocalProvider.prototype.getFile = function (name, c) {
         var _self = this;
+        var docMeta = this.findDocByName(name);
 
-        if (/^https?:\/\//.test(name)) {
-            if (httpCache[name]){
-                return c(null, httpCache[name]);
-            }
-
-            $.ajax({
-                "url": name,
-                "contentType": "text"
-            })
-            .done(function(data) {
-                httpCache[name] = data;
-                c(null, data);
-            })
-            .fail(function(err){
-                c(err, null);
-            });
+        if ( docMeta ) {
+            c(null, docMeta.doc.getValue());
         }
         else {
-            var docMeta = this.findDocByName(name);
+            fileLoader.loadFile(name, _self.currentDocument.name)
+                .done(function(data) {
+                    var docMeta = {
+                        name: data.fullPath,
+                        doc: new CodeMirror.Doc(data.text, "javascript"),
+                        changed: null
+                    };
 
-            if ( docMeta ){
-                c(null, docMeta.doc.getValue());
-            }
-            else if (name in inProgress) {
-                inProgress[name].done(function(text){
-                    c(null, text);
-                }).fail(function(error){
+                    _self.addDoc(docMeta);
+                    c(null, data.text);
+                })
+                .fail(function(error){
                     c(error, null);
                 });
-            }
-            else {
-                try {
-                    // Get a file reader
-                    ProjectFiles.openFile(name).done(function(fileReader){
-
-                        // Read the content of the file
-                        inProgress[name] = fileReader.readAsText().done(function(text){
-                            //console.log("Tern loaded file", name);
-
-                            var docMeta = {
-                                name: ProjectFiles.resolveName(name),
-                                doc: new CodeMirror.Doc(text, "javascript"),
-                                changed: null
-                            };
-
-                            _self.addDoc(docMeta);
-                            c(null, text);
-                        })
-                        .fail(function(error){
-                            c(error, null);
-                        })
-                        .always(function() {
-                            delete inProgress[name];
-                        });
-                    })
-                    .fail(function(error){
-                        console.log(name, error);
-                        c(error, null);
-                    });
-                }
-                catch(e){
-                    console.log(name, e);
-                    c(e, null);
-                }
-            }
         }
     };
 
@@ -362,10 +317,9 @@ define(function (require, exports, module) {
     };
 
 
-
     exports.TernProvider = {
-        remote: RemoteProvider,
-        local: LocalProvider
+        Remote: RemoteProvider,
+        Local: LocalProvider
     };
 
 

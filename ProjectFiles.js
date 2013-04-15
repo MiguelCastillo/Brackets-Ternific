@@ -39,28 +39,6 @@ define(function (require, exports, module) {
     }
 
 
-    ProjectFiles.prototype.openFile1 = function( fileName ) {
-        var deferred = $.Deferred();
-
-        // Try to load up the linterSettings file, which is per project.
-        var file = FileUtils.canonicalizeFolderPath(currentProject.fullPath) + fileName;
-
-        // Start the process of figuring out if we already have a .jshintrc file
-        NativeFileSystem.resolveNativeFileSystemPath(file, function(fileEntry){
-
-            var fileHandler = {
-                readAsText:function() {
-                    return FileUtils.readAsText(fileEntry);
-                }
-            };
-
-            deferred.resolve(fileHandler);
-        }, deferred.reject);
-
-        return deferred;
-    };
-
-
     ProjectFiles.prototype.openFile = function( fileName, type, forceCreate ) {
         var deferred = $.Deferred();
 
