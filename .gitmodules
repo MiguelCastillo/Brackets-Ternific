@@ -1,0 +1,6 @@
+[submodule "lib/tern"]
+	path = lib/tern
+	url = https://github.com/marijnh/tern
+[submodule "lib/acorn"]
+	path = lib/acorn
+	url = https://github.com/marijnh/acorn
