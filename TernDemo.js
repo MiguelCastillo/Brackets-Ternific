@@ -100,7 +100,7 @@ define(['require', 'exports', 'module'], function(require, exports, module) {
             curDoc.changed.from <= startPos.line && curDoc.changed.to > query.end.line) {
           files.push(getFragmentAround(cm, startPos, query.end));
           query.file = "#0";
-          offsetLines = files[0].offsetLines;
+          var offsetLines = files[0].offsetLines;
           if (query.start != null) query.start = incLine(-offsetLines, query.start);
           query.end = incLine(-offsetLines, query.end);
         } else {
@@ -121,8 +121,7 @@ define(['require', 'exports', 'module'], function(require, exports, module) {
         }
       }
 
-      return {request: {query: query, files: files},
-              offsetLines: offsetLines};
+      return {query: query, files: files};
     }
 
     function sendDoc(doc) {

@@ -161,9 +161,7 @@ define(function (require, exports, module) {
     */
     TernProvider.prototype.buildQuery = function( cm, query, allowFragments ) {
         var _query = TernDemo.buildRequest(cm, query, allowFragments);
-        _query.data = _query.request;
         _query.doc = this.findDocByCM(cm);
-        delete _query.request;
         return _query;
     };
 
@@ -216,10 +214,9 @@ define(function (require, exports, module) {
 
         // Throttle the query request so that doc changes enough time to be processed
         setTimeout(function(){
-            var query = _self.buildQuery( cm, settings ),
-                queryData = query.data;
+            var query = _self.buildQuery( cm, settings );
 
-            _self._server.request( queryData, function(error, data) {
+            _self._server.request( query, function(error, data) {
                 if (error) {
                     promise.reject(error);
                 }
@@ -300,22 +297,20 @@ define(function (require, exports, module) {
 
     RemoteProvider.prototype.query = function( cm, settings ) {
         var promise = $.Deferred();
-        var query = this.buildQuery( cm, settings ),
-            queryData = query.data;
+        var query = this.buildQuery( cm, settings );
 
         // Send query to the server
         $.ajax({
             "url": "http://localhost:" + this.port,
             "type": "POST",
             "contentType": "application/json; charset=utf-8",
-            "data": JSON.stringify(queryData)
+            "data": JSON.stringify(query)
         })
         .done(function(data){
             query.result = data;
             promise.resolve(data, query);
         })
         .fail(function(error){
-            console.log(error);
             promise.reject(error);
         });
 
