@@ -160,8 +160,8 @@ define(function (require, exports, module) {
     function hintResultDetails( query ) {
         if ( query ) {
             var result = query.result;
-            var start = CodeMirror.Pos(result.start.line + query.offsetLines, result.start.ch),
-                end = CodeMirror.Pos(result.end.line + query.offsetLines, result.end.ch);
+            var start = CodeMirror.Pos(result.start.line, result.start.ch),
+                end = CodeMirror.Pos(result.end.line, result.end.ch);
 
             var details = {
                 text: query.doc.cm.getDoc().getRange(start, end),

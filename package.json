@@ -6,8 +6,5 @@
     "repository": {
         "type": "git",
         "url": "git://github.com/MiguelCastillo/Brackets-Tern.git"
-    },
-	"scripts": {
-		"postinstall": "npm tern install"
-	}
+    }
 }
