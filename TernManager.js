@@ -58,6 +58,12 @@ define(function (require, exports, module) {
     })();
 
 
+    ternManager.clear = function() {
+        ternManager.unregister(_cm);
+        _ternProvider.clear();
+    }
+
+
     /**
     * Register a document with tern
     *

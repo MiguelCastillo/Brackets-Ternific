@@ -37,7 +37,8 @@ define(function (require, exports, module) {
 
 
     var HintProvider = require('HintProvider'),
-        TernManager  = require('TernManager');
+        TernManager  = require('TernManager'),
+        ProjectFiles = require('ProjectFiles');
     var jsMode = "javascript";
 
 
@@ -59,6 +60,10 @@ define(function (require, exports, module) {
 
     // uninstall/install change listener as the active editor changes
     $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+
+    $(ProjectFiles).on('projectOpen', function(){
+        TernManager.clear();
+    });
 
     // immediately install the current editor
     handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);

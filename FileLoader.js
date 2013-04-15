@@ -160,13 +160,13 @@ define(function (require, exports, module) {
                 //
                 return loadFromDirectory(fileName, rootFile)
                     .then(function(data) {
-                        //console.log("Loaded from directory", data);
+                        //console.log("Loaded from directory", fileName, data);
                         return data;
                     }, function( ) {
 
                         return loadFromProject(fileName)
                             .then(function(data) {
-                                //console.log("Loaded from project", data);
+                                //console.log("Loaded from project", fileName, data);
                                 return data;
                             },
                             function(error){

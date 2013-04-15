@@ -52,6 +52,17 @@ define(function (require, exports, module) {
     }
 
 
+    TernProvider.prototype.clear = function() {
+        var _self = this;
+        _self.docs = [];
+
+        if (_self._server) {
+            _self._server.reset();
+            _self._server.files = [];
+        }
+    };
+
+
     TernProvider.prototype.query = function (query) {
         throw "Must implement";
     };
