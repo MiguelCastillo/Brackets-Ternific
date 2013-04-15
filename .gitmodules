@@ -1,6 +1,6 @@
-[submodule "lib/tern"]
-	path = lib/tern
+[submodule "tern"]
+	path = tern
 	url = https://github.com/marijnh/tern
-[submodule "lib/acorn"]
-	path = lib/acorn
+[submodule "acorn"]
+	path = acorn
 	url = https://github.com/marijnh/acorn
