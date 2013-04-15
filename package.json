@@ -6,5 +6,8 @@
     "repository": {
         "type": "git",
         "url": "git://github.com/MiguelCastillo/Brackets-Tern.git"
-    }
+    },
+	"scripts": {
+		"postinstall": "git submodule update --init"
+	}
 }
