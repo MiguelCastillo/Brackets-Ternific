@@ -8,25 +8,17 @@ Some bullet items are:
 2. The code is setup to handle either remote tern server or directly loaded in brackets; this is ony switchable at code level and it is not a runtime setting.
 
 
-Loading tern in brackets
+How to
 =============
 
-Requirements:<br>
-1. We need nodejs because that's how tern is currently tracking dependencies.<br>
-2. Github command line to get the dependencies.<br>
-
-Setup:<br>
-1. Download the extension and add it in brackets.<br>
-2. Download https://github.com/marijnh/tern and place it in the same directory as the extension<br>
-3. Go to tern directory and run "npm install". This will download acorn so you are set with dependencies<br>
+* Install... Open Brackets then copy and paste https://github.com/MiguelCastillo/Brackets-Tern into File->Install Extension.  You don't need to restart Brackets.
 
 
 Credit
 =============
 
 1. Brackets' javascript hinting has been used and code has been lifted and integrated into this extension.<br>
-2. Code has been taken from tern demo.js in order to make tern integration possible.  Thanks Marijn!<br>
-
+2. Code has been taken from tern demo.js in order to make tern integration possible.<br>
 
 
 License
