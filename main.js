@@ -32,10 +32,10 @@ define(function (require, exports, module) {
         ExtensionUtils  = brackets.getModule("utils/ExtensionUtils"),
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
-
     var HintProvider = require('HintProvider'),
         TernManager  = require('TernManager'),
         ProjectFiles = require('ProjectFiles');
+
     var jsMode = "javascript";
 
     ExtensionUtils.loadStyleSheet(module, "style.css");
@@ -56,22 +56,10 @@ define(function (require, exports, module) {
     }
 
 
-    // uninstall/install change listener as the active editor changes
-    $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
-
-    $(ProjectFiles).on('projectOpen', function(){
-        TernManager.clear();
-    });
-
-    // immediately install the current editor
-    handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
-
-
     var promises = [
         $.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
         ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
     ];
-
 
 
     //
@@ -84,6 +72,16 @@ define(function (require, exports, module) {
         AppInit.appReady(function () {
             var jsHints = new HintProvider();
             CodeHintManager.registerHintProvider(jsHints, [jsMode], 1);
+
+            // uninstall/install change listener as the active editor changes
+            $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+
+            // immediately install the current editor
+            handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
+
+            $(ProjectFiles).on('projectOpen', function(){
+                TernManager.clear();
+            });
         });
     });
 
