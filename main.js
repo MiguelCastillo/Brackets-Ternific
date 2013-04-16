@@ -55,6 +55,18 @@ define(function (require, exports, module) {
         }
     }
 
+    TernManager.onReady(function(){
+        // uninstall/install change listener as the active editor changes
+        $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+
+        // immediately install the current editor
+        handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
+
+        $(ProjectFiles).on('projectOpen', function() {
+            TernManager.clear();
+        });
+    });
+
 
     var promises = [
         $.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
@@ -72,16 +84,6 @@ define(function (require, exports, module) {
         AppInit.appReady(function () {
             var jsHints = new HintProvider();
             CodeHintManager.registerHintProvider(jsHints, [jsMode], 1);
-
-            // uninstall/install change listener as the active editor changes
-            $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
-
-            // immediately install the current editor
-            handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
-
-            $(ProjectFiles).on('projectOpen', function(){
-                TernManager.clear();
-            });
         });
     });
 
