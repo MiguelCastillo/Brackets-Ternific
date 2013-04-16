@@ -46,8 +46,10 @@ define(function (require, exports, module) {
             inProgress[fileName] = $.ajax({
                     "url": fileName,
                     "contentType": "text"
-                })
-                .then(function(data) {
+                });
+
+
+            inProgress[fileName].then(function(data) {
                     httpCache[fileName] = {
                         fileName: fileName,
                         fullPath: fileName,
@@ -55,11 +57,10 @@ define(function (require, exports, module) {
                     };
 
                     return httpCache[fileName];
+                })
+                .always(function(){
+                    delete inProgress[fileName];
                 });
-
-            inProgress[fileName].always(function(){
-                delete inProgress[fileName];
-            });
 
             return inProgress[fileName];
         }
@@ -78,8 +79,9 @@ define(function (require, exports, module) {
                     exclusice: true
                 },
                 function( fileEntry ){
-                    inProgress[fileName] = FileUtils.readAsText(fileEntry)
-                        .done(function(text){
+                    inProgress[fileName] = FileUtils.readAsText(fileEntry);
+
+                    inProgress[fileName].done(function(text){
                             var data = {
                                 fileName: fileName,
                                 fullPath: directoryPath + fileName,
@@ -115,31 +117,34 @@ define(function (require, exports, module) {
 
         // Load up the file from the directory of the current project
         function loadFromProject(fileName) {
+            var deferred = $.Deferred();
 
             function openFileSuccess(fileReader) {
                 // Read the content of the file
-                var deferred = fileReader.readAsText();
-                inProgress[fileName] = deferred;
+                inProgress[fileName] = fileReader.readAsText();
 
-                return deferred.then(function(text){
-                    return {
+                inProgress[fileName].done(function(text){
+                    deferred.resolve({
                         fileName: fileName,
                         fullPath: ProjectFiles.resolveName(fileName),
                         text: text
-                    };
-
-                }).always(function() {
+                    });
+                })
+                .fail(function(error){
+                    deferred.reject(error);
+                })
+                .always(function() {
                     delete inProgress[fileName];
                 });
             }
 
-            function openFileFail(error) {
-                return $.Deferred().reject(error);
+            function openFileFailure(error) {
+                return deferred.reject(error);
             }
 
-
             // Get a file reader
-            return ProjectFiles.openFile(fileName).then(openFileSuccess, openFileFail);
+            ProjectFiles.openFile(fileName).then(openFileSuccess, openFileFailure);
+            return deferred;
         }
 
 
@@ -152,29 +157,29 @@ define(function (require, exports, module) {
                 return loadFromHTTP(fileName);
             }
             else {
+                var deferred = $.Deferred();
 
                 //
                 // First try to load the file from the specified rootFile directoty
                 // and if that does not work, then we will try to open it from the
                 // project directory.  Sometime both directories will be the same...
                 //
-                return loadFromDirectory(fileName, rootFile)
-                    .then(function(data) {
+                loadFromDirectory(fileName, rootFile).done(function(data) {
                         //console.log("Loaded from directory", fileName, data);
-                        return data;
-                    }, function( ) {
+                        deferred.resolve(data);
+                    }).fail(function( ) {
 
-                        return loadFromProject(fileName)
-                            .then(function(data) {
+                        loadFromProject(fileName).done(function(data) {
                                 //console.log("Loaded from project", fileName, data);
-                                return data;
-                            },
-                            function(error){
-                                console.log("File not loaded.", fileName, error);
-                                return error;
+                                deferred.resolve(data);
+                            }).fail(function(error){
+                                //console.log("File not loaded.", fileName, error);
+                                deferred.reject(error);
                             });
 
                     });
+
+                return deferred;
             }
         }
 
