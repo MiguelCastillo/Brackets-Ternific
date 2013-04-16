@@ -102,6 +102,9 @@ define(function (require, exports, module) {
                     $hintObj    = $("<span>").addClass("brackets-js-hints"),
                     delimiter   = "";
 
+                // Add icon to the hint item
+                $("<span>").addClass(token.className).appendTo($hintObj);
+
                 // level indicates either variable scope or property confidence
                 switch (token.level) {
                 case 0:
