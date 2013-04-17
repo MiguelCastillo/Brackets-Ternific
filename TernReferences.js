@@ -32,11 +32,19 @@ define(function (require, exports, module) {
         var _self = this;
         _self.ternProvider = ternProvider;
         _self._cm = null;
+        _self.textMarkers = [];
     }
 
 
     TernReferences.prototype.findReferences = function( cm ) {
         var _self = this;
+
+        $.each( _self.textMarkers.slice(0), function(i1, textMarker) {
+            textMarker.clear();
+        });
+
+        _self.textMarkers = [];
+
 
         if ( !cm ){
             return $.Deferred().reject();
@@ -56,8 +64,9 @@ define(function (require, exports, module) {
                     refs.sort(refSort);
 
                     for (i = 0; i < refs.length; ++i) {
-                        console.log(refs[i]);
                         //doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
+                        var marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
+                        _self.textMarkers.push(marker);
                     }
                 }
 

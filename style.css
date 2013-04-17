@@ -58,3 +58,8 @@
 .Tern-completion-guess {
   color: #999;
 }
+
+
+.Tern-reference-highlight {
+    background-color: yellow;
+}
