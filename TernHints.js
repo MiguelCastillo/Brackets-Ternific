@@ -37,6 +37,42 @@ define(function (require, exports, module) {
     }
 
 
+    TernHints.prototype.query = function( cm ) {
+        return this.ternProvider.query(cm, {type: "completions", types: true, docs: true})
+            .pipe(function(data, query) {
+                var completions = [];
+
+                // Expand some details about the completion results
+                query.details = hintResultDetails(query);
+
+                for (var i = 0; i < data.completions.length; i++) {
+                    var completion = data.completions[i],
+                        completionType = HintHelper.typeDetails(completion.type),
+                        className = completionType.icon;
+
+                    if (completion.guess) {
+                        className += " Tern-completion-guess";
+                    }
+
+                    completions.push({
+                        value: completion.name,
+                        type: completionType.name,
+                        className: className
+                    });
+                }
+
+                return {
+                    list: completions,
+                    query: query,
+                    cm: cm
+                };
+            },
+            function(error) {
+                return error;
+            });
+    };
+
+
     /**
     * Utility function that helps determine if the the parameter _char
     * is one that we can start or continue hinting on.  There are some
@@ -82,18 +118,7 @@ define(function (require, exports, module) {
             throw new TypeError("Must provide valid hint and hints object as they are returned by calling getHints");
         }
 
-        var _self = this;
-        var cm = _self._cm;
-
-        var completion  = hint.value,
-            cursor      = cm.getCursor(),
-            token       = cm.getTokenAt(cursor),
-            query       = hints.query.details.text,
-            start       = {line: cursor.line, ch: cursor.ch - query.length},
-            end         = {line: cursor.line, ch: (token ? token.end : cursor.ch)};
-
-        // Replace the current token with the completion
-        cm.getDoc().replaceRange(completion, start, end);
+        hints.cm.getDoc().replaceRange(hint.value, hints.query.details.start, hints.query.details.end);
     };
 
 
@@ -110,45 +135,7 @@ define(function (require, exports, module) {
             return $.Deferred().reject();
         }
 
-        return _self.ternProvider.query(cm, {type: "completions", types: true, docs: true})
-            .pipe(function(data, query) {
-                var completions = [];
-
-                // Expand some details about the completion results
-                query.details = hintResultDetails(query);
-
-                for (var i = 0; i < data.completions.length; i++) {
-                    var completion = data.completions[i],
-                        completionType = HintHelper.typeDetails(completion.type),
-                        className = completionType.icon;
-
-                    if (completion.guess) {
-                        className += " Tern-completion-guess";
-                    }
-
-                    var _completion = {
-                        value: completion.name,
-                        type: completionType.name,
-                        icon: completionType.icon,
-                        className: className,
-                        _completion: completion,
-                        _type: completionType
-                    };
-
-                    completions.push(_completion);
-                }
-
-                var _hints = {
-                    list: completions,
-                    query: query,
-                    cm: cm
-                };
-
-                return _hints;
-            },
-            function(error) {
-                return error;
-            });
+        return this.query(cm);
     };
 
 
@@ -158,19 +145,17 @@ define(function (require, exports, module) {
     * for when we are asking for feedback.
     */
     function hintResultDetails( query ) {
-        if ( query ) {
-            var result = query.result;
-            var start = CodeMirror.Pos(result.start.line, result.start.ch),
-                end = CodeMirror.Pos(result.end.line, result.end.ch);
+        var result = query.result;
+        var start = CodeMirror.Pos(result.start.line, result.start.ch),
+            end = CodeMirror.Pos(result.end.line, result.end.ch);
 
-            var details = {
-                text: query.doc.cm.getDoc().getRange(start, end),
-                start: start,
-                end: end
-            };
+        var details = {
+            text: query.doc.cm.getDoc().getRange(start, end),
+            start: start,
+            end: end
+        };
 
-            return details;
-        }
+        return details;
     }
 
 

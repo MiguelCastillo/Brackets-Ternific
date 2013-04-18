@@ -22,9 +22,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
-/*global define, $, brackets, window */
-
 define(function (require, exports, module) {
     'use strict';
 
@@ -37,9 +34,7 @@ define(function (require, exports, module) {
 
 
     TernReferences.prototype.query = function( cm ) {
-        var _self = this;
-
-        return _self.ternProvider.query( cm, "refs" )
+        return this.ternProvider.query( cm, "refs" )
             .pipe(function(data) {
                 var perFile = {}, i, use;
 
