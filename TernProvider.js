@@ -28,14 +28,6 @@ define(function (require, exports, module) {
     var TernDemo   = require("TernDemo"),
         fileLoader = require("FileLoader");
 
-    var ternRequire = window.require.config({
-        "baseUrl": require.toUrl("./tern/"),
-        "paths": {
-            "acorn": "node_modules/acorn"
-        },
-        waitSeconds: 5
-    });
-
 
     /**
     * @constructor
@@ -58,7 +50,6 @@ define(function (require, exports, module) {
 
         if (_self._server) {
             _self._server.clear();
-            _self._server.files = [];
         }
     };
 
@@ -115,8 +106,16 @@ define(function (require, exports, module) {
         // update the properties that need updating and setup up a change
         // tracking callback.
         // This particular case happens when a document is loaded as a
-        // dependency as resolved by tern, and later that partial document
-        // is actually open needing registration.
+        // dependency when resolved by tern, and later that document is
+        // opened in brackets, which will need registration for tracking
+        // changes.
+        //
+        // Only documents that are open in brackets and currently in focus
+        // are the ones that should be tracked for changes.  Currently,
+        // if a document isn't open in brackets then we are going to assume
+        // that it is not being changed. I'm not worried about external
+        // editors opening documents and modifying them outside of the
+        // current instance of brackets.
         //
         else {
             docMeta.cm = cm;
@@ -180,7 +179,6 @@ define(function (require, exports, module) {
                 async: true,
                 plugins: {requirejs: {}}
             });
-
         });
     }
 
@@ -252,7 +250,7 @@ define(function (require, exports, module) {
         var _self = this;
         TernProvider.apply(_self, arguments);
 
-        ternRequire(['text!.tern-port'], function(ternport) {
+        require(['text!./tern/.tern-port'], function(ternport) {
             _self.port = ternport;
             _self.ping().done(function(){
                 console.log("Tern Remote Server is ready");

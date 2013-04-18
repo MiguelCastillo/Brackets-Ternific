@@ -39,6 +39,18 @@ define(function (require, exports, module) {
     }
 
 
+    /**
+    * Creates a file reader/writer that's relative to the current project.
+    *
+    * @param {String} fileName - the name of the file to open in the current project
+    * @param {String} type - for whether the file is open for reading or writing.
+    *       values can be "read" or "write".
+    * @param {Boolean} forceCreate - flag to force the creation of the file if
+    *       the file isn't found.  This will only apply when type is "write".
+    *
+    * @return {$.Deferred} a jQuery deferred object with the file reader or
+    *       writer.
+    */
     ProjectFiles.prototype.openFile = function( fileName, type, forceCreate ) {
         var deferred = $.Deferred();
 
@@ -75,17 +87,27 @@ define(function (require, exports, module) {
     };
 
 
+    /**
+    * Interface to revolve the full path for the given file name. This will
+    * figure out the full path to the file but it will not resolve whether
+    * or not the file exists
+    * @param {String} fileName - is the file to resolve the full path for.
+    *
+    * @return {String} full path for the file in the directory of the current
+    *       project
+    */
     ProjectFiles.prototype.resolveName = function(fileName) {
         return FileUtils.canonicalizeFolderPath(currentProject.fullPath) + "/" + fileName;
     };
 
 
     var _projectFiles = new ProjectFiles();
+
+    // This is a simple proxy to send messages when new projects are open.
     $(ProjectManager).on("projectOpen", function(e, project){
         currentProject = project;
         $(_projectFiles).triggerHandler('projectOpen', [project]);
     });
-
 
     return _projectFiles;
 
