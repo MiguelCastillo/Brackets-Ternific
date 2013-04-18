@@ -54,6 +54,9 @@
       takesFile: true,
       fullFile: true,
       run: buildRename
+    },
+    files: {
+      run: listFiles
     }
   };
 
@@ -77,7 +80,7 @@
 
     this.handlers = {};
     this.files = [];
-    this.uses = 0;
+    this.analyses = 0;
     this.fetchingFiles = 0;
     this.asyncError = null;
 
@@ -102,7 +105,7 @@
     },
     reset: function() {
       this.cx = new infer.Context(this.defs, this);
-      this.uses = 0;
+      this.analyses = 0;
       for (var i = 0; i < this.files.length; ++i) clearFile(this, this.files[i]);
       this.signal("reset");
     },
@@ -114,8 +117,7 @@
       var self = this, files = doc.files || [];
       doRequest(this, doc, function(err, data) {
         c(err, data);
-        // FIXME better heuristic for when to reset
-        if (++self.uses > 20) {
+        if (self.analyses > 40) {
           self.reset();
           analyzeAll(self, function(){});
         }
@@ -152,15 +154,17 @@
     if (doc.query && !queryTypes.hasOwnProperty(doc.query.type))
       return c("No query type '" + doc.query.type + "' defined");
 
+    var query = doc.query;
+    // Respond as soon as possible when this just uploads files
+    if (!query) c(null, {});
+
     var files = doc.files || [];
     for (var i = 0; i < files.length; ++i) {
       var file = files[i];
       ensureFile(srv, file.name, file.type == "full" ? file.text : null)
     }
 
-    var query = doc.query;
     if (!query) {
-      c(null, {});
       analyzeAll(srv, function(){});
       return;
     }
@@ -175,7 +179,7 @@
       if (err) return c(err);
       var file = queryType.takesFile && resolveFile(srv, files, query.file);
       if (queryType.fullFile && file.type == "part")
-        return("Can't run a " + query.type + " query on a file fragment");
+        return c("Can't run a " + query.type + " query on a file fragment");
 
       infer.withContext(srv.cx, function() {
         var result;
@@ -191,6 +195,7 @@
   }
 
   function analyzeFile(srv, file) {
+    ++srv.analyses;
     infer.withContext(srv.cx, function() {
       file.scope = srv.cx.topScope;
       srv.signal("beforeLoad", file);
@@ -442,6 +447,15 @@
     }
   }
 
+  // Delete empty fields from result objects
+  function clean(obj) {
+    for (var prop in obj) if (obj[prop] == null) delete obj[prop];
+    return obj;
+  }
+  function maybeSet(obj, prop, val) {
+    if (val != null) obj[prop] = val;
+  }
+
   // Built-in query types
 
   function compareCompletions(a, b) {
@@ -485,11 +499,11 @@
         if (query.types)
           rec.type = infer.toString(type);
         if (query.docs)
-          rec.doc = val.doc || type && type.doc;
+          maybeSet(rec, "doc", val.doc || type && type.doc);
         if (query.urls)
-          rec.url = val.url || type && type.url;
+          maybeSet(rec, "url", val.url || type && type.url);
         if (query.origins)
-          rec.origin = val.origin || type && type.origin;
+          maybeSet(rec, "origin", val.origin || type && type.origin);
       }
       if (query.depths) rec.depth = depth;
     }
@@ -557,38 +571,25 @@
     else if (expr.node.type == "MemberExpression" && !expr.node.computed)
       var exprName = expr.node.property.name;
 
-    var name = type && type.name;
-    if (name && typeof name != "string") name = name.name;
     if (query.depth != null && typeof query.depth != "number")
       throw new Error(".query.depth must be a number");
 
-    return {guess: infer.didGuess(),
-            type: infer.toString(type, query.depth),
-            name: name || null,
-            url: type && type.url || null,
-            doc: type && type.doc || null,
-            origin: type && type.origin || null,
-            exprName: exprName || null};
+    var result = {guess: infer.didGuess(),
+                  type: infer.toString(type, query.depth),
+                  name: type && type.name,
+                  exprName: exprName};
+    if (type) storeTypeDocs(type, result);
+
+    return clean(result);
   }
 
-  // FIXME for doc-less instance types, use the docs of the ctor
   function findDocs(_srv, query, file) {
     var expr = findExpr(file, query), prop;
-    if (expr.node.type == "Identifier") {
-      prop = expr.state.hasProp(expr.node.name);
-    } else if (expr.node.type == "MemberExpression" && !expr.node.computed) {
-      var base = infer.expressionType({node: expr.node.object, state: expr.state});
-      if (base instanceof infer.Obj) prop = base.hasProp(expr.node.property.name);
-    }
-    var url = prop && prop.url, doc = prop && prop.doc;
-    if (!url && !doc) {
-      var type = infer.expressionType(expr);
-      if (type && (type = type.getType())) {
-        url = type.url;
-        doc = type.doc;
-      }
-    }
-    return {url: url || null, doc: doc || null};
+    var type = infer.expressionType(expr);
+    var result = {url: type.url, doc: type.doc};
+    var inner = type.getType();
+    if (inner) storeTypeDocs(inner, result);
+    return clean(result);
   }
 
   function isInAST(node, ast) {
@@ -596,51 +597,44 @@
     return found && found.node == node;
   }
 
+  function storeTypeDocs(type, out) {
+    if (!out.url) out.url = type.url;
+    if (!out.doc) out.doc = type.doc;
+    if (!out.origin) out.origin = type.origin;
+    var ctor;
+    if (!out.url && !out.doc && type.proto && (ctor = type.proto.hasCtor)) {
+      out.url = ctor.url;
+      out.doc = ctor.doc;
+    }
+  }
+
   function findDef(srv, query, file) {
-    var expr = findExpr(file, query), def, url, doc, origin, fileName, guess = false;
-    if (expr.node.type == "Identifier") {
-      var found = expr.state.hasProp(expr.node.name);
-      if (found) { url = found.url; doc = found.doc; origin = found.origin; }
-      if (found && typeof found.name == "object") {
-        def = found.name;
-        fileName = found.origin;
-      }
+    var expr = findExpr(file, query), fileName, guess = false;
+    infer.resetGuessing();
+    var type = infer.expressionType(expr), node = type.originNode;
+    var result = {url: type.url, doc: type.doc, origin: type.origin};
+    if (type.types) for (var i = type.types.length - 1; i >= 0; --i) {
+      var tp = type.types[i];
+      storeTypeDocs(tp, result);
+      if (!node && tp.originNode) { node = tp.originNode; break; }
     }
-    if (!def) {
-      infer.resetGuessing();
-      var type = infer.expressionType(expr);
-      if (!url && type.url) url = type.url;
-      if (!doc && type.doc) doc = type.doc;
-      if (!origin && type.origin) origin = type.origin;
-      if (type.types) for (var i = type.types.length - 1; i >= 0; --i) {
-        var tp = type.types[i];
-        if (!url && tp.url) url = tp.url;
-        if (!doc && tp.doc) doc = tp.doc;
-        if (!origin && tp.origin) origin = tp.origin;
-        if (tp.originNode) { type = tp; break; }
-      }
-      def = type.originNode;
-      if (def) {
-        if (/^Function/.test(def.type) && def.id) def = def.id;
-        fileName = type.origin;
-        guess = infer.didGuess();
-      }
+    if (node) {
+      if (/^Function/.test(node.type) && node.id) node = node.id;
+      fileName = result.origin;
     }
-    var result = {guess: guess};
-    if (def) {
-      var inFragment = file.type == "part" && file.name == fileName && isInAST(def, file.ast);
-      var outerFile = findFile(srv.files, fileName), defFile = inFragment ? file : outerFile;
-      var start = outputPos(query, defFile, def.start), end = outputPos(query, defFile, def.end);
+
+    result.guess = infer.didGuess();
+    if (node) {
+      var inFragment = file.type == "part" && file.name == fileName && isInAST(node, file.ast);
+      var outerFile = findFile(srv.files, fileName), nodeFile = inFragment ? file : outerFile;
+      var start = outputPos(query, nodeFile, node.start), end = outputPos(query, nodeFile, node.end);
       result.start = start; result.end = end;
       result.file = fileName;
-      var cxStart = Math.max(0, def.start - 50);
-      result.contextOffset = def.start - cxStart;
-      result.context = defFile.text.slice(cxStart, cxStart + 50);
+      var cxStart = Math.max(0, node.start - 50);
+      result.contextOffset = node.start - cxStart;
+      result.context = nodeFile.text.slice(cxStart, cxStart + 50);
     }
-    if (url) result.url = url;
-    if (doc) result.doc = doc;
-    if (origin) result.origin = origin;
-    return result;
+    return clean(result);
   }
 
   function findRefs(srv, query, file, checkShadowing) {
@@ -703,5 +697,9 @@
     }
 
     return data;
+  }
+
+  function listFiles(srv, query) {
+    return {files: srv.files.map(function(f){return f.name;})};
   }
 });
