@@ -57,7 +57,7 @@ define(function (require, exports, module) {
         _self.docs = [];
 
         if (_self._server) {
-            _self._server.reset();
+            _self._server.clear();
             _self._server.files = [];
         }
     };
@@ -152,54 +152,35 @@ define(function (require, exports, module) {
 
 
     /**
-    * Build a query that corresponds to the code mirror instance. The
-    * returned object is an object with details that tern will use to
-    * query the document.  The object returned also has the instance of
-    * code mirror the query belongs to.  This is needed to complete the
-    * full between a query and operating on the document the query of
-    * done against.
-    */
-    TernProvider.prototype.buildQuery = function( cm, query, allowFragments ) {
-        var _query = TernDemo.buildRequest(cm, query, allowFragments);
-        _query.doc = this.findDocByCM(cm);
-        return _query;
-    };
-
-
-
-    /**
     *  Interface to operate against a local instance of tern
     */
     function LocalProvider() {
         var _self = this;
         TernProvider.apply(_self, arguments);
 
-        ternRequire(["lib/tern", "plugin/requirejs", "plugin/node"], function(tern) {
 
-            //
-            // Load up all the definitions that we will need to start with.
-            //
-            require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
-                var defs = Array.prototype.slice.call(arguments, 0);
-                $.each(defs.slice(0), function(index, item){
-                    defs[index] = JSON.parse(item);
-                });
-
-                _self._server = new tern.Server({
-                    getFile: function(){
-                        _self.getFile.apply(_self, arguments);
-                    },
-                    defs: defs,
-                    debug: true,
-                    async: true,
-                    plugins: {
-                        requirejs: {
-                        }
-                    }
-                });
-
-                _self.ready.resolve(_self);
+        //
+        // Load up all the definitions that we will need to start with.
+        //
+        require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
+            var defs = Array.prototype.slice.call(arguments, 0);
+            $.each(defs.slice(0), function(index, item){
+                defs[index] = JSON.parse(item);
             });
+
+            _self._server = TernDemo.server({
+                getFile: function() {
+                    _self.getFile.apply(_self, arguments);
+                },
+                ready: function() {
+                    _self.ready.resolve(_self);
+                },
+                defs: defs,
+                debug: true,
+                async: true,
+                plugins: {requirejs: {}}
+            });
+
         });
     }
 
@@ -208,13 +189,13 @@ define(function (require, exports, module) {
     LocalProvider.prototype.constructor = LocalProvider;
 
 
-    LocalProvider.prototype.query = function( cm, settings ) {
+    LocalProvider.prototype.query = function( cm, settings, allowFragments ) {
         var _self = this;
         var promise = $.Deferred();
 
         // Throttle the query request so that doc changes enough time to be processed
         setTimeout(function(){
-            var query = _self.buildQuery( cm, settings );
+            var query = TernDemo.buildRequest(cm, settings, allowFragments);
 
             _self._server.request( query, function(error, data) {
                 if (error) {
@@ -222,6 +203,7 @@ define(function (require, exports, module) {
                 }
                 else {
                     query.result = data;
+                    query.doc = _self.findDocByCM(cm);
                     promise.resolve(data, query);
                 }
             });
@@ -295,9 +277,9 @@ define(function (require, exports, module) {
     };
 
 
-    RemoteProvider.prototype.query = function( cm, settings ) {
+    RemoteProvider.prototype.query = function( cm, settings, allowFragments ) {
         var promise = $.Deferred();
-        var query = this.buildQuery( cm, settings );
+        var query = TernDemo.buildRequest(cm, settings, allowFragments);
 
         // Send query to the server
         $.ajax({

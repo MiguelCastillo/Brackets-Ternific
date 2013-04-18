@@ -9,6 +9,18 @@ define(function(require, exports, module){
         DOUBLE_QUOTE    = "\"";
 
 
+    function pathFile(fullPath) {
+        var index = fullPath.lastIndexOf('/');
+        var pathName = fullPath.substr(0, index);
+        var fileName = fullPath.substr(index);
+
+        return {
+            path: pathName,
+            file: fileName
+        };
+    }
+
+
     function typeDetails (type) {
         var suffix;
 
@@ -75,7 +87,8 @@ define(function(require, exports, module){
         DOUBLE_QUOTE: DOUBLE_QUOTE,
         typeDetails: typeDetails,
         maybeIdentifier: maybeIdentifier,
-        hintable: hintable
+        hintable: hintable,
+        pathFile: pathFile
     };
 
 });

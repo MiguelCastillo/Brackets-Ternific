@@ -59,7 +59,7 @@ define(function (require, exports, module) {
                     _type: HintHelper.findTypeType
                 };
 
-                //console.log(_findType);
+                console.log(_findType);
                 return _findType;
             },
             function( error ) {

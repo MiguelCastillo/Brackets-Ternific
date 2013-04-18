@@ -22,14 +22,53 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
-/*global define, $, brackets, window, CodeMirror */
-
-define(['require', 'exports', 'module'], function(require, exports, module) {
+define(function(require, exports, module) {
     "use strict";
 
     var Pos = CodeMirror.Pos, bigDoc = 250, curDoc = null, docs = [], server = null;
     var cachedFunction = {line: null, ch: null, name: null, type: null, bad: null};
+
+
+    function workerServer(settings) {
+      var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
+      worker.postMessage({type: "defs", data: settings.defs});
+      var msgId = 0, pending = {};
+
+      function send(data, c) {
+        if (c) {
+          data.id = ++msgId;
+          pending[msgId] = c;
+        }
+        worker.postMessage(data);
+      }
+      worker.onmessage = function(e) {
+        var data = e.data;
+        if (data.type == "getFile") {
+          settings.getFile(data.name, function(err, text) {
+            send({type: "getFile", err: String(err), text: text, id: data.id});
+          });
+        } else if (data.type == "debug") {
+          console.log(data.message);
+        } else if (data.id && pending[data.id]) {
+          pending[data.id](data.err, data.body);
+          delete pending[data.id];
+        } else if (data.type == "ready"){
+          settings.ready();
+        }
+      };
+      worker.onerror = function(e) {
+        for (var id in pending) pending[id](e);
+        pending = {};
+      };
+
+      return {
+        worker: worker,
+        clear: function() { send({type: "clear"}); },
+        addFile: function(name, text) { send({type: "add", name: name, text: text}); },
+        delFile: function(name) { send({type: "del", name: name}); },
+        request: function(body, c) { send({type: "req", body: body}, c); }
+      };
+    }
 
 
     function trackChange(doc, change) {
@@ -137,8 +176,15 @@ define(['require', 'exports', 'module'], function(require, exports, module) {
 
 
     var ternDemo = {
+        server: workerServer,
         trackChange: trackChange,
-        buildRequest: buildRequest,
+        buildRequest: function(){
+          if(!curDoc) {
+            return "";
+          }
+
+          return buildRequest.apply(ternDemo, arguments);
+        },
         setCurrentDocument: function(_curDoc){
             curDoc = _curDoc;
         },
