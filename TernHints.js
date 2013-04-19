@@ -33,12 +33,13 @@ define(function (require, exports, module) {
     function TernHints(ternProvider) {
         var _self = this;
         _self.ternProvider = ternProvider;
-        _self._cm = null;
     }
 
 
-    TernHints.prototype.query = function( cm ) {
-        return this.ternProvider.query(cm, {type: "completions", types: true, docs: true})
+    TernHints.prototype.query = function( ) {
+        var cm = this._cm;
+
+        return this.ternProvider.query(cm, {type: "completions", types: true, docs: true, newSession: this.newSession})
             .pipe(function(data, query) {
                 var completions = [];
 
@@ -61,6 +62,7 @@ define(function (require, exports, module) {
                     });
                 }
 
+                //console.log(completions);
                 return {
                     list: completions,
                     query: query,
@@ -79,26 +81,33 @@ define(function (require, exports, module) {
     * characters that are not hintable.
     */
     TernHints.prototype.canHint = function (_char, cm /*, file*/) {
-        // Support for inner mode
-        // var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
+        //
+        // Support for inner mode.  Not enabled yet... Need testing.
+        //
+        //var cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
+        //var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
+        // if(mode.name !== "javascript"){
+        //  return false;
+        //}
 
         var _self = this;
+        _self.newSession = cm !== undefined;
 
-        // If this is true, then we have a new hinting session.  Let's set the new
-        // code mirror instance.
-        if (_self._cm !== cm && cm !== undefined) {
+        // Whenever cm is not not undefined, we are in a hinting session.
+        // Every time cm is not undefined, the HintManager is trying to
+        // start a session.
+        if (_self.newSession) {
             _self._cm = cm;
         }
 
-        cm = _self._cm;
-
         if (!_char || HintHelper.maybeIdentifier(_char)) {
+            cm = _self._cm;
             var cursor = cm.getCursor();
             var token = cm.getTokenAt(cursor);
             return HintHelper.hintable(token);
         }
 
-        _self._cm = null;
+        delete _self._cm;
         return false;
     };
 
@@ -135,7 +144,7 @@ define(function (require, exports, module) {
             return $.Deferred().reject();
         }
 
-        return this.query(cm);
+        return this.query();
     };
 
 

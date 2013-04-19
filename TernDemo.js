@@ -178,12 +178,19 @@ define(function(require, exports, module) {
     var ternDemo = {
         server: workerServer,
         trackChange: trackChange,
-        buildRequest: function(){
-          if(!curDoc) {
-            return "";
-          }
+        buildRequest: function(cm, query, allowFragments){
+            if(!curDoc) {
+                return "";
+            }
 
-          return buildRequest.apply(ternDemo, arguments);
+            var ternRequest = buildRequest.apply(ternDemo, arguments);
+            var query = ternRequest.query;
+            query.filter = query.newSession !== true; // Results will be pretty large if we don't filter stuff out
+            query.sort = true;
+            query.depths = true;
+            query.guess = true;
+            query.origins = false;
+            return ternRequest;
         },
         setCurrentDocument: function(_curDoc){
             curDoc = _curDoc;

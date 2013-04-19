@@ -22,6 +22,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
+/*global define, $, brackets, window */
+
 define(function (require, exports, module) {
     'use strict';
 
@@ -33,10 +36,10 @@ define(function (require, exports, module) {
     }
 
 
-    TernReferences.prototype.query = function( ) {
-        var cm = this._cm;
+    TernReferences.prototype.query = function( cm ) {
+        var _self = this;
 
-        return this.ternProvider.query( cm, "refs" )
+        return _self.ternProvider.query( cm, "refs" )
             .pipe(function(data) {
                 var perFile = {}, i, use;
 
@@ -56,8 +59,8 @@ define(function (require, exports, module) {
     /**
     * Finds and highlights all refenrences of the token the cursor is currently sitting on
     */
-    TernReferences.prototype.findReferences = function( ) {
-        var _self = this, cm = _self.ternProvider.currentDocument.cm;
+    TernReferences.prototype.findReferences = function( cm ) {
+        var _self = this;
 
         // Clear markers
         $.each( _self.textMarkers.slice(0), function(index, textMarker) {
@@ -65,10 +68,9 @@ define(function (require, exports, module) {
         });
 
         _self.textMarkers = [];
-        _self._cm = cm;
 
         if ( !cm ) {
-            return $.Deferred().reject("Invalid codemirror instance.");
+            return $.Deferred().reject("No codemirror instance was provided.");
         }
 
         _self.query(cm).done(function(refsPerFile) {
@@ -91,21 +93,25 @@ define(function (require, exports, module) {
     * Finds and highlights all refenrences of the token the cursor is currently sitting on,
     * then allows to replace all those highlighted references
     */
-    TernReferences.prototype.replaceReferences = function( ) {
-        var _self = this, cm = _self.ternProvider.currentDocument.cm;
+    TernReferences.prototype.replaceReferences = function( cm ) {
+        var _self = this;
 
         $.each( _self.textMarkers.slice(0), function(index, textMarker) {
             textMarker.clear();
         });
 
         _self.textMarkers = [];
-        _self._cm = cm;
 
-        if ( !cm ) {
-            return $.Deferred().reject("Invalid codemirror instance.");
+
+        if ( !cm ){
+            return $.Deferred().reject();
         }
 
-        _self.query().done(function(refsPerFile) {
+        if ( !cm ) {
+            return $.Deferred().reject("No codemirror instance was provided.");
+        }
+
+        _self.query(cm).done(function(refsPerFile) {
             var i = 0;
 
             for (var file in refsPerFile) {

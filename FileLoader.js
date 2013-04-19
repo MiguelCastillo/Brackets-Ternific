@@ -28,9 +28,7 @@ define(function (require, exports, module) {
     var FileUtils        = brackets.getModule("file/FileUtils"),
         NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem;
 
-    var ProjectFiles = require("ProjectFiles"),
-        Timer        = require("Timer");
-
+    var ProjectFiles = require("ProjectFiles");
 
     var fileLoader = (function(){
         var inProgress= {};
@@ -147,23 +145,16 @@ define(function (require, exports, module) {
         }
 
 
-        var _timers = {};
-
         // Interface to load the file...
         function loadFile(fileName, rootFile) {
             if (fileName in inProgress) {
                 return inProgress[fileName];
             }
             else if (/^https?:\/\//.test(fileName)) {
-                _timers[fileName] = new Timer(true);
-
-                return loadFromHTTP(fileName).always(function(){
-                    console.log(fileName, _timers[fileName].elapsed());
-                });
+                return loadFromHTTP(fileName);
             }
             else {
                 var deferred = $.Deferred();
-                _timers[fileName] = new Timer(true);
 
                 //
                 // First try to load the file from the specified rootFile directoty
@@ -172,7 +163,6 @@ define(function (require, exports, module) {
                 //
                 loadFromDirectory(fileName, rootFile).done(function(data) {
                         //console.log("Loaded from directory", fileName, data);
-                        console.log(fileName, _timers[fileName].elapsed());
                         deferred.resolve(data);
                     }).fail(function( ) {
 
@@ -182,8 +172,6 @@ define(function (require, exports, module) {
                             }).fail(function(error){
                                 //console.log("File not loaded.", fileName, error);
                                 deferred.reject(error);
-                            }).always(function(){
-                                console.log(fileName, _timers[fileName].elapsed());
                             });
 
                     });

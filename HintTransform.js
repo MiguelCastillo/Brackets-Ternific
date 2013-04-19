@@ -13,9 +13,100 @@ define(function (require, exports, module) {
     var StringUtils = brackets.getModule("utils/StringUtils");
     var HintHelper  = require("HintHelper");
 
-    var MAX_DISPLAYED_HINTS = 100,
+    var MAX_DISPLAYED_HINTS = 400,
         SINGLE_QUOTE        = HintHelper.SINGLE_QUOTE,
         DOUBLE_QUOTE        = HintHelper.DOUBLE_QUOTE;
+
+
+    var sorter = (function(){
+        var placementOffset = 1000;
+        var limit = MAX_DISPLAYED_HINTS;
+
+
+        function matchByType(token, criteria, type) {
+            if (token.type === type) {
+                return token.value.indexOf(criteria);
+            }
+            else {
+                return token.value.indexOf(criteria) + placementOffset;
+            }
+        }
+
+
+        function _matchType(tokens, criteria, match, tester) {
+            var groups = {}, group, result = [], index;
+            //var limit  = criteria.length === 0 ? MAX_DISPLAYED_HINTS : 30;
+
+            $.each(tokens, function(iToken, token) {
+                index = tester(token, criteria, match);
+                token.level = index;
+                group = groups[index] || (groups[index] = {items:[]});
+                group.items.push(token);
+            });
+
+            $.each(groups, function(groupdId, group) {
+                var itemsLength = group.items.length,
+                    resultLength = result.length;
+
+                var remaining = (limit - resultLength);
+                var maxItems = remaining > itemsLength ? itemsLength : remaining;
+
+                if (remaining > itemsLength) {
+                    Array.prototype.push.apply(result, group.items);
+                }
+                else {
+                    Array.prototype.push.apply(result, group.items.slice(0, maxItems));
+                    return false;
+                }
+
+                // Or... Just copy all of it?
+                //Array.prototype.push.apply(result, group.items);
+            });
+
+            return result;
+        }
+
+
+        function byFunction(tokens, criteria) {
+            return _matchType(tokens, criteria, "fn", matchByType);
+        }
+
+
+        function byMatch(tokens, criteria) {
+            function tester(token) {
+                return token.value.indexOf(criteria);
+            }
+            return _matchType(tokens, criteria, '', tester);
+        }
+
+
+        function byPass(tokens) {
+            //var limit = criteria.length === 0 ? MAX_DISPLAYED_HINTS : 30;
+            return tokens.slice(0, limit);
+        }
+
+
+        function byObject(tokens, criteria) {
+            return _matchType(tokens, criteria, "object", matchByType);
+        }
+
+
+        function byString(tokens, criteria) {
+            return _matchType(tokens, criteria, "string", matchByType);
+        }
+
+
+        return {
+            byFunction: byFunction,
+            byMatch: byMatch,
+            byPass: byPass,
+            byObject: byObject,
+            byString: byString
+        };
+
+    })();
+
+
 
 
     function HintsTransform(hints, query) {
@@ -24,66 +115,6 @@ define(function (require, exports, module) {
             filteredHints,
             formattedHints;
 
-        /*
-         * Filter a list of tokens using the query string in the closure.
-         *
-         * @param {Array.<Object>} tokens - list of hints to filter
-         * @param {number} limit - maximum numberof tokens to return
-         * @return {Array.<Object>} - filtered list of hints
-         */
-        function filterWithQuery(tokens, limit) {
-
-            /*
-             * Filter arr using test, returning at most limit results from the
-             * front of the array.
-             *
-             * @param {Array} arr - array to filter
-             * @param {Function} test - test to determine if an element should
-             *      be included in the results
-             * @param {number} limit - the maximum number of elements to return
-             * @return {Array.<Object>} - new array of filtered elements
-             */
-            function filterArrayPrefix(arr, test, limit) {
-                var i = 0,
-                    results = [],
-                    elem;
-
-                for (i; i < arr.length && results.length <= limit; i++) {
-                    elem = arr[i];
-                    if (test(elem)) {
-                        results.push(elem);
-                    }
-                }
-
-                return results;
-            }
-
-            // If the query is a string literal (i.e., if it starts with a
-            // string literal delimiter, and hence if trimmedQuery !== query)
-            // then only string literal hints should be returned, and matching
-            // should be performed w.r.t. trimmedQuery. If the query is
-            // otherwise non-empty, no string literals should match. If the
-            // query is empty then no hints are filtered.
-            if (trimmedQuery !== query) {
-                return filterArrayPrefix(tokens, function (token) {
-                    if (token.literal && token.kind === "string") {
-                        return (token.value.indexOf(trimmedQuery) === 0);
-                    } else {
-                        return false;
-                    }
-                }, limit);
-            } else if (query.length > 0) {
-                return filterArrayPrefix(tokens, function (token) {
-                    if (token.literal && token.kind === "string") {
-                        return false;
-                    } else {
-                        return (token.value.indexOf(query) === 0);
-                    }
-                }, limit);
-            } else {
-                return tokens.slice(0, limit);
-            }
-        }
 
         /*
          * Returns a formatted list of hints with the query substring
@@ -108,33 +139,19 @@ define(function (require, exports, module) {
                 // level indicates either variable scope or property confidence
                 switch (token.level) {
                 case 0:
+                    // Great hit!!!
                     $hintObj.addClass("priority-high");
                     break;
-                case 1:
-                    $hintObj.addClass("priority-medium");
-                    break;
-                case 2:
+                case -1:
+                    // No hits
                     $hintObj.addClass("priority-low");
                     break;
+                default:
+                    // Any hits
+                    $hintObj.addClass("priority-medium");
+                    break;
                 }
 
-                // is the token a global variable?
-                if (token.global) {
-                    $hintObj.addClass("global-hint");
-                }
-
-                // is the token a literal?
-                if (token.literal) {
-                    $hintObj.addClass("literal-hint");
-                    if (token.kind === "string") {
-                        delimiter = DOUBLE_QUOTE;
-                    }
-                }
-
-                // is the token a keyword?
-                if (token.keyword) {
-                    $hintObj.addClass("keyword-hint");
-                }
 
                 // higlight the matched portion of each hint
                 if (index >= 0) {
@@ -147,28 +164,34 @@ define(function (require, exports, module) {
                                 .append(match)
                                 .addClass("matched-hint"))
                         .append(suffix + delimiter);
-                } else {
-                    $hintObj.text(delimiter + hint + delimiter);
                 }
+                else {
+                    $hintObj.append(delimiter + hint + delimiter);
+                }
+
                 $hintObj.data("token", token);
 
                 return $hintObj;
             });
         }
 
+
         // trim leading and trailing string literal delimiters from the query
-        if (query.indexOf(SINGLE_QUOTE) === 0 ||
-                query.indexOf(DOUBLE_QUOTE) === 0) {
+        var sortType = "byMatch";
+        var firstChar = query.charAt(0);
+        if (firstChar === SINGLE_QUOTE || firstChar === DOUBLE_QUOTE) {
             trimmedQuery = query.substring(1);
-            if (trimmedQuery.lastIndexOf(DOUBLE_QUOTE) === trimmedQuery.length - 1 ||
-                    trimmedQuery.lastIndexOf(SINGLE_QUOTE) === trimmedQuery.length - 1) {
+            var lastChar = trimmedQuery.charAt(trimmedQuery.length - 1);
+            if( lastChar === SINGLE_QUOTE || lastChar === DOUBLE_QUOTE) {
                 trimmedQuery = trimmedQuery.substring(0, trimmedQuery.length - 1);
             }
-        } else {
+        }
+        else {
             trimmedQuery = query;
         }
 
-        filteredHints = filterWithQuery(hints, MAX_DISPLAYED_HINTS);
+
+        filteredHints = sorter[sortType](hints, trimmedQuery);
         formattedHints = formatHints(filteredHints, trimmedQuery);
 
         return {
@@ -179,10 +202,6 @@ define(function (require, exports, module) {
     }
 
 
-    exports.HintsTransform = {
-        apply: HintsTransform
-    };
-
+    exports.HintsTransform = HintsTransform;
     return HintsTransform;
-
 });

@@ -175,7 +175,7 @@ define(function (require, exports, module) {
                     _self.ready.resolve(_self);
                 },
                 defs: defs,
-                debug: true,
+                debug: false,
                 async: true,
                 plugins: {requirejs: {}}
             });
