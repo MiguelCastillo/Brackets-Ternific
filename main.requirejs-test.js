@@ -25,30 +25,30 @@
 
 /** Brackets Extension to load line navigator CodeMirror addon */
 define(["require", "exports", "module"], function (require, exports, module) {
-	"use strict";
+    "use strict";
 
-	var DocumentManager     = brackets.getModule("document/DocumentManager"),
-		EditorManager       = brackets.getModule("editor/EditorManager"),
-		AppInit             = brackets.getModule("utils/AppInit"),
-		FileUtils           = brackets.getModule("file/FileUtils"),
-		ExtensionUtils      = brackets.getModule("utils/ExtensionUtils");
+    var DocumentManager     = brackets.getModule("document/DocumentManager"),
+        EditorManager       = brackets.getModule("editor/EditorManager"),
+        AppInit             = brackets.getModule("utils/AppInit"),
+        FileUtils           = brackets.getModule("file/FileUtils"),
+        ExtensionUtils      = brackets.getModule("utils/ExtensionUtils");
 
-  	/*
+    /*
     * requirejs support in tern
-	*/
-	var ternRequire = window.require.config({
-		"baseUrl": require.toUrl("./tern/"),
-		"paths": {
-			"acorn": "node_modules/acorn"
-		},
-		waitSeconds: 5
-	});
+    */
+    var ternRequire = window.require.config({
+        "baseUrl": require.toUrl("./tern/"),
+        "paths": {
+            "acorn": "node_modules/acorn"
+        },
+        waitSeconds: 5
+    });
 
 
-	// Setup the dependencies for acorn...
-	ternRequire(["tern"], function(tern) {
-		console.log(tern);
-	});
+    // Setup the dependencies for acorn...
+    ternRequire(["tern"], function(tern) {
+        console.log(tern);
+    });
 
 
 });

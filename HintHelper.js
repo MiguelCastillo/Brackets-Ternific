@@ -5,8 +5,8 @@
 
 define(function(require, exports, module){
 
-    var SINGLE_QUOTE    = "\'",
-        DOUBLE_QUOTE    = "\"";
+    var SINGLE_QUOTE = "\'",
+        DOUBLE_QUOTE = "\"";
 
 
     function pathFile(fullPath) {
@@ -82,14 +82,15 @@ define(function(require, exports, module){
     }
 
 
-    return {
+    $.extend(exports, {
         SINGLE_QUOTE: SINGLE_QUOTE,
         DOUBLE_QUOTE: DOUBLE_QUOTE,
         typeDetails: typeDetails,
         maybeIdentifier: maybeIdentifier,
         hintable: hintable,
         pathFile: pathFile
-    };
+    });
 
+    return exports;
 });
 
