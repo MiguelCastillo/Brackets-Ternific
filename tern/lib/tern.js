@@ -512,12 +512,16 @@
     if (memberExpr &&
         (memberExpr.node.computed ? isStringAround(memberExpr.node.property, wordStart, wordEnd)
                                   : memberExpr.node.object.end < wordStart)) {
+      var prop = memberExpr.node.property;
+      prop = prop.type == "Literal" ? prop.value.slice(1) : prop.name;
+
       memberExpr.node = memberExpr.node.object;
       var tp = infer.expressionType(memberExpr);
       if (tp) infer.forAllPropertiesOf(tp, gather);
 
-      if (!completions.length && query.guess !== false && tp && tp.guessProperties)
-        tp.guessProperties(function(p, o, d) {if (p != word && p != "✖") gather(p, o, d);});
+      if (!completions.length && query.guess !== false && tp && tp.guessProperties) {
+        tp.guessProperties(function(p, o, d) {if (p != prop && p != "✖") gather(p, o, d);});
+      }
       if (!completions.length && word.length >= 2 && query.guess !== false)
         for (var prop in srv.cx.props) gather(prop, srv.cx.props[prop][0], 0);
     } else {
@@ -602,7 +606,8 @@
     if (!out.doc) out.doc = type.doc;
     if (!out.origin) out.origin = type.origin;
     var ctor;
-    if (!out.url && !out.doc && type.proto && (ctor = type.proto.hasCtor)) {
+    if (!out.url && !out.doc && type.proto && (ctor = type.proto.hasCtor) &&
+        type.proto != infer.cx().protos.Object) {
       out.url = ctor.url;
       out.doc = ctor.doc;
     }
@@ -637,9 +642,7 @@
     return clean(result);
   }
 
-  function findRefs(srv, query, file, checkShadowing) {
-    var expr = findExpr(file, query);
-    if (!expr || expr.node.type != "Identifier") throw new Error("Not at a variable.");
+  function findRefsToVariable(srv, query, file, expr, checkShadowing) {
     var name = expr.node.name;
 
     for (var scope = expr.state; scope && !(name in scope.props); scope = scope.prev) {}
@@ -683,9 +686,43 @@
     return {refs: refs, type: type, name: name};
   }
 
+  function findRefsToProperty(srv, query, expr) {
+    var propName = expr.node.property.name;
+    expr.node = expr.node.object;
+    var objType = infer.expressionType(expr).getType();
+    if (!objType) throw new Error("Couldn't determine type of base object.");
+
+    var refs = [];
+    function storeRef(file) {
+      return function(node) {
+        refs.push({file: file.name,
+                   start: outputPos(query, file, node.start),
+                   end: outputPos(query, file, node.end)});
+      };
+    }
+    for (var i = 0; i < srv.files.length; ++i) {
+      var cur = srv.files[i];
+      infer.findPropRefs(cur.ast, cur.scope, objType, propName, storeRef(cur));
+    }
+
+    return {refs: refs, name: propName};
+  }
+
+  function findRefs(srv, query, file) {
+    var expr = findExpr(file, query);
+    if (expr && expr.node.type == "Identifier")
+      return findRefsToVariable(srv, query, file, expr);
+    if (expr && expr.node.type == "MemberExpression" && !expr.node.computed)
+      return findRefsToProperty(srv, query, expr);
+    throw new Error("Not at a variable or property name.");
+  }
+
   function buildRename(srv, query, file) {
     if (typeof query.newName != "string") throw new Error(".query.newName should be a string");
-    var data = findRefs(srv, query, file, query.newName), refs = data.refs;
+    var expr = findExpr(file, query);
+    if (!expr || expr.node.type != "Identifier") throw new Error("Not at a variable.");
+
+    var data = findRefsToVariable(srv, query, file, expr, query.newName), refs = data.refs;
     delete data.refs;
     data.files = srv.files.map(function(f){return f.name;});
 

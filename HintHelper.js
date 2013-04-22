@@ -82,15 +82,13 @@ define(function(require, exports, module){
     }
 
 
-    $.extend(exports, {
+    return {
         SINGLE_QUOTE: SINGLE_QUOTE,
         DOUBLE_QUOTE: DOUBLE_QUOTE,
         typeDetails: typeDetails,
         maybeIdentifier: maybeIdentifier,
         hintable: hintable,
         pathFile: pathFile
-    });
-
-    return exports;
+    };
 });
 

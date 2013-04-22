@@ -202,6 +202,5 @@ define(function (require, exports, module) {
     }
 
 
-    exports.HintsTransform = HintsTransform;
     return HintsTransform;
 });

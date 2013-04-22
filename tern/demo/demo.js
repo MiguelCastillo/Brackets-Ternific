@@ -2,7 +2,7 @@ var server, editor, defs = [];
 var Pos = CodeMirror.Pos;
 var docs = [], curDoc;
 
-var bigDoc = 250, useWorker = true;
+var bigDoc = 250, useWorker = false;
 
 function findDoc(name) {
   for (var i = 0; i < docs.length; ++i) if (docs[i].name == name) return docs[i];
@@ -327,18 +327,17 @@ function ternHints(cm, c) {
     }
 
     var out = document.getElementById("out");
-    c({from: from, to: to,
-       list: completions,
-       onSelect: function(cur) {
-         out.innerHTML = "";
-         if (cur.doc) {
-           var node = out.appendChild(document.createElement("div"));
-           node.className = "hint-doc";
-           node.appendChild(document.createTextNode(cur.doc));
-         }
-       },
-       onClose: function() { out.innerHTML = ""; }
-      });
+    var obj = {from: from, to: to, list: completions};
+    CodeMirror.on(obj, "close", function() { out.innerHTML = ""; });
+    CodeMirror.on(obj, "select", function(cur) {
+      out.innerHTML = "";
+      if (cur.doc) {
+        var node = out.appendChild(document.createElement("div"));
+        node.className = "hint-doc";
+        node.appendChild(document.createTextNode(cur.doc));
+      }
+    });
+    c(obj);
   });
 }
 
@@ -540,7 +539,7 @@ function renameVar(cm) {
   var cur = cm.getCursor(), token = cm.getTokenAt(cur);
   if (!/^variable|^def$/.test(token.type)) {
     token = cm.getTokenAt(Pos(cur.line, cur.ch + 1));
-    if (!/^variable|^def$/.test(token.type)) return displayError("Not at a variable name");
+//    if (!/^variable|^def$/.test(token.type)) return displayError("Not at a variable name");
   }
   cm.openDialog("New name for " + token.string + ": <input type=text>", function(newName) {
     server.request(buildRequest(cm, {type: "rename", newName: newName}, false), function(error, data) {
