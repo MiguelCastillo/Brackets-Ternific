@@ -32,7 +32,7 @@ define(function (require, exports, module) {
     /**
     * @constructor
     *
-    * ternDocument is a set of interfaces that facilitate the interaction
+    * TernProvider is a set of interfaces that facilitate the interaction
     * with tern.
     */
     function TernProvider(options) {
@@ -86,7 +86,7 @@ define(function (require, exports, module) {
 
     TernProvider.prototype.register = function (cm, name) {
         var _self = this;
-        var docMeta = this.findDocByName(name);
+        var docMeta = _self.findDocByName(name);
 
         //
         // If the document has not been registered, then we set one up
@@ -99,7 +99,7 @@ define(function (require, exports, module) {
                 changed: null
             };
 
-            this.addDoc(docMeta);
+            _self.addDoc(docMeta);
         }
         //
         // If the document exists but has not been registered, then we
@@ -171,9 +171,7 @@ define(function (require, exports, module) {
                 getFile: function() {
                     _self.getFile.apply(_self, arguments);
                 },
-                ready: function() {
-                    _self.ready.resolve(_self);
-                },
+                ready:_self.ready.resolve,
                 defs: defs,
                 debug: false,
                 async: true,
@@ -222,7 +220,9 @@ define(function (require, exports, module) {
         var docMeta = this.findDocByName(name);
 
         if ( docMeta ) {
-            c(null, docMeta.doc.getValue());
+            setTimeout(function() {
+                c(null, docMeta.doc.getValue());
+            }, 1);
         }
         else {
             fileLoader.loadFile(name, _self.currentDocument.name)
@@ -303,13 +303,10 @@ define(function (require, exports, module) {
     };
 
 
-    exports.TernProvider = {
+    return {
         Remote: RemoteProvider,
         Local: LocalProvider
     };
-
-
-    return exports.TernProvider;
 
 });
 

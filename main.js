@@ -27,64 +27,42 @@ define(function (require, exports, module) {
     "use strict";
 
     var EditorManager   = brackets.getModule("editor/EditorManager"),
-        AppInit         = brackets.getModule("utils/AppInit"),
-        FileUtils       = brackets.getModule("file/FileUtils"),
         ExtensionUtils  = brackets.getModule("utils/ExtensionUtils"),
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
     var HintProvider = require('HintProvider'),
-        TernManager  = require('TernManager'),
-        ProjectFiles = require('ProjectFiles');
+        TernManager  = require('TernManager');
 
-    var jsMode = "javascript";
+    var _ternManager = new TernManager();
 
     ExtensionUtils.loadStyleSheet(module, "style.css");
 
-    /*
-     * Handle the activeEditorChange event fired by EditorManager.
-     * Uninstalls the change listener on the previous editor
-     * and installs a change listener on the new editor.
-     *
-     * @param {Event} event - editor change event (ignored)
-     * @param {Editor} current - the new current editor context
-     * @param {Editor} previous - the previous editor context
-     */
-    function handleActiveEditorChange(event, current, previous) {
-        if (current) {
-            TernManager.register(current._codeMirror, current.document.file);
-        }
-    }
+    _ternManager.onReady(function () {
+        /*
+         * Handle the activeEditorChange event fired by EditorManager.
+         * Uninstalls the change listener on the previous editor
+         * and installs a change listener on the new editor.
+         *
+         * @param {Event} event - editor change event (ignored)
+         * @param {Editor} current - the new current editor context
+         * @param {Editor} previous - the previous editor context
+         */
+        function handleActiveEditorChange(event, current, previous) {
+            _ternManager.clear();
 
-    TernManager.onReady(function(){
+            if (current) {
+                _ternManager.register(current._codeMirror, current.document.file);
+            }
+        }
+
         // uninstall/install change listener as the active editor changes
         $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
 
         // immediately install the current editor
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
 
-        $(ProjectFiles).on('projectOpen', function() {
-            TernManager.clear();
-        });
-    });
-
-
-    var promises = [
-        $.getScript(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.js").promise(),
-        ExtensionUtils.addLinkedStyleSheet(FileUtils.getNativeBracketsDirectoryPath() + "/thirdparty/CodeMirror2/addon/hint/show-hint.css")
-    ];
-
-
-    //
-    // Synchronize all calls to load resources.
-    //
-    $.when.apply($, promises).done(function () {
-
-        // Once the app is fully loaded, we will proceed to check the theme that
-        // was last set
-        AppInit.appReady(function () {
-            var jsHints = new HintProvider();
-            CodeHintManager.registerHintProvider(jsHints, [jsMode], 1);
-        });
+        var jsHints = new HintProvider(_ternManager);
+        CodeHintManager.registerHintProvider(jsHints, ["javascript"], 1);
     });
 
 });

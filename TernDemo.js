@@ -25,50 +25,10 @@
 define(function(require, exports, module) {
     "use strict";
 
+    var Timer = require("Timer");
+
     var Pos = CodeMirror.Pos, bigDoc = 250, curDoc = null, docs = [], server = null;
     var cachedFunction = {line: null, ch: null, name: null, type: null, bad: null};
-
-
-    function workerServer(settings) {
-      var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
-      worker.postMessage({type: "defs", data: settings.defs});
-      var msgId = 0, pending = {};
-
-      function send(data, c) {
-        if (c) {
-          data.id = ++msgId;
-          pending[msgId] = c;
-        }
-        worker.postMessage(data);
-      }
-      worker.onmessage = function(e) {
-        var data = e.data;
-        if (data.type == "getFile") {
-          settings.getFile(data.name, function(err, text) {
-            send({type: "getFile", err: String(err), text: text, id: data.id});
-          });
-        } else if (data.type == "debug") {
-          console.log(data.message);
-        } else if (data.id && pending[data.id]) {
-          pending[data.id](data.err, data.body);
-          delete pending[data.id];
-        } else if (data.type == "ready"){
-          settings.ready();
-        }
-      };
-      worker.onerror = function(e) {
-        for (var id in pending) pending[id](e);
-        pending = {};
-      };
-
-      return {
-        worker: worker,
-        clear: function() { send({type: "clear"}); },
-        addFile: function(name, text) { send({type: "add", name: name, text: text}); },
-        delFile: function(name) { send({type: "del", name: name}); },
-        request: function(body, c) { send({type: "req", body: body}, c); }
-      };
-    }
 
 
     function trackChange(doc, change) {
@@ -89,7 +49,6 @@ define(function(require, exports, module) {
         if (data.changed && data.changed.to - data.changed.from > 100) sendDoc(data);
       }, 100);
     }
-
 
 
     function getFragmentAround(cm, start, end) {
@@ -155,6 +114,7 @@ define(function(require, exports, module) {
       for (var i = 0; i < docs.length; ++i) {
         var doc = docs[i];
         if (doc.changed && doc != curDoc) {
+            console.log("Full non-current document changed");
           files.push({type: "full", name: doc.name, text: doc.doc.getValue()});
           doc.changed = null;
         }
@@ -175,6 +135,96 @@ define(function(require, exports, module) {
     }
 
 
+
+    function workerServer(settings) {
+        var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
+        var msgId = 0, pending = {};
+
+        worker.postMessage({
+            type: "init",
+            data: {
+                async: settings.async,
+                debug: settings.debug,
+                defs: settings.defs,
+                plugins: settings.plugins,
+            }
+        });
+
+        function send(data, c) {
+            if (c) {
+                data.id = ++msgId;
+                pending[msgId] = {
+                    callback: c,
+                    timer: new Timer(true)
+                };
+            }
+            worker.postMessage(data);
+        }
+
+        worker.onmessage = function(e) {
+            var data = e.data;
+
+            if (data.type == "getFile") {
+                settings.getFile(data.name, function(err, text) {
+                    send({
+                        type: "addFile",
+                        err: String(err),
+                        text: text,
+                        id: data.id
+                    });
+                });
+            }
+            else if (data.type == "debug") {
+                console.log(data.message);
+            }
+            else if (data.id && pending[data.id]) {
+                pending[data.id].callback(data.err, data.body);
+                //console.log("Request", data.id, pending[data.id].timer.elapsed());
+                delete pending[data.id];
+            }
+            else if (data.type == "ready") {
+                settings.ready();
+            }
+        };
+
+
+        worker.onerror = function(e) {
+            for (var id in pending) pending[id](e);
+            pending = {};
+        };
+
+
+        return {
+            worker: worker,
+            clear: function() {
+                send({
+                    type: "clear"
+                });
+            },
+            addFile: function(name, text) {
+                send({
+                    type: "addFile",
+                    name: name,
+                    text: text
+                });
+            },
+            deleleteFile: function(name) {
+                send({
+                    type: "deleteFile",
+                    name: name
+                });
+            },
+            request: function(body, c) {
+                send({
+                    type: "request",
+                    body: body
+                }, c);
+            }
+        };
+    }
+
+
+
     var ternDemo = {
         server: workerServer,
         trackChange: trackChange,
@@ -187,7 +237,7 @@ define(function(require, exports, module) {
             var query = ternRequest.query;
             query.filter = query.newSession !== true; // Results will be pretty large if we don't filter stuff out
             query.sort = true;
-            query.depths = true;
+            query.depths = false;
             query.guess = true;
             query.origins = false;
             return ternRequest;
@@ -203,7 +253,6 @@ define(function(require, exports, module) {
         }
     };
 
-
-    $.extend(exports, ternDemo);
+    return ternDemo;
 });
 

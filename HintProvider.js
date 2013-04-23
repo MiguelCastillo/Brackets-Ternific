@@ -24,16 +24,16 @@
 
 define(function(require, exports, module){
 
-    var TernManager   = require("TernManager"),
-        HintTransform = require("HintTransform");
+    var HintTransform = require("HintTransform");
 
 
-    function HintProvider() {
+    function HintProvider(hintManager) {
+        this.hintManager = hintManager;
     }
 
 
     HintProvider.prototype.hasHints = function (editor, implicitChar) {
-        return TernManager.ternHints.canHint(implicitChar, editor._codeMirror, editor.document.file);
+        return this.hintManager.ternHints.canHint(implicitChar, editor._codeMirror, editor.document.file);
     };
 
 
@@ -41,14 +41,14 @@ define(function(require, exports, module){
         // If it is not an implicit hint start and it is not a
         // character that be used for hinting, then we don not
         // make any hinting requests.
-        if (implicitChar !== null && TernManager.ternHints.canHint(implicitChar) === false) {
+        if (implicitChar !== null && this.hintManager.ternHints.canHint(implicitChar) === false) {
             return null;
         }
 
         var _self = this;
         var promise = $.Deferred();
 
-        TernManager.ternHints.getHints().done(function (hints) {
+        this.hintManager.ternHints.getHints().done(function (hints) {
             _self.hints = hints;
             var transformedHints = HintTransform(hints.list, hints.query.details.text);
             promise.resolve(transformedHints);
@@ -62,7 +62,7 @@ define(function(require, exports, module){
 
     HintProvider.prototype.insertHint = function ($hintObj) {
         var hint = $hintObj.data("token");
-        TernManager.ternHints.insertHint(hint, this.hints);
+        this.hintManager.ternHints.insertHint(hint, this.hints);
 
         // Return false to indicate that another hinting session is not needed
         return false;

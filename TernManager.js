@@ -31,34 +31,28 @@ define(function (require, exports, module) {
         TernReferences = require("TernReferences"),
         TernTypes      = require("TernTypes");
 
-    var _ternProvider = null,
-        _cm = null;
-
 
     /**
     *  Controls the interaction between codemirror and tern
     */
-    var ternManager = (function () {
+    function TernManager () {
         var onReady = $.Deferred();
 
-        //_ternProvider = new TernProvider.Remote();
-        _ternProvider = new TernProvider.Local();
-        _ternProvider.onReady(onReady.resolve);
+        //var ternProvider = new TernProvider.Remote();
+        var ternProvider = new TernProvider.Local();
+        ternProvider.onReady(onReady.resolve);
 
-        return {
-            ternHints: new TernHints(_ternProvider),
-            ternReferences: new TernReferences(_ternProvider),
-            ternTypes: new TernTypes(_ternProvider),
-			ternProvider: _ternProvider,
-            onReady: onReady.promise().done
-        };
-
-    })();
+        this.ternHints      = new TernHints(ternProvider);
+        this.ternReferences = new TernReferences(ternProvider);
+        this.ternTypes      = new TernTypes(ternProvider);
+        this.ternProvider   = ternProvider;
+        this.onReady        = onReady.promise().done;
+    }
 
 
-    ternManager.clear = function() {
-        ternManager.unregister(_cm);
-        _ternProvider.clear();
+    TernManager.prototype.clear = function () {
+        this.unregister();
+        this.ternProvider.clear();
     };
 
 
@@ -74,7 +68,7 @@ define(function (require, exports, module) {
     * map the code mirror instance to that file name.
     *
     */
-    ternManager.register = function (cm, file) {
+    TernManager.prototype.register = function (cm, file) {
         if (!cm) {
             throw new TypeError("CodeMirror instance must be valid");
         }
@@ -83,31 +77,30 @@ define(function (require, exports, module) {
             throw new TypeError("File object must be valid");
         }
 
-        // Unregister the current code mirror instance.
-        ternManager.unregister(_cm);
-
-        _cm = cm;
-        _cm._ternBindings = ternManager;
+        var _self = this;
+        _self.unregister();
+        _self._cm = cm;
+        cm._ternBindings = _self;
 
         var keyMap = {
             "name": "ternBindings",
             "Ctrl-I": function(){
-                ternManager.ternTypes.findType(_cm);
+                _self.ternTypes.findType(cm);
             },
             "Alt-.": function() {
-                //ternManager.jumpToDef
+                //_self.ternReferences.jumpToDef
             },
             "Alt-,": function() {
-                //ternManager.jumpBack
+                //_self.ternReferences.jumpBack
             },
             "Ctrl-R": function() {
-                ternManager.ternReferences.findReferences(_cm);
+                _self.ternReferences.findReferences(cm);
             }
         };
 
         // Register key events
-        _cm.addKeyMap(keyMap);
-        _ternProvider.register(cm, file.fullPath);
+        cm.addKeyMap(keyMap);
+        _self.ternProvider.register(cm, file.fullPath);
     };
 
 
@@ -115,19 +108,20 @@ define(function (require, exports, module) {
     * Unregister a previously registered document.  We simply unbind
     * any keybindings we have registered
     */
-    ternManager.unregister = function (cm) {
+    TernManager.prototype.unregister = function () {
+        var _self = this,
+            cm = _self._cm;
         if (!cm || !cm._ternBindings) {
             return;
         }
 
         cm.removeKeyMap("ternBindings");
         delete cm._ternBindings;
-        _ternProvider.unregister(cm);
+        _self.ternProvider.unregister(cm);
     };
 
 
-    exports.ternManager = ternManager;
-    return ternManager;
+    return TernManager;
 
 });
 

@@ -28,7 +28,8 @@ define(function (require, exports, module) {
     var FileUtils        = brackets.getModule("file/FileUtils"),
         NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem;
 
-    var ProjectFiles = require("ProjectFiles");
+    var ProjectFiles = require("ProjectFiles"),
+        Timer        = require("Timer");
 
     var fileLoader = (function(){
         var inProgress= {};
@@ -150,11 +151,15 @@ define(function (require, exports, module) {
             if (fileName in inProgress) {
                 return inProgress[fileName];
             }
-            else if (/^https?:\/\//.test(fileName)) {
-                return loadFromHTTP(fileName);
+
+            var timer = new Timer(true);
+            var deferred;
+
+            if (/^https?:\/\//.test(fileName)) {
+                deferred = loadFromHTTP(fileName);
             }
             else {
-                var deferred = $.Deferred();
+                deferred = $.Deferred();
 
                 //
                 // First try to load the file from the specified rootFile directoty
@@ -175,9 +180,13 @@ define(function (require, exports, module) {
                             });
 
                     });
-
-                return deferred;
             }
+
+            return deferred.done(function(data) {
+                //console.log("File loaded", fileName, timer.elapsed());
+            }).fail(function(error){
+                //console.log("File not loaded.", fileName, error, timer.elapsed());
+            });
         }
 
 
