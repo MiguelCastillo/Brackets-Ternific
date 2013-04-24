@@ -18,6 +18,13 @@ define(function (require, exports, module) {
         DOUBLE_QUOTE        = HintHelper.DOUBLE_QUOTE;
 
 
+    var Priorities = {
+        "0": "priority-high",
+        "1": "priority-medium",
+        "-1": "priority-low"
+    };
+
+
     var sorter = (function(){
         var placementOffset = 1000;
         var limit = MAX_DISPLAYED_HINTS;
@@ -107,77 +114,53 @@ define(function (require, exports, module) {
     })();
 
 
+    /*
+     * Returns a formatted list of hints with the query substring
+     * highlighted.
+     *
+     * @param {Array.<Object>} hints - the list of hints to format
+     * @param {string} query - querystring used for highlighting matched
+     *      poritions of each hint
+     *
+     * @return {Array.<jQuery.Object>} - array of hints formatted as jQuery
+     *      objects
+     */
+    function formatHints(hints, query) {
+        return hints.map(function (token) {
+            var hint     = token.value,
+                index    = hint.indexOf(query),
+                priority = Priorities[token.level] || Priorities['1'];
+            var hintHtml;
+
+            // higlight the matched portion of each hint
+            if ( index >= 0 ) {
+                var prefix = StringUtils.htmlEscape(hint.slice(0, index)),
+                    match  = StringUtils.htmlEscape(hint.slice(index, index + query.length)),
+                    suffix = StringUtils.htmlEscape(hint.slice(index + query.length));
+
+                hintHtml = ("<span class='brackets-js-hints {0}'>" +
+                                "<span class='type {1}'></span>" +
+                                "{2}" + //"<span class='prefix'></span>"
+                                "<span class='matched-hint'>{3}</span>" +
+                                "{4}" + //"<span class='suffix'></span>"
+                            "</span>").format(priority, token.className, prefix, match, suffix);
+            }
+            else {
+                hintHtml = ("<span class='brackets-js-hints {0}'>" +
+                                "<span class='type {1}'></span>" +
+                                "<span class='hint'>{2}</span>" +
+                            "</span>").format(priority, token.className, hint);
+            }
+
+            return $(hintHtml).data("token", token);
+        });
+    }
 
 
-    function HintsTransform(hints, query) {
+    function HintsTransform(hints, query, sortType) {
+        sortType = sortType || "byMatch";
 
-        var trimmedQuery,
-            filteredHints,
-            formattedHints;
-
-
-        /*
-         * Returns a formatted list of hints with the query substring
-         * highlighted.
-         *
-         * @param {Array.<Object>} hints - the list of hints to format
-         * @param {string} query - querystring used for highlighting matched
-         *      poritions of each hint
-         * @param {Array.<jQuery.Object>} - array of hints formatted as jQuery
-         *      objects
-         */
-        function formatHints(hints, query) {
-            return hints.map(function (token) {
-                var hint        = token.value,
-                    index       = hint.indexOf(query),
-                    $hintObj    = $("<span>").addClass("brackets-js-hints"),
-                    delimiter   = "";
-
-                // Add icon to the hint item
-                $("<span>").addClass(token.className).appendTo($hintObj);
-
-                // level indicates either variable scope or property confidence
-                switch (token.level) {
-                case 0:
-                    // Great hit!!!
-                    $hintObj.addClass("priority-high");
-                    break;
-                case -1:
-                    // No hits
-                    $hintObj.addClass("priority-low");
-                    break;
-                default:
-                    // Any hits
-                    $hintObj.addClass("priority-medium");
-                    break;
-                }
-
-
-                // higlight the matched portion of each hint
-                if (index >= 0) {
-                    var prefix  = StringUtils.htmlEscape(hint.slice(0, index)),
-                        match   = StringUtils.htmlEscape(hint.slice(index, index + query.length)),
-                        suffix  = StringUtils.htmlEscape(hint.slice(index + query.length));
-
-                    $hintObj.append(delimiter + prefix)
-                        .append($("<span>")
-                                .append(match)
-                                .addClass("matched-hint"))
-                        .append(suffix + delimiter);
-                }
-                else {
-                    $hintObj.append(delimiter + hint + delimiter);
-                }
-
-                $hintObj.data("token", token);
-
-                return $hintObj;
-            });
-        }
-
-
-        // trim leading and trailing string literal delimiters from the query
-        var sortType = "byMatch";
+        var trimmedQuery, filteredHints;
         var firstChar = query.charAt(0);
         if (firstChar === SINGLE_QUOTE || firstChar === DOUBLE_QUOTE) {
             trimmedQuery = query.substring(1);
@@ -192,10 +175,9 @@ define(function (require, exports, module) {
 
 
         filteredHints = sorter[sortType](hints, trimmedQuery);
-        formattedHints = formatHints(filteredHints, trimmedQuery);
 
         return {
-            hints: formattedHints,
+            hints: formatHints(filteredHints, trimmedQuery),
             match: null, // the CodeHintManager should not format the results
             selectInitial: true
         };

@@ -33,6 +33,10 @@ define(function (require, exports, module) {
     var HintProvider = require('HintProvider'),
         TernManager  = require('TernManager');
 
+    // Load up string utils...
+    require("string");
+
+
     var _ternManager = new TernManager();
 
     ExtensionUtils.loadStyleSheet(module, "style.css");
