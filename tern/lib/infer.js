@@ -355,7 +355,7 @@
   var Prim = exports.Prim = function(proto, name) { this.name = name; this.proto = proto; };
   Prim.prototype = extend(Type.prototype, {
     toString: function() { return this.name; },
-    getProp: function(prop) {return this.proto.props[prop] || ANull;},
+    getProp: function(prop) {return this.proto.hasProp(prop) || ANull;},
     gatherProperties: function(f, depth) {
       if (this.proto) this.proto.gatherProperties(f, depth);
     }
@@ -395,7 +395,10 @@
     },
     defProp: function(prop, originNode) {
       var found = this.hasProp(prop, false);
-      if (found) return found;
+      if (found) {
+        if (originNode && !found.originNode) found.originNode = originNode;
+        return found;
+      }
       if (prop == "__proto__" || prop == "✖") return new AVal;
 
       var av = this.maybeProps && this.maybeProps[prop];
@@ -613,8 +616,8 @@
   // SCOPES
 
   var Scope = exports.Scope = function(prev) {
-    this.prev = prev;
     Obj.call(this, prev || true);
+    this.prev = prev;
   };
   Scope.prototype = extend(Obj.prototype, {
     defVar: function(name, originNode) {
@@ -906,7 +909,7 @@
             var fromRight = node.right.type == "MemberExpression" && node.right.computed && node.right.property.name == v;
             over.forAllProps(function(prop, val, local) {
               if (local && prop != "prototype" && prop != "<i>")
-                obj.propagate(new PropHasSubset(prop, fromRight ? val : ANull, node.left.property));
+                obj.propagate(new PropHasSubset(prop, fromRight ? val : ANull));
             });
             return rhs;
           }
@@ -1304,7 +1307,6 @@
 
   function findType(node, scope) {
     var found = typeFinder[node.type](node, scope);
-    if (found.isEmpty()) found = found.getType() || found;
     return found;
   }
 
@@ -1329,6 +1331,18 @@
       }
     }
   });
+  var fullVisitor = exports.fullVisitor = walk.make({
+    MemberExpression: function(node, st, c) {
+      c(node.object, st, "Expression");
+      c(node.property, st, node.computed ? "Expression" : null);
+    },
+    ObjectExpression: function(node, st, c) {
+      for (var i = 0; i < node.properties.length; ++i) {
+        c(node.properties[i].value, st, "Expression");
+        c(node.properties[i].key, st);
+      }
+    }
+  }, searchVisitor);
 
   exports.findExpressionAt = function(ast, start, end, defaultScope, filter) {
     var test = filter || function(_t, node) {return typeFinder.hasOwnProperty(node.type);};

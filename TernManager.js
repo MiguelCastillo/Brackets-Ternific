@@ -29,7 +29,8 @@ define(function (require, exports, module) {
     var TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
         TernReferences = require("TernReferences"),
-        TernTypes      = require("TernTypes");
+        TernTypes      = require("TernTypes"),
+        HintHelper     = require("HintHelper");
 
 
     /**
@@ -47,12 +48,13 @@ define(function (require, exports, module) {
         this.ternTypes      = new TernTypes(ternProvider);
         this.ternProvider   = ternProvider;
         this.onReady        = onReady.promise().done;
+        this.currentPath    = "";
     }
 
 
     TernManager.prototype.clear = function () {
-        this.unregister();
-        this.ternProvider.clear();
+        var _self = this;
+        _self.ternProvider.clear();
     };
 
 
@@ -78,9 +80,6 @@ define(function (require, exports, module) {
         }
 
         var _self = this;
-        _self.unregister();
-        _self._cm = cm;
-        cm._ternBindings = _self;
 
         var keyMap = {
             "name": "ternBindings",
@@ -98,7 +97,21 @@ define(function (require, exports, module) {
             }
         };
 
-        // Register key events
+
+        //
+        // If we are working on an entirely different path or the new path
+        // is not a subfolder of the currentPath, then we will clear all tern
+        // stuff because we are most likely working in a different context.
+        //
+        var pathFile = HintHelper.pathFile(file.fullPath);
+        if (_self.currentPath !== pathFile.path && _self.currentPath.indexOf(pathFile.path) !== 0) {
+            _self.ternProvider.clear();
+            _self.currentPath = pathFile.path;
+        }
+
+        _self.unregister();
+        _self._cm = cm;
+        cm._ternBindings = _self;
         cm.addKeyMap(keyMap);
         _self.ternProvider.register(cm, file.fullPath);
     };
@@ -116,8 +129,9 @@ define(function (require, exports, module) {
         }
 
         cm.removeKeyMap("ternBindings");
-        delete cm._ternBindings;
         _self.ternProvider.unregister(cm);
+        delete cm._ternBindings;
+        delete _self._cm;
     };
 
 

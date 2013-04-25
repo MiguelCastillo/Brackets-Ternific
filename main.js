@@ -36,11 +36,9 @@ define(function (require, exports, module) {
     // Load up string utils...
     require("string");
 
-
-    var _ternManager = new TernManager();
-
     ExtensionUtils.loadStyleSheet(module, "style.css");
 
+    var _ternManager = new TernManager();
     _ternManager.onReady(function () {
         /*
          * Handle the activeEditorChange event fired by EditorManager.
@@ -52,8 +50,6 @@ define(function (require, exports, module) {
          * @param {Editor} previous - the previous editor context
          */
         function handleActiveEditorChange(event, current, previous) {
-            _ternManager.clear();
-
             if (current) {
                 _ternManager.register(current._codeMirror, current.document.file);
             }

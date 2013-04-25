@@ -99,7 +99,7 @@ define(function (require, exports, module) {
                 changed: null
             };
 
-            _self.addDoc(docMeta);
+            _self._addDoc(docMeta);
         }
         //
         // If the document exists but has not been registered, then we
@@ -209,7 +209,7 @@ define(function (require, exports, module) {
     };
 
 
-    LocalProvider.prototype.addDoc = function (doc) {
+    LocalProvider.prototype._addDoc = function (doc) {
         this.docs.push(doc);
         this._server.addFile(doc.name, doc.doc.getValue());
     };
@@ -233,7 +233,7 @@ define(function (require, exports, module) {
                         changed: null
                     };
 
-                    _self.addDoc(docMeta);
+                    _self._addDoc(docMeta);
                     c(null, data.text);
                 })
                 .fail(function(error){
@@ -298,7 +298,7 @@ define(function (require, exports, module) {
     };
 
 
-    RemoteProvider.prototype.addDoc = function(doc) {
+    RemoteProvider.prototype._addDoc = function(doc) {
         this.docs.push(doc);
     };
 

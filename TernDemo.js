@@ -114,7 +114,6 @@ define(function(require, exports, module) {
       for (var i = 0; i < docs.length; ++i) {
         var doc = docs[i];
         if (doc.changed && doc != curDoc) {
-            console.log("Full non-current document changed");
           files.push({type: "full", name: doc.name, text: doc.doc.getValue()});
           doc.changed = null;
         }
