@@ -56,13 +56,14 @@ define(function (require, exports, module) {
                     }
 
                     completions.push({
+                        depth: completion.depth,
                         value: completion.name,
                         type: completionType.name,
                         className: className
                     });
                 }
 
-                //console.log(completions);
+                //console.log(data);
                 return {
                     list: completions,
                     query: query,

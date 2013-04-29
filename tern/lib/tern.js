@@ -8,7 +8,7 @@
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     return mod(exports, require("./infer"), require("acorn/acorn"), require("acorn/util/walk"));
   if (typeof define == "function" && define.amd) // AMD
-    return define(["exports", "./infer", "acorn", "acorn/util/walk"], mod);
+    return define(["exports", "./infer", "acorn/acorn", "acorn/util/walk"], mod);
   mod(self.tern || (self.tern = {}), tern, acorn, acorn.walk); // Plain browser env
 })(function(exports, infer, acorn, walk) {
   "use strict";
@@ -86,8 +86,10 @@
 
     this.defs = options.defs.slice(0);
     for (var plugin in options.plugins) if (options.plugins.hasOwnProperty(plugin)) {
-      var init = plugins[plugin](this, options.plugins[plugin]);
-      if (init && init.defs) this.defs.push(init.defs);
+      if (plugin in plugins) {
+        var init = plugins[plugin](this, options.plugins[plugin]);
+        if (init && init.defs) this.defs.push(init.defs);
+      }
     }
 
     this.reset();
@@ -650,7 +652,7 @@
     var name = expr.node.name;
 
     for (var scope = expr.state; scope && !(name in scope.props); scope = scope.prev) {}
-    if (!scope) throw new Error("Could not find a definition for " + name);
+    if (!scope) throw new Error("Could not find a definition for " + name + " " + !!srv.cx.topScope.props.x);
 
     var type, refs = [];
     function storeRef(file) {

@@ -80,9 +80,19 @@ define(function (require, exports, module) {
 
 
         function byMatch(tokens, criteria) {
-            function tester(token) {
-                return token.value.indexOf(criteria);
+            var tester;
+
+            if (criteria.length === 0) {
+                tester = function(token) {
+                    return token.depth;
+                };
             }
+            else {
+                tester = function (token) {
+                    return token.value.indexOf(criteria) + token.depth;
+                };
+            }
+
             return _matchType(tokens, criteria, '', tester);
         }
 

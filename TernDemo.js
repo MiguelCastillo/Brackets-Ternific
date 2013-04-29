@@ -223,7 +223,6 @@ define(function(require, exports, module) {
     }
 
 
-
     var ternDemo = {
         server: workerServer,
         trackChange: trackChange,
@@ -236,9 +235,11 @@ define(function(require, exports, module) {
             var query = ternRequest.query;
             query.filter = query.newSession !== true; // Results will be pretty large if we don't filter stuff out
             query.sort = true;
-            query.depths = false;
+            query.depths = true;
             query.guess = true;
             query.origins = false;
+            query.docs = false;
+            query.expandWordForward = false;
             return ternRequest;
         },
         setCurrentDocument: function(_curDoc){

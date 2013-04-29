@@ -59,11 +59,10 @@
 
   var WG_DEFAULT = 100, WG_MADEUP_PROTO = 10, WG_MULTI_MEMBER = 5, WG_GLOBAL_THIS = 2;
 
-  var AVal = exports.AVal = function(type) {
+  var AVal = exports.AVal = function() {
     this.types = [];
     this.forward = null;
     this.maxWeight = 0;
-    if (type) type.propagate(this);
   };
   AVal.prototype = extend(ANull, {
     addType: function(type, weight) {
@@ -251,8 +250,10 @@
   var IsCallee = exports.IsCallee = constraint("self, args, argNodes, retval", {
     addType: function(fn, weight) {
       if (!(fn instanceof Fn)) return;
-      for (var i = 0, e = Math.min(this.args.length, fn.args.length); i < e; ++i)
-        this.args[i].propagate(fn.args[i], weight);
+      for (var i = 0; i < this.args.length; ++i) {
+        if (i < fn.args.length) this.args[i].propagate(fn.args[i], weight);
+        if (fn.arguments) this.args[i].propagate(fn.arguments, weight);
+      }
       this.self.propagate(fn.self, this.self == cx.topScope ? WG_GLOBAL_THIS : weight);
       if (!fn.computeRet)
         fn.retval.propagate(this.retval, weight);
@@ -263,6 +264,9 @@
       var names = [];
       for (var i = 0; i < this.args.length; ++i) names.push("?");
       return new Fn(null, this.self, this.args, names, ANull);
+    },
+    propagatesTo: function() {
+      return {target: this.retval, pathExt: ".!ret"};
     }
   });
 
@@ -632,13 +636,14 @@
   // RETVAL COMPUTATION HEURISTICS
 
   function maybeTypeManipulator(scope, score) {
-    if (!scope.typeManipScore) scope.typeManipScore = 0;
-    scope.typeManipScore += score;
+    if (scope.fnType)
+      scope.fnType.typeManipScore = (scope.fnType.typeManipScore || 0) + score;
   }
 
   function maybeTagAsTypeManipulator(node, scope) {
-    if (scope.typeManipScore && scope.typeManipScore / (node.end - node.start) > .01) {
-      var fn = scope.fnType;
+    var fn = scope.fnType, score = fn.typeManipScore;
+    if (score && score / (node.end - node.start) > .01) {
+      maybeTypeManipulator(scope.prev, score / 2);
       // Disconnect the arg avals, so that we can add info to them without side effects
       for (var i = 0; i < fn.args.length; ++i) fn.args[i] = new AVal;
       fn.self = new AVal;
@@ -648,10 +653,15 @@
         var scopeCopy = new Scope(scope.prev);
         for (var v in scope.props) {
           var local = scopeCopy.defProp(v);
-          for (var i = 0; i < fn.argNames.length; ++i) if (fn.argNames[i] == v && i < args.length)
+          for (var i = 0; i < args.length; ++i) if (fn.argNames[i] == v && i < args.length)
             args[i].propagate(local);
         }
         scopeCopy.fnType = new Fn(fn.name, self, args, fn.argNames, new AVal);
+        if (fn.arguments) {
+          var argset = scopeCopy.fnType.arguments = new AVal;
+          scopeCopy.defProp("arguments").addType(new Arr(argset));
+          for (var i = 0; i < args.length; ++i) args[i].propagate(argset);
+        }
         node.body.scope = scopeCopy;
         walk.recursive(node.body, scopeCopy, null, scopeGatherer);
         walk.recursive(node.body, scopeCopy, null, inferWrapper);
@@ -687,9 +697,9 @@
 
     var foundPath;
     try {
-      explore(fn.self, "$this", 0);
+      explore(fn.self, "!this", 0);
       for (var i = 0; i < fn.args.length; ++i)
-        explore(fn.args[i], "$" + i, 0);
+        explore(fn.args[i], "!" + i, 0);
     } catch (e) {
       if (!(foundPath = e.foundPath)) throw e;
     }
@@ -906,6 +916,7 @@
           // information.
           var v = node.left.property.name, local = scope.props[v], over = local && local.iteratesOver;
           if (over) {
+            maybeTypeManipulator(scope, 20);
             var fromRight = node.right.type == "MemberExpression" && node.right.computed && node.right.property.name == v;
             over.forAllProps(function(prop, val, local) {
               if (local && prop != "prototype" && prop != "<i>")
@@ -916,7 +927,9 @@
         }
         obj.propagate(new PropHasSubset(pName, rhs, node.left.property));
       } else { // Identifier
-        rhs.propagate(scope.defVar(node.left.name, node));
+        var v = scope.defVar(node.left.name, node);
+        if (v.maybePurge) v.maybePurge = false;
+        rhs.propagate(v);
       }
       return rhs;
     }),
@@ -949,6 +962,9 @@
         self.propagate(new HasMethodCall(propName(node.callee, scope, c), args, node.arguments, out));
       } else {
         var callee = infer(node.callee, scope, c);
+        var knownFn = callee.getFunctionType();
+        if (knownFn && knownFn.typeManipScore && scope.fnType)
+          maybeTypeManipulator(scope, knownFn.typeManipScore / 5);
         callee.propagate(new IsCallee(cx.topScope, args, node.arguments, out));
       }
     }),
@@ -966,8 +982,9 @@
       return prop;
     }),
     Identifier: ret(function(node, scope) {
-      if (node.name == "arguments" && !(node.name in scope.props))
-        scope.defProp(node.name, scope.fnType.originNode).addType(new Arr);
+      if (node.name == "arguments" && scope.fnType && !(node.name in scope.props))
+        scope.defProp(node.name, scope.fnType.originNode)
+          .addType(new Arr(scope.fnType.arguments = new AVal));
       return scope.getProp(node.name);
     }),
     ThisExpression: ret(function(node, scope) {
