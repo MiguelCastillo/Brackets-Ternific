@@ -50,7 +50,7 @@ define(function(require, exports, module){
 
         this.hintManager.ternHints.getHints().done(function (hints) {
             _self.hints = hints;
-            var transformedHints = HintTransform(hints.list, hints.query.details.text);
+            var transformedHints = HintTransform(hints);
             promise.resolve(transformedHints);
         }).fail(function (error) {
             promise.reject(error);

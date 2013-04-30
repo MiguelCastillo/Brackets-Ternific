@@ -39,40 +39,23 @@ define(function (require, exports, module) {
     TernHints.prototype.query = function( ) {
         var cm = this._cm;
 
-        return this.ternProvider.query(cm, {type: "completions", types: true, docs: true, newSession: this.newSession})
-            .pipe(function(data, query) {
-                var completions = [];
-
-                // Expand some details about the completion results
-                query.details = hintResultDetails(query);
-
-                for (var i = 0; i < data.completions.length; i++) {
-                    var completion = data.completions[i],
-                        completionType = HintHelper.typeDetails(completion.type),
-                        className = completionType.icon;
-
-                    if (completion.guess) {
-                        className += " Tern-completion-guess";
-                    }
-
-                    completions.push({
-                        depth: completion.depth,
-                        value: completion.name,
-                        type: completionType.name,
-                        className: className
-                    });
-                }
-
-                //console.log(data);
-                return {
-                    list: completions,
-                    query: query,
-                    cm: cm
-                };
-            },
-            function(error) {
-                return error;
-            });
+        return this.ternProvider.query(cm, {
+            type: "completions",
+            types: true,
+            docs: true,
+            newSession: this.newSession
+        })
+        .pipe(function(result, query) {
+            return {
+                text: query.doc.cm.getDoc().getRange(result.start, result.end),
+                result: result,
+                query: query,
+                cm: cm
+            };
+        },
+        function(error) {
+            return error;
+        });
     };
 
 
@@ -128,7 +111,7 @@ define(function (require, exports, module) {
             throw new TypeError("Must provide valid hint and hints object as they are returned by calling getHints");
         }
 
-        hints.cm.getDoc().replaceRange(hint.value, hints.query.details.start, hints.query.details.end);
+        hints.cm.getDoc().replaceRange(hint.name, hints.result.start, hints.result.end);
     };
 
 
@@ -147,26 +130,6 @@ define(function (require, exports, module) {
 
         return this.query();
     };
-
-
-    /**
-    * Gets more details about the query itself.  One of the things it
-    * provides is the text for the query...  E.g. What is tern searching
-    * for when we are asking for feedback.
-    */
-    function hintResultDetails( query ) {
-        var result = query.result;
-        var start = CodeMirror.Pos(result.start.line, result.start.ch),
-            end = CodeMirror.Pos(result.end.line, result.end.ch);
-
-        var details = {
-            text: query.doc.cm.getDoc().getRange(start, end),
-            start: start,
-            end: end
-        };
-
-        return details;
-    }
 
 
     return TernHints;

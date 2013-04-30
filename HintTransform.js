@@ -29,10 +29,10 @@ define(function (require, exports, module) {
 
         function matchByType(type, criteria, token) {
             if (token.type === type) {
-                return token.value.indexOf(criteria);
+                return token.name.indexOf(criteria);
             }
             else {
-                return token.value.indexOf(criteria) + placementOffset;
+                return token.name.indexOf(criteria) + placementOffset;
             }
         }
 
@@ -42,7 +42,7 @@ define(function (require, exports, module) {
                 return token.depth;
             }
             else {
-                return token.value.indexOf(criteria) + token.depth;
+                return token.name.indexOf(criteria) + token.depth;
             }
         }
 
@@ -138,9 +138,16 @@ define(function (require, exports, module) {
      */
     function formatHints(hints, query) {
         return hints.map(function (token) {
-            var hint     = token.value,
-                index    = hint.indexOf(query),
-                priority = Priorities[token.level] || Priorities['1'];
+            var hint           = token.name,
+                index          = hint.indexOf(query),
+                priority       = Priorities[token.level] || Priorities['1'],
+                completionType = HintHelper.typeDetails(token.type),
+                icon           = completionType.icon;
+
+            if (token.guess) {
+                icon += " Tern-completion-guess";
+            }
+
             var hintHtml;
 
             // higlight the matched portion of each hint
@@ -154,13 +161,13 @@ define(function (require, exports, module) {
                                 "{2}" + //"<span class='prefix'></span>"
                                 "<span class='matched-hint'>{3}</span>" +
                                 "{4}" + //"<span class='suffix'></span>"
-                            "</span>").format(priority, token.className, prefix, match, suffix);
+                            "</span>").format(priority, icon, prefix, match, suffix);
             }
             else {
                 hintHtml = ("<span class='brackets-js-hints {0}'>" +
                                 "<span class='type {1}'></span>" +
                                 "<span class='hint'>{2}</span>" +
-                            "</span>").format(priority, token.className, hint);
+                            "</span>").format(priority, icon, hint);
             }
 
             return $(hintHtml).data("token", token);
@@ -168,11 +175,13 @@ define(function (require, exports, module) {
     }
 
 
-    function HintsTransform(hints, query, sortType) {
+    function HintsTransform(hints, sortType) {
         sortType = sortType || "byMatch";
 
+        var query = hints.text;
         var trimmedQuery, filteredHints;
         var firstChar = query.charAt(0);
+
         if (firstChar === SINGLE_QUOTE || firstChar === DOUBLE_QUOTE) {
             trimmedQuery = query.substring(1);
             var lastChar = trimmedQuery.charAt(trimmedQuery.length - 1);
@@ -184,8 +193,7 @@ define(function (require, exports, module) {
             trimmedQuery = query;
         }
 
-
-        filteredHints = sorter[sortType](hints, trimmedQuery);
+        filteredHints = sorter[sortType](hints.result.completions, trimmedQuery);
 
         return {
             hints: formatHints(filteredHints, trimmedQuery),

@@ -214,7 +214,6 @@ define(function (require, exports, module) {
                     promise.reject(error);
                 }
                 else {
-                    query.result = data;
                     query.doc = _self.findDocByCM(cm);
                     promise.resolve(data, query);
                 }
@@ -227,7 +226,7 @@ define(function (require, exports, module) {
 
     LocalProvider.prototype.getFile = function (name, c) {
         var _self = this;
-        var docMeta = this.findDocByName(name);
+        var docMeta = _self.findDocByName(name);
 
         if ( docMeta ) {
             setTimeout(function() {
@@ -290,7 +289,6 @@ define(function (require, exports, module) {
             "data": JSON.stringify(query)
         })
         .done(function(data){
-            query.result = data;
             promise.resolve(data, query);
         })
         .fail(function(error){
