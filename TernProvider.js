@@ -99,7 +99,8 @@ define(function (require, exports, module) {
                 changed: null
             };
 
-            _self._addDoc(docMeta);
+            _self.docs.push(docMeta);
+            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
         }
         //
         // If the document exists but has not been registered, then we
@@ -148,6 +149,21 @@ define(function (require, exports, module) {
         }
     };
 
+
+    TernProvider.prototype.loadFile = function (name, root) {
+        var _self = this;
+
+        return fileLoader.loadFile(name, root || _self.currentDocument.name || "").done(function(data) {
+            var docMeta = {
+                name: name, //data.fullPath,
+                doc: new CodeMirror.Doc(data.text, "javascript"),
+                changed: null
+            };
+
+            _self.docs.push(docMeta);
+            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+        });
+    };
 
 
     /**
@@ -209,12 +225,6 @@ define(function (require, exports, module) {
     };
 
 
-    LocalProvider.prototype._addDoc = function (doc) {
-        this.docs.push(doc);
-        this._server.addFile(doc.name, doc.doc.getValue());
-    };
-
-
     LocalProvider.prototype.getFile = function (name, c) {
         var _self = this;
         var docMeta = this.findDocByName(name);
@@ -225,15 +235,8 @@ define(function (require, exports, module) {
             }, 1);
         }
         else {
-            fileLoader.loadFile(name, _self.currentDocument.name)
-                .done(function(data) {
-                    var docMeta = {
-                        name: data.fullPath,
-                        doc: new CodeMirror.Doc(data.text, "javascript"),
-                        changed: null
-                    };
-
-                    _self._addDoc(docMeta);
+            _self.loadFile(name)
+                .done(function(data){
                     c(null, data.text);
                 })
                 .fail(function(error){
@@ -295,11 +298,6 @@ define(function (require, exports, module) {
         });
 
         return promise.promise();
-    };
-
-
-    RemoteProvider.prototype._addDoc = function(doc) {
-        this.docs.push(doc);
     };
 
 

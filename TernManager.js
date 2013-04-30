@@ -26,6 +26,8 @@
 define(function (require, exports, module) {
     'use strict';
 
+    var NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem;
+
     var TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
         TernReferences = require("TernReferences"),
@@ -81,6 +83,10 @@ define(function (require, exports, module) {
 
         var _self = this;
 
+        // First things first.  Unregister the current document before
+        // registering the new one.
+        _self.unregister();
+
         var keyMap = {
             "name": "ternBindings",
             "Ctrl-I": function(){
@@ -97,6 +103,9 @@ define(function (require, exports, module) {
             }
         };
 
+        _self._cm = cm;
+        cm._ternBindings = _self;
+        cm.addKeyMap(keyMap);
 
         //
         // If we are working on an entirely different path or the new path
@@ -105,16 +114,59 @@ define(function (require, exports, module) {
         //
         var pathFile = HintHelper.pathFile(file.fullPath);
         if (_self.currentPath !== pathFile.path && _self.currentPath.indexOf(pathFile.path) !== 0) {
-            _self.ternProvider.clear();
             _self.currentPath = pathFile.path;
+            _self.ternProvider.clear();
+            _self.ternProvider.register(cm, file.fullPath);
+
+            var path = file.fullPath.substr(0, file.fullPath.lastIndexOf('/'));
+
+            loadFiles(path).done(function(files) {
+                var index = 0, length = files.files.length;
+                for( index; index < length; index++ ){
+                    _self.ternProvider.loadFile(files.files[index]);
+                }
+            });
+        }
+        else {
+            _self.ternProvider.register(cm, file.fullPath);
+        }
+    };
+
+
+    function loadFiles (path) {
+        var result = $.Deferred();
+
+        function endsWith(_string, suffix) {
+            return _string.indexOf(suffix, _string.length - suffix.length) !== -1;
         }
 
-        _self.unregister();
-        _self._cm = cm;
-        cm._ternBindings = _self;
-        cm.addKeyMap(keyMap);
-        _self.ternProvider.register(cm, file.fullPath);
-    };
+        function handleError(error) {
+            result.reject(error);
+        }
+
+        // Load up the content of the directory
+        function loadDirectoryContent(fs) {
+            fs.root.createReader().readEntries(function success(entries) {
+                var i, files = [];
+
+                for (i = 0; i < entries.length; i++) {
+                    if (entries[i].isFile && endsWith(entries[i].name, ".js")) {
+                        files.push(entries[i].name);
+                    }
+                }
+
+                result.resolve({
+                    files: files,
+                    path: path
+                });
+            }, handleError);
+        }
+
+        // Get directory reader handle
+        NativeFileSystem.requestNativeFileSystem(path, loadDirectoryContent, handleError);
+        return result.promise();
+    }
+
 
 
     /**

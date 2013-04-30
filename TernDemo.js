@@ -134,7 +134,6 @@ define(function(require, exports, module) {
     }
 
 
-
     function workerServer(settings) {
         var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
         var msgId = 0, pending = {};
@@ -173,16 +172,16 @@ define(function(require, exports, module) {
                     });
                 });
             }
-            else if (data.type == "debug") {
-                console.log(data.message);
-            }
             else if (data.id && pending[data.id]) {
-                pending[data.id].callback(data.err, data.body);
                 //console.log("Request", data.id, pending[data.id].timer.elapsed());
+                pending[data.id].callback(data.err, data.body);
                 delete pending[data.id];
             }
             else if (data.type == "ready") {
                 settings.ready();
+            }
+            else if (data.type == "debug") {
+                console.log(data.message);
             }
         };
 
