@@ -3,10 +3,7 @@
 *
 */
 
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
-/*global define, $, brackets, window */
 
-/** Brackets Extension to load line navigator CodeMirror addon */
 define(function (require, exports, module) {
     "use strict";
 
@@ -30,7 +27,7 @@ define(function (require, exports, module) {
         var limit = MAX_DISPLAYED_HINTS;
 
 
-        function matchByType(token, criteria, type) {
+        function matchByType(type, criteria, token) {
             if (token.type === type) {
                 return token.value.indexOf(criteria);
             }
@@ -40,16 +37,34 @@ define(function (require, exports, module) {
         }
 
 
-        function _matchType(tokens, criteria, match, tester) {
-            var groups = {}, group, result = [], index;
-            //var limit  = criteria.length === 0 ? MAX_DISPLAYED_HINTS : 30;
+        function matchByDepth(criteria, token) {
+            if (!criteria) {
+                return token.depth;
+            }
+            else {
+                return token.value.indexOf(criteria) + token.depth;
+            }
+        }
 
-            $.each(tokens, function(iToken, token) {
-                index = tester(token, criteria, match);
-                token.level = index;
-                group = groups[index] || (groups[index] = {items:[]});
+
+        function _sort(tokens, tester) {
+            var groups = {},
+                result = [],
+                index,
+                length,
+                token,
+                group,
+                groupdId;
+
+            index = 0,
+            length = tokens.length;
+
+            for(; index < length; index++) {
+                token = tokens[index];
+                token.level = groupdId = tester(token);
+                group = groups[groupdId] || (groups[groupdId] = {items:[]});
                 group.items.push(token);
-            });
+            }
 
             $.each(groups, function(groupdId, group) {
                 var itemsLength = group.items.length,
@@ -75,41 +90,27 @@ define(function (require, exports, module) {
 
 
         function byFunction(tokens, criteria) {
-            return _matchType(tokens, criteria, "fn", matchByType);
+            return _sort(tokens, matchByType.bind(undefined, "fn", criteria));
         }
 
 
         function byMatch(tokens, criteria) {
-            var tester;
-
-            if (criteria.length === 0) {
-                tester = function(token) {
-                    return token.depth;
-                };
-            }
-            else {
-                tester = function (token) {
-                    return token.value.indexOf(criteria) + token.depth;
-                };
-            }
-
-            return _matchType(tokens, criteria, '', tester);
+            return _sort(tokens, matchByDepth.bind(undefined, criteria));
         }
 
 
         function byPass(tokens) {
-            //var limit = criteria.length === 0 ? MAX_DISPLAYED_HINTS : 30;
             return tokens.slice(0, limit);
         }
 
 
         function byObject(tokens, criteria) {
-            return _matchType(tokens, criteria, "object", matchByType);
+            return _sort(tokens, matchByType.bind(undefined, "object", criteria));
         }
 
 
         function byString(tokens, criteria) {
-            return _matchType(tokens, criteria, "string", matchByType);
+            return _sort(tokens, matchByType.bind(undefined, "string", criteria));
         }
 
 
