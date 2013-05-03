@@ -47,23 +47,20 @@ define(function (require, exports, module) {
         }
 
 
-        function _sort(tokens, tester) {
+        function _sort(tokens, clasify, toHtml) {
             var groups = {},
                 result = [],
-                index,
-                length,
+                index  = 0,
+                length = tokens.length,
                 token,
                 group,
                 groupdId;
 
-            index = 0,
-            length = tokens.length;
-
             for(; index < length; index++) {
                 token = tokens[index];
-                token.level = groupdId = tester(token);
+                token.level = groupdId = clasify(token);
                 group = groups[groupdId] || (groups[groupdId] = {items:[]});
-                group.items.push(token);
+                group.items.push(toHtml(token));
             }
 
             $.each(groups, function(groupdId, group) {
@@ -90,12 +87,12 @@ define(function (require, exports, module) {
 
 
         function byFunction(tokens, criteria) {
-            return _sort(tokens, matchByType.bind(undefined, "fn", criteria));
+            return _sort(tokens, matchByType.bind(undefined, "fn", criteria), tokenToHtml.bind(undefined, criteria));
         }
 
 
         function byMatch(tokens, criteria) {
-            return _sort(tokens, matchByDepth.bind(undefined, criteria));
+            return _sort(tokens, matchByDepth.bind(undefined, criteria), tokenToHtml.bind(undefined, criteria));
         }
 
 
@@ -105,12 +102,12 @@ define(function (require, exports, module) {
 
 
         function byObject(tokens, criteria) {
-            return _sort(tokens, matchByType.bind(undefined, "object", criteria));
+            return _sort(tokens, matchByType.bind(undefined, "object", criteria), tokenToHtml.bind(undefined, criteria));
         }
 
 
         function byString(tokens, criteria) {
-            return _sort(tokens, matchByType.bind(undefined, "string", criteria));
+            return _sort(tokens, matchByType.bind(undefined, "string", criteria), tokenToHtml.bind(undefined, criteria));
         }
 
 
@@ -125,61 +122,48 @@ define(function (require, exports, module) {
     })();
 
 
-    /*
-     * Returns a formatted list of hints with the query substring
-     * highlighted.
-     *
-     * @param {Array.<Object>} hints - the list of hints to format
-     * @param {string} query - querystring used for highlighting matched
-     *      poritions of each hint
-     *
-     * @return {Array.<jQuery.Object>} - array of hints formatted as jQuery
-     *      objects
-     */
-    function formatHints(hints, query) {
-        return hints.map(function (token) {
-            var hint           = token.name,
-                index          = hint.indexOf(query),
-                priority       = Priorities[token.level] || Priorities['1'],
-                completionType = HintHelper.typeDetails(token.type),
-                icon           = completionType.icon;
+    function tokenToHtml(query, token) {
+        var hint           = token.name,
+            index          = hint.indexOf(query),
+            priority       = Priorities[token.level] || Priorities['1'],
+            completionType = HintHelper.typeDetails(token.type),
+            icon           = completionType.icon;
 
-            if (token.guess) {
-                icon += " Tern-completion-guess";
-            }
+        if (token.guess) {
+            icon += " Tern-completion-guess";
+        }
 
-            var hintHtml;
+        var hintHtml;
 
-            // higlight the matched portion of each hint
-            if ( index >= 0 ) {
-                var prefix = StringUtils.htmlEscape(hint.slice(0, index)),
-                    match  = StringUtils.htmlEscape(hint.slice(index, index + query.length)),
-                    suffix = StringUtils.htmlEscape(hint.slice(index + query.length));
+        // higlight the matched portion of each hint
+        if ( index >= 0 ) {
+            var prefix = StringUtils.htmlEscape(hint.slice(0, index)),
+                match  = StringUtils.htmlEscape(hint.slice(index, index + query.length)),
+                suffix = StringUtils.htmlEscape(hint.slice(index + query.length));
 
-                hintHtml = ("<span class='brackets-js-hints {0}'>" +
-                                "<span class='type {1}'></span>" +
-                                "{2}" + //"<span class='prefix'></span>"
-                                "<span class='matched-hint'>{3}</span>" +
-                                "{4}" + //"<span class='suffix'></span>"
-                            "</span>").format(priority, icon, prefix, match, suffix);
-            }
-            else {
-                hintHtml = ("<span class='brackets-js-hints {0}'>" +
-                                "<span class='type {1}'></span>" +
-                                "<span class='hint'>{2}</span>" +
-                            "</span>").format(priority, icon, hint);
-            }
+            hintHtml = ("<span class='brackets-js-hints {0}'>" +
+                            "<span class='type {1}'></span>" +
+                            "{2}" + //"<span class='prefix'></span>"
+                            "<span class='matched-hint'>{3}</span>" +
+                            "{4}" + //"<span class='suffix'></span>"
+                        "</span>").format(priority, icon, prefix, match, suffix);
+        }
+        else {
+            hintHtml = ("<span class='brackets-js-hints {0}'>" +
+                            "<span class='type {1}'></span>" +
+                            "<span class='hint'>{2}</span>" +
+                        "</span>").format(priority, icon, hint);
+        }
 
-            return $(hintHtml).data("token", token);
-        });
+        return $(hintHtml).data("token", token);
     }
 
 
     function HintsTransform(hints, sortType) {
         sortType = sortType || "byMatch";
 
+        var trimmedQuery;
         var query = hints.text;
-        var trimmedQuery, filteredHints;
         var firstChar = query.charAt(0);
 
         if (firstChar === SINGLE_QUOTE || firstChar === DOUBLE_QUOTE) {
@@ -193,10 +177,9 @@ define(function (require, exports, module) {
             trimmedQuery = query;
         }
 
-        filteredHints = sorter[sortType](hints.result.completions, trimmedQuery);
 
         return {
-            hints: formatHints(filteredHints, trimmedQuery),
+            hints: sorter[sortType](hints.result.completions, trimmedQuery),
             match: null, // the CodeHintManager should not format the results
             selectInitial: true
         };
