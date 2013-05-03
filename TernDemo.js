@@ -231,14 +231,16 @@ define(function(require, exports, module) {
             }
 
             var ternRequest = buildRequest.apply(ternDemo, arguments);
-            var query = ternRequest.query;
-            query.filter = query.newSession !== true; // Results will be pretty large if we don't filter stuff out
-            query.sort = true;
-            query.depths = true;
-            query.guess = true;
-            query.origins = false;
-            query.docs = false;
-            query.expandWordForward = false;
+            ternRequest.query = $.extend({
+                filter: true, // Results will be pretty large if we don't filter stuff out
+                sort: true,
+                depths: true,
+                guess: true,
+                origins: false,
+                docs: false,
+                expandWordForward: false
+            }, ternRequest.query);
+
             return ternRequest;
         },
         setCurrentDocument: function(_curDoc){

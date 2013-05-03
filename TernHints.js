@@ -43,7 +43,7 @@ define(function (require, exports, module) {
             type: "completions",
             types: true,
             docs: true,
-            newSession: this.newSession
+            filter: this.newSession !== true
         })
         .pipe(function(result, query) {
             return {
@@ -65,15 +65,6 @@ define(function (require, exports, module) {
     * characters that are not hintable.
     */
     TernHints.prototype.canHint = function (_char, cm /*, file*/) {
-        //
-        // Support for inner mode.  Not enabled yet... Need testing.
-        //
-        //var cursor = cm.getCursor(), token = cm.getTokenAt(cursor);
-        //var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
-        // if(mode.name !== "javascript"){
-        //  return false;
-        //}
-
         var _self = this;
         _self.newSession = cm !== undefined;
 
@@ -88,6 +79,15 @@ define(function (require, exports, module) {
             cm = _self._cm;
             var cursor = cm.getCursor();
             var token = cm.getTokenAt(cursor);
+
+            //
+            // Support for inner mode.  Not enabled yet... Need testing.
+            //
+            //var mode = CodeMirror.innerMode(cm.getMode(), token.state).mode;
+            //if ( mode.name !== "javascript" ) {
+            //    return false;
+            //}
+
             return HintHelper.hintable(token);
         }
 
