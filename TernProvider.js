@@ -205,7 +205,7 @@ define(function (require, exports, module) {
         var _self = this;
         var promise = $.Deferred();
 
-        // Throttle the query request so that doc changes enough time to be processed
+        // Throttle the query request so that doc changes have enough time to be processed
         setTimeout(function(){
             var query = TernDemo.buildRequest(cm, settings, allowFragments);
 

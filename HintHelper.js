@@ -5,8 +5,9 @@
 
 define(function(require, exports, module){
 
-    var SINGLE_QUOTE = "\'",
-        DOUBLE_QUOTE = "\"";
+    var SINGLE_QUOTE    = "\'",
+        DOUBLE_QUOTE    = "\"",
+        identifierRegex = /[0-9a-z_.\$]/i;
 
 
     function pathFile(fullPath) {
@@ -58,7 +59,7 @@ define(function(require, exports, module){
      * @return {boolean} - could key be a valid identifier?
      */
     function maybeIdentifier(key) {
-        return (/[0-9a-z_.\$]/i).test(key) ||
+        return identifierRegex.test(key) ||
             (key.indexOf(SINGLE_QUOTE) === 0) ||
             (key.indexOf(DOUBLE_QUOTE) === 0);
     }
