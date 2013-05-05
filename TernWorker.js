@@ -10,17 +10,19 @@ importScripts("tern/node_modules/acorn/acorn.js", "tern/node_modules/acorn/acorn
 
 
 function Server(settings) {
-    var _self = this, nextId = 0;
+    var _self = this, nextId = 1;
     _self.pending = {};
     _self.server = new tern.Server({
         getFile: function(file, c) {
+            _self.pending[nextId] = c;
+
             postMessage({
                 type: "getFile",
                 name: file,
-                id: ++nextId
+                id: nextId
             });
 
-            _self.pending[nextId] = c;
+            ++nextId;
         },
         async: settings.async,
         defs: settings.defs,
@@ -43,7 +45,7 @@ Server.prototype.clear = function() {
 Server.prototype.addFile = function(data) {
     var _self = this;
 
-    if (data.hasOwnProperty('id')){
+    if (data.id && _self.pending[data.id]){
         var c = _self.pending[data.id];
         delete _self.pending[data.id];
         c(data.err, data.text);

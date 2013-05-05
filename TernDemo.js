@@ -78,6 +78,8 @@ define(function(require, exports, module) {
               text: cm.getRange(from, Pos(endLine, 0))};
     }
 
+    function displayError(err) {
+    }
 
     function incLine(off, pos) { return Pos(pos.line + off, pos.ch); }
 
@@ -130,13 +132,9 @@ define(function(require, exports, module) {
     }
 
 
-    function displayError(){
-    }
-
-
     function workerServer(settings) {
         var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
-        var msgId = 0, pending = {};
+        var msgId = 1, pending = {};
 
         worker.postMessage({
             type: "init",
@@ -150,11 +148,14 @@ define(function(require, exports, module) {
 
         function send(data, c) {
             if (c) {
-                data.id = ++msgId;
+                data.id = msgId;
+
                 pending[msgId] = {
                     callback: c,
                     timer: new Timer(true)
                 };
+
+                ++msgId;
             }
             worker.postMessage(data);
         }
@@ -187,7 +188,7 @@ define(function(require, exports, module) {
 
 
         worker.onerror = function(e) {
-            for (var id in pending) pending[id](e);
+            for (var id in pending) pending[id].callback(e);
             pending = {};
         };
 

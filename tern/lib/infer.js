@@ -92,6 +92,7 @@
     },
 
     getProp: function(prop) {
+      if (prop == "__proto__" || prop == "✖") return ANull;
       var found = (this.props || (this.props = Object.create(null)))[prop];
       if (!found) {
         found = this.props[prop] = new AVal;
@@ -300,7 +301,10 @@
   var IsProto = constraint("ctor, target", {
     addType: function(o, weight) {
       if (!(o instanceof Obj)) return;
-      this.target.addType(getInstance(o, this.ctor));
+      if (o == cx.protos.Array)
+        this.target.addType(new Arr);
+      else
+        this.target.addType(getInstance(o, this.ctor));
     }
   });
 
@@ -403,7 +407,7 @@
         if (originNode && !found.originNode) found.originNode = originNode;
         return found;
       }
-      if (prop == "__proto__" || prop == "✖") return new AVal;
+      if (prop == "__proto__" || prop == "✖") return ANull;
 
       var av = this.maybeProps && this.maybeProps[prop];
       if (av) {
