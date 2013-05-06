@@ -42,7 +42,16 @@ define(function (require, exports, module) {
                 return token.depth;
             }
             else {
-                return token.name.indexOf(criteria) + token.depth;
+                var index = token.name.indexOf(criteria);
+
+                // Give items that match the criteria higher priority than
+                // items with just perfect depth but no matching criteria.
+                if ( index !== -1 ) {
+                    return index + token.depth;
+                }
+                else {
+                    return placementOffset + token.depth;
+                }
             }
         }
 
