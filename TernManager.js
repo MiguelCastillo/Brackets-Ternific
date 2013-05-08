@@ -22,7 +22,6 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-
 define(function (require, exports, module) {
     'use strict';
 
@@ -123,13 +122,31 @@ define(function (require, exports, module) {
             loadFiles(path).done(function(files) {
                 var index = 0, length = files.files.length;
                 for( index; index < length; index++ ){
-                    _self.ternProvider.loadFile(files.files[index]);
+                    _self.ternProvider.addFile(files.files[index]);
                 }
             });
         }
         else {
             _self.ternProvider.register(cm, file.fullPath);
         }
+    };
+
+
+    /**
+    * Unregister a previously registered document.  We simply unbind
+    * any keybindings we have registered
+    */
+    TernManager.prototype.unregister = function () {
+        var _self = this,
+            cm = _self._cm;
+        if (!cm || !cm._ternBindings) {
+            return;
+        }
+
+        cm.removeKeyMap("ternBindings");
+        _self.ternProvider.unregister(cm);
+        delete cm._ternBindings;
+        delete _self._cm;
     };
 
 
@@ -166,25 +183,6 @@ define(function (require, exports, module) {
         NativeFileSystem.requestNativeFileSystem(path, loadDirectoryContent, handleError);
         return result.promise();
     }
-
-
-
-    /**
-    * Unregister a previously registered document.  We simply unbind
-    * any keybindings we have registered
-    */
-    TernManager.prototype.unregister = function () {
-        var _self = this,
-            cm = _self._cm;
-        if (!cm || !cm._ternBindings) {
-            return;
-        }
-
-        cm.removeKeyMap("ternBindings");
-        _self.ternProvider.unregister(cm);
-        delete cm._ternBindings;
-        delete _self._cm;
-    };
 
 
     return TernManager;

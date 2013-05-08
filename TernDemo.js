@@ -151,8 +151,8 @@ define(function(require, exports, module) {
                 data.id = msgId;
 
                 pending[msgId] = {
-                    callback: c,
-                    timer: new Timer(true)
+                    callback: c //,
+                    //timer: new Timer(true)
                 };
 
                 ++msgId;
@@ -163,18 +163,25 @@ define(function(require, exports, module) {
         worker.onmessage = function(e) {
             var data = e.data;
 
+            // If tern requests a file, then we will load it and then send it back to
+            // tern as an addFile action.
             if (data.type == "getFile") {
-                settings.getFile(data.name, function(err, text) {
+                settings.getFile(data.name).done(function(text){
                     send({
                         type: "addFile",
-                        err: String(err),
                         text: text,
+                        id: data.id
+                    });
+                }).fail(function(error) {
+                    send({
+                        type: "addFile",
+                        err: String(error),
                         id: data.id
                     });
                 });
             }
             else if (data.id && pending[data.id]) {
-                //console.log("Request", data.id, pending[data.id].timer.elapsed());
+                //console.log("Request", data.type, data.id, pending[data.id].timer.elapsed());
                 pending[data.id].callback(data.err, data.body);
                 delete pending[data.id];
             }

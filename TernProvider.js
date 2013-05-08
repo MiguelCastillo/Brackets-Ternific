@@ -148,9 +148,15 @@ define(function (require, exports, module) {
             }
         }
     };
-
-
-    TernProvider.prototype.loadFile = function (name, root) {
+    
+    
+    /**
+    * Will read file from disk or remote http file, then will load the content
+    * into tern's server.
+    *
+    * * This will bypass the list of cached documents.
+    */
+    TernProvider.prototype.addFile = function (name, root) {
         var _self = this;
 
         return fileLoader.loadFile(name, root || _self.currentDocument.name || "").done(function(data) {
@@ -178,14 +184,15 @@ define(function (require, exports, module) {
         // Load up all the definitions that we will need to start with.
         //
         require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
-            var defs = Array.prototype.slice.call(arguments, 0);
-            $.each(defs.slice(0), function(index, item){
+            var defs = [];
+
+            Array.prototype.slice.call(arguments, 0).forEach(function(item, index){
                 defs[index] = JSON.parse(item);
             });
 
             _self._server = TernDemo.server({
                 getFile: function() {
-                    _self.getFile.apply(_self, arguments);
+                    return _self.getFile.apply(_self, arguments);
                 },
                 ready:_self.ready.resolve,
                 defs: defs,
@@ -224,24 +231,37 @@ define(function (require, exports, module) {
     };
 
 
-    LocalProvider.prototype.getFile = function (name, c) {
+    /**
+    * Gets a file from the list of cached documents. If the document isn't cached,
+    * it will get loaded either from local drive or remote via http.  This newly
+    * retrieved document will be added to the list of cached documents.
+    */
+    LocalProvider.prototype.getFile = function (name, root) {
         var _self = this;
         var docMeta = _self.findDocByName(name);
+        var deferred = $.Deferred();
 
         if ( docMeta ) {
-            setTimeout(function() {
-                c(null, docMeta.doc.getValue());
-            }, 1);
+            deferred.resolve(docMeta.doc.getValue());
         }
         else {
-            _self.loadFile(name)
-                .done(function(data){
-                    c(null, data.text);
+            fileLoader.loadFile(name, root || _self.currentDocument.name || "")
+                .done(function(data) {
+                    var docMeta = {
+                        name: name, //data.fullPath,
+                        doc: new CodeMirror.Doc(data.text, "javascript"),
+                        changed: null
+                    };
+        
+                    _self.docs.push(docMeta);
+                    deferred.resolve(data.text);
                 })
                 .fail(function(error){
-                    c(error, null);
+                    deferred.reject(error);
                 });
         }
+
+        return deferred;
     };
 
 
