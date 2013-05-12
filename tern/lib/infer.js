@@ -57,7 +57,7 @@
 
   // ABSTRACT VALUES
 
-  var WG_DEFAULT = 100, WG_MADEUP_PROTO = 10, WG_MULTI_MEMBER = 5, WG_GLOBAL_THIS = 2;
+  var WG_DEFAULT = 100, WG_MADEUP_PROTO = 10, WG_MULTI_MEMBER = 5, WG_GLOBAL_THIS = 2, WG_SPECULATIVE_THIS = 2;
 
   var AVal = exports.AVal = function() {
     this.types = [];
@@ -564,6 +564,7 @@
     this.origins = [];
     this.curOrigin = "ecma5";
     this.paths = Object.create(null);
+    this.definitions = Object.create(null);
     this.purgeGen = 0;
     this.workList = null;
 
@@ -787,7 +788,7 @@
 
   function maybeMethod(node, obj) {
     if (node.type != "FunctionExpression") return;
-    obj.propagate(new AutoInstance(node.body.scope.fnType.self), 2);
+    obj.propagate(new AutoInstance(node.body.scope.fnType.self), WG_SPECULATIVE_THIS);
   }
 
   function unopResultType(op) {
@@ -986,7 +987,13 @@
     }),
     MemberExpression: ret(function(node, scope, c) {
       var name = propName(node, scope);
-      var prop = infer(node.object, scope, c).getProp(name);
+      var obj = infer(node.object, scope, c);
+      var prop = obj.getProp(name);
+      if (name == "prototype") {
+        var ctor = obj.getType();
+        if (ctor instanceof Fn && ctor.self.isEmpty())
+          prop.propagate(new AutoInstance(ctor.self), WG_SPECULATIVE_THIS);
+      }
       if (name == "<i>") {
         var propType = infer(node.property, scope, c);
         if (!propType.hasType(cx.num)) {
@@ -1238,7 +1245,7 @@
     var test = makePredicate(origins, start, end);
     for (var s = scope; s; s = s.prev) for (var p in s.props) {
       var prop = s.props[p];
-      if (test(prop, prop.name)) prop.maybePurge = true;
+      if (test(prop, prop.originNode)) prop.maybePurge = true;
     }
   };
 
