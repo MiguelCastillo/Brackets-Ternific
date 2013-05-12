@@ -51,26 +51,26 @@ define(function (require, exports, module) {
 
 
         function matchByType(type, criteria, token) {
+            token.index = token.name.indexOf(criteria);
             if (token.type === type) {
-                return token.name.indexOf(criteria);
+                return token.index;                
             }
             else {
-                return token.name.indexOf(criteria) + placementOffset;
+                return token.index + placementOffset;
             }
         }
 
 
         function matchByDepth(criteria, token) {
+            token.index = token.name.indexOf(criteria);
             if (!criteria) {
                 return token.depth;
             }
             else {
-                var index = token.name.indexOf(criteria);
-
                 // Give items that match the criteria higher priority than
                 // items with just perfect depth but no matching criteria.
-                if ( index !== -1 ) {
-                    return index + token.depth;
+                if ( token.index !== -1 ) {
+                    return token.index + token.depth;
                 }
                 else {
                     return placementOffset + token.depth;
@@ -154,9 +154,9 @@ define(function (require, exports, module) {
     })();
 
 
-    function tokenToHtml(query, token) {
+    function tokenToHtml(criteria, token) {
         var hint           = token.name,
-            index          = hint.indexOf(query),
+            index          = token.index,
             priority       = Priorities[token.level] || Priorities['1'],
             completionType = HintHelper.typeDetails(token.type),
             icon           = completionType.icon;
@@ -170,8 +170,8 @@ define(function (require, exports, module) {
         // higlight the matched portion of each hint
         if ( index >= 0 ) {
             var prefix = StringUtils.htmlEscape(hint.slice(0, index)),
-                match  = StringUtils.htmlEscape(hint.slice(index, index + query.length)),
-                suffix = StringUtils.htmlEscape(hint.slice(index + query.length));
+                match  = StringUtils.htmlEscape(hint.slice(index, index + criteria.length)),
+                suffix = StringUtils.htmlEscape(hint.slice(index + criteria.length));
 
             hintHtml = ("<span class='brackets-js-hints {0}'>" +
                             "<span class='type {1}'></span>" +
