@@ -117,6 +117,9 @@ define(function (require, exports, module) {
             _self.ternProvider.clear();
             _self.ternProvider.register(cm, file.fullPath);
 
+            /**
+            Not much performance gain and really large projects will
+            cause brackets to crash...  So, I am disabling this for now.
             var path = file.fullPath.substr(0, file.fullPath.lastIndexOf('/'));
 
             loadFiles(path).done(function(files) {
@@ -125,6 +128,7 @@ define(function (require, exports, module) {
                     _self.ternProvider.addFile(files.files[index]);
                 }
             });
+            */
         }
         else {
             _self.ternProvider.register(cm, file.fullPath);
