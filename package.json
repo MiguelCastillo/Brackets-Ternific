@@ -1,4 +1,5 @@
 {
+    "title": "Tern Hints",
     "name": "tern-hints",
     "description": "Tern integration with Brackets",
     "version": "0.1.0",
