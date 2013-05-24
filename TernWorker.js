@@ -4,9 +4,9 @@
 * to clear all the server data.
 */
 
-
 importScripts("tern/node_modules/acorn/acorn.js", "tern/node_modules/acorn/acorn_loose.js", "tern/node_modules/acorn/util/walk.js",
-              "tern/lib/tern.js", "tern/lib/def.js", "tern/lib/jsdoc.js", "tern/lib/infer.js", "tern/plugin/requirejs.js", "tern/plugin/node.js");
+              "tern/lib/signal.js", "tern/lib/tern.js", "tern/lib/def.js", "tern/lib/infer.js",
+              "tern/plugin/requirejs.js", "tern/plugin/doc_comment.js");
 
 
 function Server(settings) {

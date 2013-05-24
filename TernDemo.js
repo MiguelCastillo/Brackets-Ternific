@@ -151,8 +151,8 @@ define(function(require, exports, module) {
                 data.id = msgId;
 
                 pending[msgId] = {
-                    callback: c //,
-                    //timer: new Timer(true)
+                    callback: c
+                    //,timer: new Timer(true)
                 };
 
                 ++msgId;
