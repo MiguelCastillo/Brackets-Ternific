@@ -8,6 +8,7 @@
   "use strict";
 
   function resolvePath(base, path) {
+    if (path[0] == "/") return path;
     var slash = base.lastIndexOf("/"), m;
     if (slash >= 0) path = base.slice(0, slash + 1) + path;
     while (m = /[^\/]*[^\/\.][^\/]*\/\.\.\//.exec(path))
@@ -46,55 +47,29 @@
 
   // Assume node.js & access to local file system
   if (require) (function() {
-    var fs = require("fs"), path = require("path");
+    var module_ = require("module"), path = require("path");
 
-    function findModuleDir(server) {
-      if (server._node.moduleDir !== undefined) return server._node.moduleDir;
-
-      for (var dir = server.options.projectDir || "";;) {
-        var modDir = path.resolve(dir, "node_modules");
-        try {
-          if (fs.statSync(modDir).isDirectory()) return server._node.moduleDir = modDir;
-        } catch(e) {}
-        var end = dir.lastIndexOf("/");
-        if (end <= 0) return server._node.moduleDir = null;
-        dir = dir.slice(0, end);
-      }
-    }
-
-    resolveModule = function(server, name, relative) {
-      var data = server._node, dir = server.options.projectDir || "";
+    resolveModule = function(server, name, parent) {
+      var data = server._node;
       if (data.options.dontLoad == true ||
           data.options.dontLoad && new RegExp(data.options.dontLoad).test(name) ||
           data.options.load && !new RegExp(data.options.load).test(name))
         return infer.ANull;
 
-      var file = name;
-      if (!relative) {
-        var modDir = findModuleDir(server);
-        if (!modDir) return infer.ANull;
-        file = path.resolve(modDir, file);
-      }
-
+      var currentModule = {
+        id: parent,
+        paths: module_._nodeModulePaths(path.dirname(parent))
+      };
       try {
-        var pkg = JSON.parse(fs.readFileSync(path.resolve(modDir, file + "/package.json")));
-      } catch(e) {}
-      if (pkg && pkg.main) {
-        file += "/" + pkg.main;
-      } else {
-        try {
-          if (fs.statSync(path.resolve(dir, file)).isDirectory())
-            file += "/index.js";
-        } catch(e) {}
-      }
-      if (!/\.js$/.test(file)) file += ".js";
-
-      try {
-        if (!fs.statSync(path.resolve(dir, file)).isFile()) return infer.ANull;
+        var file = module_._resolveFilename(name, currentModule);
       } catch(e) { return infer.ANull; }
-
-      server.addFile(file);
-      return data.modules[file] = data.modules[name] = new infer.AVal;
+      var known = data.modules[file];
+      if (known) {
+        return data.modules[name] = known;
+      } else {
+        server.addFile(file);
+        return data.modules[file] = data.modules[name] = new infer.AVal;
+      }
     };
   })();
 
@@ -119,7 +94,7 @@
       infer.def.load(data.options.modules[name], scope);
       result = data.modules[name] = exportsFromScope(scope);
     } else {
-      result = resolveModule(server, name, relative);
+      result = resolveModule(server, name, data.currentFile);
     }
     return argNodes[0].required = result;
   });
@@ -133,7 +108,7 @@
     };
 
     server.on("beforeLoad", function(file) {
-      this._node.currentFile = file.name;
+      this._node.currentFile = resolvePath(server.options.projectDir + "/", file.name.replace(/\\/g, "/"));
       file.scope = buildWrappingScope(file.scope, file.name, file.ast);
     });
 
@@ -142,11 +117,38 @@
       exportsFromScope(file.scope).propagate(getModule(this._node, file.name));
     });
 
-    server.on("reset", function(file) {
+    server.on("reset", function() {
       this._node.modules = Object.create(null);
     });
 
     return {defs: defs};
+  });
+
+  tern.defineQueryType("node_exports", {
+    takesFile: true,
+    run: function(server, query, file) {
+      function describe(aval) {
+        var target = {}, type = aval.getType(false);
+        target.type = infer.toString(type, 3);
+        var doc = aval.doc || (type && type.doc), url = aval.url || (type && type.url);
+        if (doc) target.doc = doc;
+        if (url) target.url = url;
+        var span = tern.getSpan(aval) || (type && tern.getSpan(type));
+        if (span) tern.storeSpan(server, query, span, target);
+        return target;
+      }
+
+      var known = server._node.modules[file.name];
+      if (!known) return {};
+      var type = known.getType(false);
+      var resp = describe(known);
+      if (type instanceof infer.Obj) {
+        var props = resp.props = {};
+        for (var prop in type.props)
+          props[prop] = describe(type.props[prop]);
+      }
+      return resp;
+    }
   });
 
   var defs = {
@@ -2083,7 +2085,7 @@
               "!url": "http://nodejs.org/api/crypto.html#crypto_cipher_update_data_input_encoding_output_encoding",
               "!doc": "Updates the cipher with data, the encoding of which is given in input_encoding and can be 'utf8', 'ascii' or 'binary'. If no encoding is provided, then a buffer is expected."
             },
-            final: {
+            "final": {
               "!type": "fn(output_encoding?: string) -> +Buffer",
               "!url": "http://nodejs.org/api/crypto.html#crypto_cipher_final_output_encoding",
               "!doc": "Returns any remaining enciphered contents, with output_encoding being one of: 'binary', 'base64' or 'hex'. If no encoding is provided, then a buffer is returned."
@@ -2116,7 +2118,7 @@
               "!url": "http://nodejs.org/api/crypto.html#crypto_decipher_update_data_input_encoding_output_encoding",
               "!doc": "Updates the decipher with data, which is encoded in 'binary', 'base64' or 'hex'. If no encoding is provided, then a buffer is expected."
             },
-            final: {
+            "final": {
               "!type": "fn(output_encoding?: string) -> +Buffer",
               "!url": "http://nodejs.org/api/crypto.html#crypto_decipher_final_output_encoding",
               "!doc": "Returns any remaining plaintext which is deciphered, with output_encoding being one of: 'binary', 'ascii' or 'utf8'. If no encoding is provided, then a buffer is returned."
@@ -2359,7 +2361,7 @@
           "!url": "http://nodejs.org/api/assert.html#assert_assert_notstrictequal_actual_expected_message",
           "!doc": "Tests strict non-equality, as determined by the strict not equal operator ( !== )"
         },
-        throws: {
+        "throws": {
           "!type": "fn(block: fn(), error?: ?, messsage?: string)",
           "!url": "http://nodejs.org/api/assert.html#assert_assert_throws_block_error_message",
           "!doc": "Expects block to throw an error. error can be constructor, regexp or validation function."
