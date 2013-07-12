@@ -117,16 +117,15 @@ define(function (require, exports, module) {
             _self.ternProvider.clear();
             _self.ternProvider.register(cm, file.fullPath);
 
-            /*
             var path = file.fullPath.substr(0, file.fullPath.lastIndexOf('/'));
 
             loadFiles(path).done(function(files) {
-                var index = 0, length = Math.min(files.files.length, 5);
+                var index = 0, length = Math.min(files.files.length, 100);
                 for( index; index < length; index++ ) {
                     _self.ternProvider.addFile(files.files[index]);
+                    console.log(files.files[index]);
                 }
             });
-            */
         }
         else {
             _self.ternProvider.register(cm, file.fullPath);
