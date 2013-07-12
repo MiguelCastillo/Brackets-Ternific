@@ -123,7 +123,6 @@ define(function (require, exports, module) {
                 var index = 0, length = Math.min(files.files.length, 100);
                 for( index; index < length; index++ ) {
                     _self.ternProvider.addFile(files.files[index]);
-                    console.log(files.files[index]);
                 }
             });
         }
