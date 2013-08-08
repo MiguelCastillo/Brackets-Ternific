@@ -1,6 +1,6 @@
 {
-    "title": "Tern Hints",
-    "name": "tern-hints",
+    "title": "Ternific",
+    "name": "ternific",
     "description": "Tern integration with Brackets",
     "version": "0.1.0",
     "author": "Miguel Castillo <mahchagnu@gmail.com>",
