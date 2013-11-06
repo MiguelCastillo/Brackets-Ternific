@@ -54,7 +54,7 @@
   // ABSTRACT VALUES
 
   var WG_DEFAULT = 100, WG_NEW_INSTANCE = 90, WG_MADEUP_PROTO = 10, WG_MULTI_MEMBER = 5,
-      WG_CATCH_ERROR = 5, WG_GLOBAL_THIS = 2, WG_SPECULATIVE_THIS = 2;
+      WG_CATCH_ERROR = 5, WG_GLOBAL_THIS = 90, WG_SPECULATIVE_THIS = 2;
 
   var AVal = exports.AVal = function() {
     this.types = [];
@@ -84,7 +84,7 @@
       if (target == ANull || (target instanceof Type)) return;
       if (weight && weight < WG_DEFAULT) target = new Muffle(target, weight);
       (this.forward || (this.forward = [])).push(target);
-      var types = this.types, weight = this.maxWeight;
+      var types = this.types;
       if (types.length) withWorklist(function(add) {
         for (var i = 0; i < types.length; ++i) add(types[i], target, weight);
       });
@@ -454,11 +454,8 @@
     getProp: function(prop) {
       var found = this.hasProp(prop, true) || (this.maybeProps && this.maybeProps[prop]);
       if (found) return found;
-      if (!this.maybeProps) {
-        if (this.proto) this.proto.forAllProps(this);
-        this.maybeProps = Object.create(null);
-      }
-      return this.maybeProps[prop] = new AVal;
+      if (prop == "__proto__" || prop == "✖") return ANull;
+      return this.ensureMaybeProps()[prop] = new AVal;
     },
     broadcastProp: function(prop, val, local) {
       if (local) {
@@ -480,6 +477,18 @@
         this.proto.getProp(prop).propagate(maybe);
       }
       this.broadcastProp(prop, val, false);
+    },
+    ensureMaybeProps: function() {
+      if (!this.maybeProps) {
+        if (this.proto) this.proto.forAllProps(this);
+        this.maybeProps = Object.create(null);
+      }
+      return this.maybeProps;
+    },
+    removeProp: function(prop) {
+      var av = this.props[prop];
+      delete this.props[prop];
+      this.ensureMaybeProps()[prop] = av;
     },
     forAllProps: function(c) {
       if (!this.onNewProp) {
@@ -538,7 +547,7 @@
     },
     getProp: function(prop) {
       if (prop == "prototype") {
-        var known = this.hasProp(prop);
+        var known = this.hasProp(prop, false);
         if (!known) {
           known = this.defProp(prop);
           var proto = new Obj(true, this.name && this.name + ".prototype");
@@ -551,7 +560,7 @@
     },
     defProp: function(prop, originNode) {
       if (prop == "prototype") {
-        var found = this.hasProp(prop);
+        var found = this.hasProp(prop, false);
         if (found) return found;
         found = Obj.prototype.defProp.call(this, prop, originNode);
         found.origin = this.origin;
@@ -615,8 +624,12 @@
       cx.num = new Prim(cx.protos.Number, "number");
       cx.curOrigin = null;
 
-      if (defs) for (var i = 0; i < defs.length; ++i)
+      var passes = parent && parent.passes;
+      if (defs) for (var i = 0; i < defs.length; ++i) {
+        runPasses(passes, "preLoadDef", defs[i]);
         def.load(defs[i]);
+        runPasses(passes, "postLoadDef", defs[i]);
+      }
     });
   };
 
@@ -1017,19 +1030,16 @@
         callee.propagate(new IsCallee(cx.topScope, args, node.arguments, out));
       }
     }),
-    MemberExpression: ret(function(node, scope, c) {
+    MemberExpression: fill(function(node, scope, c, out) {
       var name = propName(node, scope);
       var obj = infer(node.object, scope, c);
       var prop = obj.getProp(name);
       if (name == "<i>") {
         var propType = infer(node.property, scope, c);
-        if (!propType.hasType(cx.num)) {
-          var target = new AVal;
-          prop.propagate(target, WG_MULTI_MEMBER);
-          return target;
-        }
+        if (!propType.hasType(cx.num))
+          return prop.propagate(out, WG_MULTI_MEMBER);
       }
-      return prop;
+      prop.propagate(out);
     }),
     Identifier: ret(function(node, scope) {
       if (node.name == "arguments" && scope.fnType && !(node.name in scope.props))
@@ -1105,10 +1115,10 @@
     if (arr) for (var i = 0; i < arr.length; ++i) arr[i].apply(null, args);
   }
 
-  var parse = exports.parse = function(text, passes) {
+  var parse = exports.parse = function(text, passes, options) {
     var ast;
-    try { ast = acorn.parse(text); }
-    catch(e) { ast = acorn_loose.parse_dammit(text); }
+    try { ast = acorn.parse(text, options); }
+    catch(e) { ast = acorn_loose.parse_dammit(text, options); }
     runPasses(passes, "postParse", ast, text);
     return ast;
   };
@@ -1139,9 +1149,10 @@
     for (var prop in cx.props) {
       var list = cx.props[prop];
       for (var i = 0; i < list.length; ++i) {
-        var obj = list[i];
-        if (test(obj, obj.originNode)) list.splice(i--, 1);
+        var obj = list[i], av = obj.props[prop];
+        if (!av || test(av, av.originNode)) list.splice(i--, 1);
       }
+      if (!list.length) delete cx.props[prop];
     }
   };
 
@@ -1181,7 +1192,12 @@
   Obj.prototype.purge = function(test) {
     if (this.purgeGen == cx.purgeGen) return true;
     this.purgeGen = cx.purgeGen;
-    for (var p in this.props) this.props[p].purge(test);
+    for (var p in this.props) {
+      var av = this.props[p];
+      if (test(av, av.originNode))
+        this.removeProp(p);
+      av.purge(test);
+    }
   };
   Fn.prototype.purge = function(test) {
     if (Obj.prototype.purge.call(this, test)) return;
