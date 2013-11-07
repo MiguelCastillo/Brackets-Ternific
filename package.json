@@ -2,7 +2,7 @@
     "title": "Ternific",
     "name": "ternific",
     "description": "Tern integration with Brackets",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "author": "Miguel Castillo <mahchagnu@gmail.com>",
     "homepage": "https://github.com/MiguelCastillo/Brackets-Tern",
     "repository": {
@@ -10,6 +10,6 @@
         "url": "git://github.com/MiguelCastillo/Brackets-Tern.git"
     },
     "engines": {
-		"brackets": ">=0.22.0"
-	}
+    "brackets": ">=0.22.0"
+  }
 }
