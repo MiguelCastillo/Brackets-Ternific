@@ -30,7 +30,7 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var StringUtils = brackets.getModule("utils/StringUtils");
+    var _ = brackets.getModule("thirdparty/lodash");
     var HintHelper  = require("HintHelper");
 
     var MAX_DISPLAYED_HINTS = 400,
@@ -169,9 +169,9 @@ define(function (require, exports, module) {
 
         // higlight the matched portion of each hint
         if ( index >= 0 ) {
-            var prefix = StringUtils.htmlEscape(hint.slice(0, index)),
-                match  = StringUtils.htmlEscape(hint.slice(index, index + criteria.length)),
-                suffix = StringUtils.htmlEscape(hint.slice(index + criteria.length));
+            var prefix = _.escape(hint.slice(0, index)),
+                match  = _.escape(hint.slice(index, index + criteria.length)),
+                suffix = _.escape(hint.slice(index + criteria.length));
 
             hintHtml = ("<span class='brackets-js-hints {0}'>" +
                             "<span class='type {1}'></span>" +
