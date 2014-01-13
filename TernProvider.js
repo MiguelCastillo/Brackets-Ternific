@@ -148,8 +148,8 @@ define(function (require, exports, module) {
             }
         }
     };
-    
-    
+
+
     /**
     * Will read file from disk or remote http file, then will load the content
     * into tern's server.
@@ -159,7 +159,7 @@ define(function (require, exports, module) {
     TernProvider.prototype.addFile = function (name, root) {
         var _self = this;
 
-        return fileLoader.loadFile(name, root || _self.currentDocument.name || "").done(function(data) {
+        return fileLoader.fileMeta(name, root || _self.currentDocument.name || "").done(function(data) {
             var docMeta = {
                 name: name, //data.fullPath,
                 doc: new CodeMirror.Doc(data.text, "javascript"),
@@ -245,14 +245,14 @@ define(function (require, exports, module) {
             deferred.resolve(docMeta.doc.getValue());
         }
         else {
-            fileLoader.loadFile(name, root || _self.currentDocument.name || "")
+            fileLoader.fileMeta(name, root || _self.currentDocument.name || "")
                 .done(function(data) {
                     var docMeta = {
                         name: name, //data.fullPath,
                         doc: new CodeMirror.Doc(data.text, "javascript"),
                         changed: null
                     };
-        
+
                     _self.docs.push(docMeta);
                     deferred.resolve(data.text);
                 })

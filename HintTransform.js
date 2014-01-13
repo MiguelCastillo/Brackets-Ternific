@@ -33,6 +33,7 @@ define(function (require, exports, module) {
     var _ = brackets.getModule("thirdparty/lodash");
     var HintHelper  = require("HintHelper");
 
+
     var MAX_DISPLAYED_HINTS = 400,
         SINGLE_QUOTE        = HintHelper.SINGLE_QUOTE,
         DOUBLE_QUOTE        = HintHelper.DOUBLE_QUOTE;
@@ -53,7 +54,7 @@ define(function (require, exports, module) {
         function matchByType(type, criteria, token) {
             token.index = token.name.indexOf(criteria);
             if (token.type === type) {
-                return token.index;                
+                return token.index;
             }
             else {
                 return token.index + placementOffset;

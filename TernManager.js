@@ -25,7 +25,7 @@
 define(function (require, exports, module) {
     'use strict';
 
-    var NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem;
+    var FileSystem = brackets.getModule("filesystem/FileSystem");
 
     var TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
@@ -157,30 +157,25 @@ define(function (require, exports, module) {
             return _string.indexOf(suffix, _string.length - suffix.length) !== -1;
         }
 
-        function handleError(error) {
-            result.reject(error);
-        }
+        FileSystem.getDirectoryForPath(path).getContents(function(err, entries) {
+            if ( err ) {
+                result.reject(err);
+            }
 
-        // Load up the content of the directory
-        function loadDirectoryContent(fs) {
-            fs.root.createReader().readEntries(function success(entries) {
-                var i, files = [];
+            var i, files = [];
 
-                for (i = 0; i < entries.length; i++) {
-                    if (entries[i].isFile && endsWith(entries[i].name, ".js")) {
-                        files.push(entries[i].name);
-                    }
+            for (i = 0; i < entries.length; i++) {
+                if (entries[i].isFile && endsWith(entries[i].name, ".js")) {
+                    files.push(entries[i].name);
                 }
+            }
 
-                result.resolve({
-                    files: files,
-                    path: path
-                });
-            }, handleError);
-        }
+            result.resolve({
+                files: files,
+                path: path
+            });
+        });
 
-        // Get directory reader handle
-        NativeFileSystem.requestNativeFileSystem(path, loadDirectoryContent, handleError);
         return result.promise();
     }
 

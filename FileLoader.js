@@ -25,18 +25,15 @@
 define(function (require, exports, module) {
     'use strict';
 
-    var FileUtils        = brackets.getModule("file/FileUtils"),
-        NativeFileSystem = brackets.getModule("file/NativeFileSystem").NativeFileSystem;
-
-    var ProjectFiles = require("ProjectFiles"),
-        Timer        = require("Timer");
+    var FileSystem   = brackets.getModule("filesystem/FileSystem"),
+        ProjectFiles = require("ProjectFiles");
 
     var fileLoader = (function(){
         var inProgress= {};
         var httpCache = {};
 
         // Load up the file from a remote location via http
-        function loadFromHTTP(fileName) {
+        function fromHTTP(fileName) {
             if (httpCache[fileName]){
                 return $.Deferred().resolve(httpCache[fileName]);
             }
@@ -65,98 +62,43 @@ define(function (require, exports, module) {
 
 
         // Load up the file from a local directory
-        function loadFromDirectory(fileName, rootFile) {
+        function fromDirectory(fileName, rootFile) {
             var deferred = $.Deferred();
-            var directoryPath = loadFromDirectory.resolvePath(rootFile);
+            var directoryPath = fileMeta.resolvePath(rootFile);
 
-            // Get the directory path handler first, and then try to write to the file
-            var directoryEntry = new NativeFileSystem.DirectoryEntry(directoryPath);
+            fileHandle(fileName, rootFile).done(function(file) {
+                file.read().done(function(text) {
+                    var data = {
+                        fileName: fileName,
+                        fullPath: directoryPath + fileName,
+                        text: text
+                    };
 
-            directoryEntry.getFile( fileName, {
-                    create: false,
-                    exclusice: true
-                },
-                function( fileEntry ){
-                    inProgress[fileName] = FileUtils.readAsText(fileEntry);
-
-                    inProgress[fileName].done(function(text){
-                            var data = {
-                                fileName: fileName,
-                                fullPath: directoryPath + fileName,
-                                text: text
-                            };
-
-                            deferred.resolve(data);
-                        })
-                        .fail(function(error){
-                            deferred.reject(error);
-                        })
-                        .always(function(){
-                            delete inProgress[fileName];
-                        });
-
-                }, function(ex){
-                    deferred.reject(ex);
-                });
+                    deferred.resolve(data);
+                })
+                .fail(deferred.reject);
+            });
 
             return deferred;
         }
 
-        loadFromDirectory.resolvePath = function(rootFile){
-            var directoryPath = rootFile.substr(0, rootFile.lastIndexOf("/"));
-            return FileUtils.canonicalizeFolderPath(directoryPath) + "/";
-        };
-
-
-        loadFromDirectory.resolveName = function(rootFile, fileName) {
-            return loadFromDirectory.resolvePath(rootFile) + fileName;
-        };
-
 
         // Load up the file from the directory of the current project
-        function loadFromProject(fileName) {
-            var deferred = $.Deferred();
-
-            function openFileSuccess(fileReader) {
-                // Read the content of the file
-                inProgress[fileName] = fileReader.readAsText();
-
-                inProgress[fileName].done(function(text){
-                    deferred.resolve({
-                        fileName: fileName,
-                        fullPath: ProjectFiles.resolveName(fileName),
-                        text: text
-                    });
-                })
-                .fail(function(error){
-                    deferred.reject(error);
-                })
-                .always(function() {
-                    delete inProgress[fileName];
-                });
-            }
-
-            function openFileFailure(error) {
-                return deferred.reject(error);
-            }
-
-            // Get a file reader
-            ProjectFiles.openFile(fileName).then(openFileSuccess, openFileFailure);
-            return deferred;
+        function fromProject(fileName) {
+            return fromDirectory(fileName, ProjectFiles.currentProject.fullPath);
         }
 
 
         // Interface to load the file...
-        function loadFile(fileName, rootFile) {
+        function fileMeta(fileName, rootFile) {
             if (fileName in inProgress) {
                 return inProgress[fileName];
             }
 
-            var timer = new Timer(true);
             var deferred;
 
             if (/^https?:\/\//.test(fileName)) {
-                deferred = loadFromHTTP(fileName);
+                deferred = fromHTTP(fileName);
             }
             else {
                 deferred = $.Deferred();
@@ -166,32 +108,65 @@ define(function (require, exports, module) {
                 // and if that does not work, then we will try to open it from the
                 // project directory.  Sometime both directories will be the same...
                 //
-                loadFromDirectory(fileName, rootFile).done(function(data) {
-                        //console.log("Loaded from directory", fileName, data);
+                fromDirectory(fileName, rootFile).done(function(data) {
                         deferred.resolve(data);
                     }).fail(function( ) {
 
-                        loadFromProject(fileName).done(function(data) {
-                                //console.log("Loaded from project", fileName, data);
+                        fromProject(fileName).done(function(data) {
                                 deferred.resolve(data);
                             }).fail(function(error){
-                                //console.log("File not loaded.", fileName, error);
                                 deferred.reject(error);
                             });
 
                     });
             }
 
-            return deferred.done(function(data) {
-                //console.log("File loaded", fileName, timer.elapsed());
-            }).fail(function(error){
-                //console.log("File not loaded.", fileName, error, timer.elapsed());
+            return deferred;
+        }
+
+
+        fileMeta.resolvePath = function(rootFile){
+            return rootFile ? rootFile.substr(0, rootFile.lastIndexOf("/")) + "/" : "";
+        };
+
+
+        function fileHandle(fileName, rootFile) {
+            var deferred = $.Deferred();
+            var directoryPath = fileMeta.resolvePath(rootFile);
+            var _file = FileSystem.getFileForPath (directoryPath + fileName);
+
+            _file.exists(function( err /*, exists*/ ) {
+                if ( err ) {
+                    deferred.reject(err);
+                }
+
+                deferred.resolve({
+                    read: function() {
+                        var _deferred = $.Deferred();
+
+                        _file.read(function( err, content /*, stat*/ ) {
+                            if ( err ) {
+                                _deferred.reject(err);
+                                return;
+                            }
+                            _deferred.resolve(content);
+                        });
+
+                        return _deferred;
+                    },
+                    write: function() {
+
+                    }
+                });
             });
+
+            return deferred;
         }
 
 
         return {
-            loadFile: loadFile
+            fileMeta: fileMeta,
+            fileHandle: fileHandle
         };
 
     })();
