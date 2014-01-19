@@ -57,7 +57,7 @@
     return mod.injector ? mod.injector.get(name) : infer.ANull;
   }
 
-  function applyWithInjection(mod, fnType, node) {
+  function applyWithInjection(mod, fnType, node, asNew) {
     var deps = [];
     if (node.type == "FunctionExpression") {
       for (var i = 0; i < node.params.length; ++i)
@@ -75,7 +75,14 @@
         fnType = last.body.scope.fnType;
     }
     var result = new infer.AVal;
-    fnType.propagate(new infer.IsCallee(infer.cx().topScope, deps, null, result));
+    if (asNew) {
+      var self = new infer.AVal;
+      fnType.propagate(new infer.IsCtor(self));
+      self.propagate(result, 90);
+      fnType.propagate(new infer.IsCallee(self, deps, null, new infer.IfObj(result)));
+    } else {
+      fnType.propagate(new infer.IsCallee(infer.cx().topScope, deps, null, result));
+    }
     return result;
   }
 
@@ -91,6 +98,15 @@
     var mod = self.getType();
     if (mod && argNodes && argNodes.length > 1) {
       var result = applyWithInjection(mod, args[1], argNodes[1]);
+      if (mod.injector && argNodes[0].type == "Literal")
+        mod.injector.set(argNodes[0].value, result, argNodes[0].angularDoc, argNodes[0]);
+    }
+  });
+
+  infer.registerFunction("angular_regFieldNew", function(self, args, argNodes) {
+    var mod = self.getType();
+    if (mod && argNodes && argNodes.length > 1) {
+      var result = applyWithInjection(mod, args[1], argNodes[1], true);
       if (mod.injector && argNodes[0].type == "Literal")
         mod.injector.set(argNodes[0].value, result, argNodes[0].angularDoc, argNodes[0]);
     }
@@ -190,22 +206,23 @@
     });
   }
 
-  function postLoadDef(data) {
-    var cx = infer.cx(), defs = cx.definitions[data["!name"]];
-    if (data["!name"] == "angular") {
+  function postLoadDef(json) {
+    var cx = infer.cx(), defName = json["!name"], defs = cx.definitions[defName];
+    if (defName == "angular") {
       var proto = moduleProto(cx), naked = cx.parent._angular.nakedModules;
       if (proto) for (var i = 0; i < naked.length; ++i) naked[i].proto = proto;
       return;
     }
-    var data = cx.parent._angular, mods = defs && defs["!ng"];
+    var mods = defs && defs["!ng"];
     if (mods) for (var name in mods.props) {
       var obj = mods.props[name].getType();
       var mod = declareMod(name.replace(/`/g, "."), obj.metaData && obj.metaData.includes || []);
+      mod.origin = defName;
       for (var prop in obj.props) {
         var val = obj.props[prop], tp = val.getType();
         if (!tp) continue;
         if (/^_inject_/.test(prop)) {
-          tp.name = prop.slice(8);
+          if (!tp.name) tp.name = prop.slice(8);
           mod.injector.set(prop.slice(8), tp, val.doc, val.span);
         } else {
           obj.props[prop].propagate(mod.defProp(prop));
@@ -220,25 +237,30 @@
     for (var name in mods) {
       var mod = mods[name];
       if (state.origins.indexOf(mod.origin) > -1) {
-        modObj.defProp(name.replace(/\./g, "`")).addType(mod);
+        var propName = name.replace(/\./g, "`");
+        modObj.defProp(propName).addType(mod);
         mod.condenseForceInclude = true;
         ++found;
+        if (mod.injector) for (var inj in mod.injector.fields) {
+          var field = mod.injector.fields[inj];
+          if (field.local) state.roots["!ng." + propName + "._inject_" + inj] = field;
+        }
       }
     }
     if (found) state.roots["!ng"] = modObj;
   }
 
   function postCondenseReach(state) {
+    var mods = infer.cx().parent._angular.modules;
     for (var path in state.types) {
-      var info = state.types[path], injector = info.type.injector;
-      if (!injector) continue;
-      for (var name in injector.fields) {
-        var field = injector.fields[name], type = field.getType();
-        if (field.local && type) state.types[path + "._inject_" + name] = {
-          type: type,
-          span: state.getSpan(field) || state.getSpan(type),
-          doc: field.doc
-        };
+      var m;
+      if (m = path.match(/^!ng\.([^\.]+)\._inject_([^\.]+)^/)) {
+        var mod = mods[m[1].replace(/`/g, ".")];
+        console.log(mod.injector.fields, m[2]);
+        var field = mod.injector.fields[m[2]];
+        var data = state.types[path];
+        if (field.span) data.span = field.span;
+        if (field.doc) data.doc = field.doc;
       }
     }
   }
@@ -258,7 +280,8 @@
             passes: {postParse: postParse,
                      postLoadDef: postLoadDef,
                      preCondenseReach: preCondenseReach,
-                     postCondenseReach: postCondenseReach}};
+                     postCondenseReach: postCondenseReach},
+            loadFirst: true};
   });
 
   var defs = {
@@ -342,7 +365,9 @@
         prototype: {
           then: "fn(successCallback: fn(value: ?), errorCallback: fn(reason: ?), notifyCallback: fn(value: ?)) -> +Promise",
           "catch": "fn(errorCallback: fn(reason: ?))",
-          "finally": "fn(callback: fn()) -> +Promise"
+          "finally": "fn(callback: fn()) -> +Promise",
+          success: "fn(callback: fn(data: ?, status: number, headers: ?, config: ?)) -> +Promise",
+          error: "fn(callback: fn(data: ?, status: number, headers: ?, config: ?)) -> +Promise"
         }
       },
       Deferred: {
@@ -439,7 +464,13 @@
         $http: {
           "!type": "fn(config: ?) -> service.$q",
           "!url": "http://docs.angularjs.org/api/ng.$http",
-          "!doc": "Facilitates communication with remote HTTP servers."
+          "!doc": "Facilitates communication with remote HTTP servers.",
+          "delete": "fn(url: string, config?: ?) -> +Promise",
+          get: "fn(url: string, config?: ?) -> +Promise",
+          head: "fn(url: string, config?: ?) -> +Promise",
+          jsonp: "fn(url: string, config?: ?) -> +Promise",
+          post: "fn(url: string, data: ?, config?: ?) -> +Promise",
+          put: "fn(url: string, data: ?, config?: ?) -> +Promise"
         },
         $interpolate: {
           "!type": "fn(text: string, mustHaveExpression?: bool, trustedContext?: string) -> fn(context: ?) -> string",
@@ -719,14 +750,14 @@
           },
           service: {
             "!type": "fn(name: string, constructor: fn()) -> !this",
-            "!effects": ["custom angular_regFieldCall"],
+            "!effects": ["custom angular_regFieldNew"],
             "!url": "http://docs.angularjs.org/api/AUTO.$provide#provider",
             "!doc": "Register a provider for a service."
           },
           value: {
             "!type": "fn(name: string, object: ?) -> !this",
             "!effects": ["custom angular_regField"],
-            "!url": "http://docs.angularjs.org/api/AUTO.$provide#value",
+            "!url": "http://docs.angularjs.org/api/AUTO.$providevalue",
             "!doc": "A short hand for configuring services if the $get method is a constant."
           }
         },

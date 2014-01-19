@@ -193,8 +193,6 @@
         if (!tp.retval.isEmpty()) ++score;
       } else if (objs) {
         score = tp.name ? 100 : 2;
-      } else if (prims) {
-        score = 1;
       }
       if (score >= maxScore) { maxScore = score; maxTp = tp; }
     }
@@ -354,7 +352,7 @@
     typeHint: function() { return this.other; }
   });
 
-  var IfObj = constraint("target", {
+  var IfObj = exports.IfObj = constraint("target", {
     addType: function(t, weight) {
       if (t instanceof Obj) this.target.addType(t, weight);
     },
@@ -600,7 +598,6 @@
     this.parent = parent;
     this.props = Object.create(null);
     this.protos = Object.create(null);
-    this.prim = Object.create(null);
     this.origins = [];
     this.curOrigin = "ecma5";
     this.paths = Object.create(null);
@@ -624,12 +621,8 @@
       cx.num = new Prim(cx.protos.Number, "number");
       cx.curOrigin = null;
 
-      var passes = parent && parent.passes;
-      if (defs) for (var i = 0; i < defs.length; ++i) {
-        runPasses(passes, "preLoadDef", defs[i]);
+      if (defs) for (var i = 0; i < defs.length; ++i)
         def.load(defs[i]);
-        runPasses(passes, "postLoadDef", defs[i]);
-      }
     });
   };
 
@@ -859,6 +852,7 @@
     case "number": return cx.num;
     case "string": return cx.str;
     case "object":
+    case "function":
       if (!val) return ANull;
       return getInstance(cx.protos.RegExp);
     }

@@ -39,7 +39,7 @@
   "if": {
     "!type": ""
   },
-  "instanceOf": {
+  "instanceof": {
     "!type": ""
   },
   "new": {
