@@ -134,7 +134,7 @@ define(function(require, exports, module) {
 
     function workerServer(settings) {
         var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
-        var msgId = 1, pending = {};
+        var msgId = 1, pending = {}, lastRequest;
 
         worker.postMessage({
             type: "init",
@@ -146,19 +146,49 @@ define(function(require, exports, module) {
             }
         });
 
-        function send(data, c) {
-            if (c) {
-                data.id = msgId;
-
-                pending[msgId] = {
-                    callback: c
-                    //,timer: new Timer(true)
-                };
-
-                ++msgId;
+        function send(data, callback) {
+            // If we just need to send a request to tern, we do it quickly
+            // and then exit out.
+            if (!callback) {
+                worker.postMessage(data);
+                return;
             }
+
+            // Otherwise prepare a request and make sure we don't flood tern
+            // with requests while it is still processing other stuff.
+            data.id = msgId;
+            pending[msgId] = {
+                callback: callback,
+                data: data
+                //,timer: new Timer(true)
+            };
+
+            if ( lastRequest && lastRequest.state() === "pending" ) {
+                //console.log("tern already pending", msgId);
+                return;
+            }
+
+            lastRequest = $.Deferred();
+            lastRequest.done(function(response) {
+                //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
+
+                // Send the last pending request
+                if ( pending[msgId] ) {
+                    console.log("send pending request", msgId);
+                    worker.postMessage(pending[msgId].data);
+                }
+
+                setTimeout(function() {
+                    // Handle callback and clean up the pending object
+                    pending[response.id].callback(response.err, response.body);
+                    delete pending[response.id];
+                }, 1);
+            });
+
             worker.postMessage(data);
+            msgId++;
         }
+
 
         worker.onmessage = function(e) {
             var data = e.data;
@@ -181,9 +211,7 @@ define(function(require, exports, module) {
                 });
             }
             else if (data.id && pending[data.id]) {
-                //console.log("Request", data.type, data.id, pending[data.id].timer.elapsed());
-                pending[data.id].callback(data.err, data.body);
-                delete pending[data.id];
+                lastRequest.resolve(data);
             }
             else if (data.type == "ready") {
                 settings.ready();
@@ -195,7 +223,10 @@ define(function(require, exports, module) {
 
 
         worker.onerror = function(e) {
-            for (var id in pending) pending[id].callback(e);
+            for (var id in pending) {
+                pending[id].callback(e);
+            }
+
             pending = {};
         };
 

@@ -204,7 +204,7 @@ define(function (require, exports, module) {
     }
 
 
-    LocalProvider.prototype = new TernProvider;
+    LocalProvider.prototype = new TernProvider();
     LocalProvider.prototype.constructor = LocalProvider;
 
 
