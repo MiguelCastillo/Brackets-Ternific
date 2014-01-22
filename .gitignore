@@ -1,8 +1,5 @@
 
 .DS_Store
-
 tern/node_modules/typescript/bin/tsc
-
 tern/node_modules/acorn/bin/acorn
-
 tern/node_modules/typescript/bin/tsc
