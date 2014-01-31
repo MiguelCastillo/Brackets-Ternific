@@ -10,7 +10,7 @@ Some bullet items are:
 Screenshots
 =============
 Tern hints on a string
-![Tern hints on a string](https://raw.github.com/wiki/MiguelCastillo/Brackets-Tern/images/HintTypes.png)
+![Tern hints on a string](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/HintTypes.png)
 
 
 How to
