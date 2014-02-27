@@ -31,7 +31,8 @@ define(function (require, exports, module) {
     "use strict";
 
     var _ = brackets.getModule("thirdparty/lodash");
-    var HintHelper  = require("HintHelper");
+    var HintHelper  = require("HintHelper"),
+        SortingTmpl = require("text!tmpl/sorting.html");
 
 
     var MAX_DISPLAYED_HINTS = 400,
@@ -83,13 +84,13 @@ define(function (require, exports, module) {
         function _sort(tokens, clasify, toHtml) {
             var groups = {},
                 result = [],
-                index  = 0,
-                length = tokens.length,
+                index,
+                length,
                 token,
                 group,
                 groupdId;
 
-            for(; index < length; index++) {
+            for(index = 0, length = tokens.length; index < length; index++) {
                 token = tokens[index];
                 token.level = groupdId = clasify(token);
                 group = groups[groupdId] || (groups[groupdId] = {items:[]});
@@ -192,7 +193,19 @@ define(function (require, exports, module) {
     }
 
 
+    var Settings = (function() {
+        var $sorting = $(SortingTmpl).on("click", "li a", function(evt) {
+            console.log(evt);
+        });
+
+        return {
+            $sorting: $sorting
+        };
+    })();
+
+
     function HintsTransform(hints, sortType) {
+        var hintList;
         sortType = sortType || "byMatch";
 
         var trimmedQuery;
@@ -210,9 +223,10 @@ define(function (require, exports, module) {
             trimmedQuery = query;
         }
 
+        hintList = sorter[sortType](hints.result.completions, trimmedQuery);
 
         return {
-            hints: sorter[sortType](hints.result.completions, trimmedQuery),
+            hints: hintList,
             match: null, // the CodeHintManager should not format the results
             selectInitial: true
         };

@@ -37,6 +37,7 @@ define(function (require, exports, module) {
         var cm = this._cm;
 
         return this.ternProvider.query(cm, {
+            caseInsensitive: true,
             type: "completions",
             types: true,
             docs: true,

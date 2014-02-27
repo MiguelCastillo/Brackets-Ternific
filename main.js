@@ -36,7 +36,9 @@ define(function (require, exports, module) {
     // Load up string utils...
     require("string");
 
-    ExtensionUtils.loadStyleSheet(module, "style.css");
+    ExtensionUtils.loadStyleSheet(module, "style/main.css");
+    ExtensionUtils.loadStyleSheet(module, "style/hintsMenu.css");
+    ExtensionUtils.loadStyleSheet(module, "style/ternSettings.css");
 
     var _ternManager = new TernManager();
     _ternManager.onReady(function () {
