@@ -1,7 +1,7 @@
 Brackets-Tern
 =============
 
-Tern integration with brackets.<br><br>
+[Tern](http://ternjs.net/) integration with brackets.<br><br>
 Some bullet items are:
 
 1. Integration with brackets' native hint manager system. So installing this extension will allow you to use tern as the hint provider instead of brackets' native js hint engine.
