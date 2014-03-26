@@ -100,7 +100,11 @@ define(function (require, exports, module) {
             };
 
             _self.docs.push(docMeta);
-            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            if (_self._server)
+              _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            else
+              console.log('need to implement for remote server');
+
         }
         //
         // If the document exists but has not been registered, then we
@@ -167,11 +171,28 @@ define(function (require, exports, module) {
             };
 
             _self.docs.push(docMeta);
-            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+
+            if (_self._server)
+              _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            else
+              console.log('need to implement for remote server');
+
         });
     };
 
 
+    TernProvider.prototype.createQueryCallback = function(query, cm, promise) {
+      var _self = this;
+      return function(error, data) {
+        if (error) {
+            promise.reject(error);
+        }
+        else {
+            query.doc = _self.findDocByCM(cm);
+            promise.resolve(data, query);
+        }
+      };
+    };
     /**
     *  Interface to operate against a local instance of tern
     */
@@ -216,15 +237,7 @@ define(function (require, exports, module) {
         setTimeout(function(){
             var query = TernDemo.buildRequest(cm, settings, allowFragments);
 
-            _self._server.request( query, function(error, data) {
-                if (error) {
-                    promise.reject(error);
-                }
-                else {
-                    query.doc = _self.findDocByCM(cm);
-                    promise.resolve(data, query);
-                }
-            });
+            _self._server.request( query, _self.createQueryCallback(query, cm, promise));
         }, 1);
 
         return promise.promise();
@@ -278,7 +291,8 @@ define(function (require, exports, module) {
                 console.log("Tern Remote Server is ready");
                 _self.ready.resolve(_self);
             }).fail(function(){
-                throw "Tern Server is not running";
+                _self.ready.reject(new Error("Tern Server is not running"));
+//                throw "Tern Server is not running";
             });
         });
     }
@@ -298,9 +312,10 @@ define(function (require, exports, module) {
 
 
     RemoteProvider.prototype.query = function( cm, settings, allowFragments ) {
+        var _self = this;
         var promise = $.Deferred();
         var query = TernDemo.buildRequest(cm, settings, allowFragments);
-
+        var callback = _self.createQueryCallback(query, cm, promise);
         // Send query to the server
         $.ajax({
             "url": "http://localhost:" + this.port,
@@ -309,10 +324,12 @@ define(function (require, exports, module) {
             "data": JSON.stringify(query)
         })
         .done(function(data){
-            promise.resolve(data, query);
+            callback(null,data);
+//            promise.resolve(data, query);
         })
         .fail(function(error){
-            promise.reject(error);
+            callback(error);
+//            promise.reject(error);
         });
 
         return promise.promise();
