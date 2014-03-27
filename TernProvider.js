@@ -205,7 +205,7 @@ define(function (require, exports, module) {
         //
         // Load up all the definitions that we will need to start with.
         //
-        require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
+        require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json", "text!./tern/defs/underscore.json"], function() {
             var defs = [];
 
             Array.prototype.slice.call(arguments, 0).forEach(function(item, index){
@@ -220,7 +220,10 @@ define(function (require, exports, module) {
                 defs: defs,
                 debug: false,
                 async: true,
-                plugins: {requirejs: {}}
+                plugins: {
+                  requirejs: {},
+                  node : {}
+                }
             });
         });
     }
@@ -287,17 +290,21 @@ define(function (require, exports, module) {
         TernProvider.apply(_self, arguments);
 
         var resolvePort = function(ternport) {
+          if (ternport){
             _self.port = ternport;
             _self.ping().done(function(){
                 console.log("Tern Remote Server is ready");
                 _self.ready.resolve(_self);
             }).fail(function(){
-                console.log("Tern Remote Server no running");
+                console.log("Tern Remote Server not responding");
                 _self.ready.reject(new Error("Tern Server is not running"));
-            });
+            });}
+          else {
+            _self.ready.reject(new Error("Could not find tern port file"));
+          }
         };
 
-        require(['text!./tern/.tern-port'], resolvePort(port));
+        require(['text!./tern/.tern-port'], resolvePort);
     }
 
 
