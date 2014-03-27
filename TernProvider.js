@@ -26,7 +26,8 @@ define(function (require, exports, module) {
     "use strict";
 
     var TernDemo   = require("TernDemo"),
-        fileLoader = require("FileLoader");
+        fileLoader = require("FileLoader"),
+        projectFiles = require("ProjectFiles");
 
 
     /**
@@ -100,7 +101,11 @@ define(function (require, exports, module) {
             };
 
             _self.docs.push(docMeta);
-            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            if (_self._server)
+              _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            else
+              console.log('need to implement for remote server');
+
         }
         //
         // If the document exists but has not been registered, then we
@@ -167,11 +172,28 @@ define(function (require, exports, module) {
             };
 
             _self.docs.push(docMeta);
-            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+
+            if (_self._server)
+              _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            else
+              console.log('need to implement for remote server');
+
         });
     };
 
 
+    TernProvider.prototype.createQueryCallback = function(query, cm, promise) {
+      var _self = this;
+      return function(error, data) {
+        if (error) {
+            promise.reject(error);
+        }
+        else {
+            query.doc = _self.findDocByCM(cm);
+            promise.resolve(data, query);
+        }
+      };
+    };
     /**
     *  Interface to operate against a local instance of tern
     */
@@ -183,7 +205,7 @@ define(function (require, exports, module) {
         //
         // Load up all the definitions that we will need to start with.
         //
-        require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
+        require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json", "text!./tern/defs/underscore.json"], function() {
             var defs = [];
 
             Array.prototype.slice.call(arguments, 0).forEach(function(item, index){
@@ -198,7 +220,10 @@ define(function (require, exports, module) {
                 defs: defs,
                 debug: false,
                 async: true,
-                plugins: {requirejs: {}}
+                plugins: {
+                  requirejs: {},
+                  node : {}
+                }
             });
         });
     }
@@ -216,15 +241,7 @@ define(function (require, exports, module) {
         setTimeout(function(){
             var query = TernDemo.buildRequest(cm, settings, allowFragments);
 
-            _self._server.request( query, function(error, data) {
-                if (error) {
-                    promise.reject(error);
-                }
-                else {
-                    query.doc = _self.findDocByCM(cm);
-                    promise.resolve(data, query);
-                }
-            });
+            _self._server.request( query, _self.createQueryCallback(query, cm, promise));
         }, 1);
 
         return promise.promise();
@@ -272,15 +289,22 @@ define(function (require, exports, module) {
         var _self = this;
         TernProvider.apply(_self, arguments);
 
-        require(['text!./tern/.tern-port'], function(ternport) {
+        var resolvePort = function(ternport) {
+          if (ternport){
             _self.port = ternport;
             _self.ping().done(function(){
                 console.log("Tern Remote Server is ready");
                 _self.ready.resolve(_self);
             }).fail(function(){
-                throw "Tern Server is not running";
-            });
-        });
+                console.log("Tern Remote Server not responding");
+                _self.ready.reject(new Error("Tern Server is not running"));
+            });}
+          else {
+            _self.ready.reject(new Error("Could not find tern port file"));
+          }
+        };
+
+        require(['text!./tern/.tern-port'], resolvePort);
     }
 
 
@@ -298,9 +322,10 @@ define(function (require, exports, module) {
 
 
     RemoteProvider.prototype.query = function( cm, settings, allowFragments ) {
+        var _self = this;
         var promise = $.Deferred();
         var query = TernDemo.buildRequest(cm, settings, allowFragments);
-
+        var callback = _self.createQueryCallback(query, cm, promise);
         // Send query to the server
         $.ajax({
             "url": "http://localhost:" + this.port,
@@ -309,10 +334,12 @@ define(function (require, exports, module) {
             "data": JSON.stringify(query)
         })
         .done(function(data){
-            promise.resolve(data, query);
+            callback(null,data);
+//            promise.resolve(data, query);
         })
         .fail(function(error){
-            promise.reject(error);
+            callback(error);
+//            promise.reject(error);
         });
 
         return promise.promise();
