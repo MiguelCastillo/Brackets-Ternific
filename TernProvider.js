@@ -286,28 +286,18 @@ define(function (require, exports, module) {
         var _self = this;
         TernProvider.apply(_self, arguments);
 
-        /** can't do this yet because there is no currentProject when extensions are loaded */
-//        if (projectFiles.currentProject){
-//          projectFiles.openFile('.tern-port')
-//            .done(resolvePort)
-//            .fail(function(error){
-//              _self.ready.reject(error);
-//            });
-//        }
-//        else
-        {
-          require(['text!./tern/.tern-port'], resolvePort(port));
-        }
         var resolvePort = function(ternport) {
             _self.port = ternport;
             _self.ping().done(function(){
                 console.log("Tern Remote Server is ready");
                 _self.ready.resolve(_self);
             }).fail(function(){
+                console.log("Tern Remote Server no running");
                 _self.ready.reject(new Error("Tern Server is not running"));
-//                throw "Tern Server is not running";
             });
         };
+
+        require(['text!./tern/.tern-port'], resolvePort(port));
     }
 
 

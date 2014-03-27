@@ -41,28 +41,23 @@ define(function (require, exports, module) {
         var _self = this;
         var onReady = $.Deferred();
 
-        var startProvider = function(){
-          var remoteProvider = new TernProvider.Remote();
-          remoteProvider.ready
-            .done(function(){
-               console.log("Tern Remote Server runing");
-               finish(remoteProvider);
-            })
-            .fail(function(){
-               console.log("Tern Remote Server not found, using Local Server");
-               finish(new TernProvider.Local());
-            });
-            var finish = function(ternProvider){
-              _self.ternHints      = new TernHints(ternProvider);
-              _self.ternReferences = new TernReferences(ternProvider);
-              _self.ternTypes      = new TernTypes(ternProvider);
-              _self.ternProvider   = ternProvider;
-              ternProvider.onReady(onReady.resolve);
-            };
-        };
-
-        //partially on way to making it possible to re-initialize the tern manager.
-        startProvider();
+        var remoteProvider = new TernProvider.Remote();
+        remoteProvider.ready
+          .done(function(){
+             console.log("Tern Remote Server runing");
+             finish(remoteProvider);
+          })
+          .fail(function(){
+             console.log("Tern Remote Server not found, using Local Server");
+             finish(new TernProvider.Local());
+          });
+          var finish = function(ternProvider){
+            _self.ternHints      = new TernHints(ternProvider);
+            _self.ternReferences = new TernReferences(ternProvider);
+            _self.ternTypes      = new TernTypes(ternProvider);
+            _self.ternProvider   = ternProvider;
+            ternProvider.onReady(onReady.resolve);
+          };
 
         this.onReady        = onReady.promise().done;
         this.currentPath    = "";
