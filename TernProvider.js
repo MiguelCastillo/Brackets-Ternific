@@ -198,7 +198,7 @@ define(function (require, exports, module) {
                 defs: defs,
                 debug: false,
                 async: true,
-                plugins: {requirejs: {}}
+                plugins: {requirejs: {}, node: {}}
             });
         });
     }
