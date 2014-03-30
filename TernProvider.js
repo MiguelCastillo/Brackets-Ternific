@@ -176,18 +176,25 @@ define(function (require, exports, module) {
     *  Interface to operate against a local instance of tern
     */
     function LocalProvider() {
-        var _self = this;
-        TernProvider.apply(_self, arguments);
+        TernProvider.apply(this, arguments);
 
+        var _self = this;
+        var _defs = [
+            "text!./reserved.json",
+            "text!./tern/defs/browser.json",
+            "text!./tern/defs/chai.json",
+            "text!./tern/defs/ecma5.json",
+            "text!./tern/defs/browser.json",
+            "text!./tern/defs/jquery.json",
+            "text!./tern/defs/underscore.json"
+        ];
 
         //
         // Load up all the definitions that we will need to start with.
         //
-        require(["text!./reserved.json", "text!./tern/defs/ecma5.json", "text!./tern/defs/browser.json", "text!./tern/defs/jquery.json"], function() {
-            var defs = [];
-
-            Array.prototype.slice.call(arguments, 0).forEach(function(item, index){
-                defs[index] = JSON.parse(item);
+        require(_defs, function() {
+            var defs = $.map(arguments, function(item) {
+                return JSON.parse(item);
             });
 
             _self._server = TernDemo.server({
