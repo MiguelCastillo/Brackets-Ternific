@@ -180,7 +180,7 @@ define(function (require, exports, module) {
 
         var _self = this;
         var _defs = [
-            "text!./reserved.json",
+            "text!./defs/reserved.json",
             "text!./tern/defs/browser.json",
             "text!./tern/defs/chai.json",
             "text!./tern/defs/ecma5.json",
