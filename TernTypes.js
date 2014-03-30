@@ -38,7 +38,7 @@ define(function (require, exports, module) {
         var _self = this;
 
         return _self.ternProvider.query(cm, "type")
-            .pipe( function(data) {
+            .then( function(data) {
                 var findTypeType = HintHelper.typeDetails(data.type),
                     className = findTypeType.icon;
 

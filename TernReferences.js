@@ -25,6 +25,8 @@
 define(function (require, exports, module) {
     'use strict';
 
+    var spromise = require("libs/js/spromise");
+
     function TernReferences(ternProvider) {
         var _self = this;
         _self.ternProvider = ternProvider;
@@ -37,7 +39,7 @@ define(function (require, exports, module) {
         var cm = this._cm;
 
         return this.ternProvider.query( cm, "refs" )
-            .pipe(function(data) {
+            .then(function(data) {
                 var perFile = {}, i, use;
 
                 for (i = 0; i < data.refs.length; ++i) {
@@ -68,7 +70,7 @@ define(function (require, exports, module) {
         _self._cm = cm;
 
         if ( !cm ) {
-            return $.Deferred().reject("Invalid codemirror instance.");
+            return spromise.rejected("Invalid codemirror instance.");
         }
 
         _self.query(cm).done(function(refsPerFile) {
@@ -102,7 +104,7 @@ define(function (require, exports, module) {
         _self._cm = cm;
 
         if ( !cm ) {
-            return $.Deferred().reject("Invalid codemirror instance.");
+            return spromise.rejected("Invalid codemirror instance.");
         }
 
         _self.query().done(function(refsPerFile) {

@@ -24,6 +24,7 @@
 
 define(function(require, exports, module){
 
+    var spromise      = require("libs/js/spromise");
     var HintTransform = require("HintTransform");
 
 
@@ -46,7 +47,7 @@ define(function(require, exports, module){
         }
 
         var _self = this;
-        var promise = $.Deferred();
+        var promise = spromise.defer();
 
         this.hintManager.ternHints.getHints().done(function (hints) {
             _self.hints = hints;

@@ -25,6 +25,7 @@
 define(function (require, exports, module) {
     'use strict';
 
+    var spromise     = require("libs/js/spromise");
     var FileSystem   = brackets.getModule("filesystem/FileSystem"),
         ProjectFiles = require("ProjectFiles");
 
@@ -35,7 +36,7 @@ define(function (require, exports, module) {
         // Load up the file from a remote location via http
         function fromHTTP(fileName) {
             if (httpCache[fileName]){
-                return $.Deferred().resolve(httpCache[fileName]);
+                return spromise.resolved(httpCache[fileName]);
             }
 
             inProgress[fileName] = $.ajax({
@@ -63,7 +64,7 @@ define(function (require, exports, module) {
 
         // Load up the file from a local directory
         function fromDirectory(fileName, rootFile) {
-            var deferred = $.Deferred();
+            var deferred = spromise.defer();
             var directoryPath = fileMeta.resolvePath(rootFile);
 
             fileHandle(fileName, rootFile).done(function(file) {
@@ -79,7 +80,7 @@ define(function (require, exports, module) {
                 .fail(deferred.reject);
             });
 
-            return deferred;
+            return deferred.promise;
         }
 
 
@@ -101,7 +102,7 @@ define(function (require, exports, module) {
                 deferred = fromHTTP(fileName);
             }
             else {
-                deferred = $.Deferred();
+                deferred = spromise.defer();
 
                 //
                 // First try to load the file from the specified rootFile directoty
@@ -131,7 +132,7 @@ define(function (require, exports, module) {
 
 
         function fileHandle(fileName, rootFile) {
-            var deferred = $.Deferred();
+            var deferred = spromise.defer();
             var directoryPath = fileMeta.resolvePath(rootFile);
             var _file = FileSystem.getFileForPath (directoryPath + fileName);
 
@@ -142,7 +143,7 @@ define(function (require, exports, module) {
 
                 deferred.resolve({
                     read: function() {
-                        var _deferred = $.Deferred();
+                        var _deferred = spromise.defer();
 
                         _file.read(function( err, content /*, stat*/ ) {
                             if ( err ) {

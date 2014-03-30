@@ -25,6 +25,7 @@
 define(function (require, exports, module) {
     'use strict';
 
+    var spromise   = require("libs/js/spromise");
     var HintHelper = require("HintHelper");
 
     function TernHints(ternProvider) {
@@ -43,7 +44,7 @@ define(function (require, exports, module) {
             docs: true,
             filter: this.newSession !== true
         })
-        .pipe(function(result, query) {
+        .then(function(result, query) {
             return {
                 text: query.doc.cm.getDoc().getRange(result.start, result.end),
                 result: result,
@@ -123,7 +124,7 @@ define(function (require, exports, module) {
         var cm = _self._cm;
 
         if ( !cm ){
-            return $.Deferred().reject();
+            return spromise.rejected();
         }
 
         return this.query();

@@ -27,6 +27,7 @@ define(function (require, exports, module) {
 
     var FileSystem = brackets.getModule("filesystem/FileSystem");
 
+    var spromise       = require("libs/js/spromise");
     var TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
         TernReferences = require("TernReferences"),
@@ -38,17 +39,17 @@ define(function (require, exports, module) {
     *  Controls the interaction between codemirror and tern
     */
     function TernManager () {
-        var onReady = $.Deferred();
+        var deferred = spromise.defer();
 
         //var ternProvider = new TernProvider.Remote();
         var ternProvider = new TernProvider.Local();
-        ternProvider.onReady(onReady.resolve);
+        ternProvider.onReady(deferred.resolve);
 
         this.ternHints      = new TernHints(ternProvider);
         this.ternReferences = new TernReferences(ternProvider);
         this.ternTypes      = new TernTypes(ternProvider);
         this.ternProvider   = ternProvider;
-        this.onReady        = onReady.promise().done;
+        this.onReady        = deferred.promise.done;
         this.currentPath    = "";
     }
 
@@ -151,7 +152,7 @@ define(function (require, exports, module) {
 
 
     function loadFiles (path) {
-        var result = $.Deferred();
+        var result = spromise.defer();
 
         function endsWith(_string, suffix) {
             return _string.indexOf(suffix, _string.length - suffix.length) !== -1;
@@ -176,7 +177,7 @@ define(function (require, exports, module) {
             });
         });
 
-        return result.promise();
+        return result.promise;
     }
 
 

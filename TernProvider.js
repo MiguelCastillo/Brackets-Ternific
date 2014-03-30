@@ -25,9 +25,9 @@
 define(function (require, exports, module) {
     "use strict";
 
+    var spromise   = require("libs/js/spromise");
     var TernDemo   = require("TernDemo"),
         fileLoader = require("FileLoader");
-
 
     /**
     * @constructor
@@ -37,10 +37,10 @@ define(function (require, exports, module) {
     */
     function TernProvider(options) {
         var _self = this;
-        _self.ready = $.Deferred();
+        _self.ready = spromise.defer();
         _self.docs = [];
         _self.currentDocument = null;
-        _self.onReady = _self.ready.promise().done;
+        _self.onReady = _self.ready.promise.done;
     }
 
 
@@ -54,8 +54,8 @@ define(function (require, exports, module) {
     };
 
 
-    TernProvider.prototype.query = function (query) {
-        throw "Must implement";
+    TernProvider.prototype.query = function (/*query*/) {
+        throw new TypeError("Must implement");
     };
 
 
@@ -217,7 +217,7 @@ define(function (require, exports, module) {
 
     LocalProvider.prototype.query = function( cm, settings, allowFragments ) {
         var _self = this;
-        var promise = $.Deferred();
+        var deferred = spromise.defer();
 
         // Throttle the query request so that doc changes have enough time to be processed
         setTimeout(function(){
@@ -225,16 +225,16 @@ define(function (require, exports, module) {
 
             _self._server.request( query, function(error, data) {
                 if (error) {
-                    promise.reject(error);
+                    deferred.reject(error);
                 }
                 else {
                     query.doc = _self.findDocByCM(cm);
-                    promise.resolve(data, query);
+                    deferred.resolve(data, query);
                 }
             });
         }, 1);
 
-        return promise.promise();
+        return deferred.promise;
     };
 
 
@@ -246,7 +246,7 @@ define(function (require, exports, module) {
     LocalProvider.prototype.getFile = function (name, root) {
         var _self = this;
         var docMeta = _self.findDocByName(name);
-        var deferred = $.Deferred();
+        var deferred = spromise.defer();
 
         if ( docMeta ) {
             deferred.resolve(docMeta.doc.getValue());
@@ -268,7 +268,7 @@ define(function (require, exports, module) {
                 });
         }
 
-        return deferred;
+        return deferred.promise;
     };
 
 
@@ -305,7 +305,7 @@ define(function (require, exports, module) {
 
 
     RemoteProvider.prototype.query = function( cm, settings, allowFragments ) {
-        var promise = $.Deferred();
+        var deferred = spromise.defer();
         var query = TernDemo.buildRequest(cm, settings, allowFragments);
 
         // Send query to the server
@@ -316,13 +316,13 @@ define(function (require, exports, module) {
             "data": JSON.stringify(query)
         })
         .done(function(data){
-            promise.resolve(data, query);
+            deferred.resolve(data, query);
         })
         .fail(function(error){
-            promise.reject(error);
+            deferred.reject(error);
         });
 
-        return promise.promise();
+        return deferred.promise;
     };
 
 

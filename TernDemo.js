@@ -25,7 +25,8 @@
 define(function(require, exports, module) {
     "use strict";
 
-    var Timer = require("Timer");
+    var spromise = require("libs/js/spromise");
+    var Timer    = require("Timer");
 
     var Pos = CodeMirror.Pos, bigDoc = 250, curDoc = null, docs = [], server = null;
     var cachedFunction = {line: null, ch: null, name: null, type: null, bad: null};
@@ -168,7 +169,7 @@ define(function(require, exports, module) {
                 return;
             }
 
-            lastRequest = $.Deferred();
+            lastRequest = spromise.defer();
             lastRequest.done(function(response) {
                 //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
 
