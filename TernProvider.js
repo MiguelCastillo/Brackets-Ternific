@@ -25,9 +25,10 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var spromise   = require("libs/js/spromise");
-    var TernDemo   = require("TernDemo"),
-        fileLoader = require("FileLoader");
+    var spromise     = require("libs/js/spromise");
+    var localServer  = require("LocalServer"),
+        remoteServer = require("RemoteServer"),
+        fileLoader   = require("FileLoader");
 
     /**
     * @constructor
@@ -35,12 +36,10 @@ define(function (require, exports, module) {
     * TernProvider is a set of interfaces that facilitate the interaction
     * with tern.
     */
-    function TernProvider(options) {
+    function TernProvider() {
         var _self = this;
-        _self.ready = spromise.defer();
         _self.docs = [];
         _self.currentDocument = null;
-        _self.onReady = _self.ready.promise.done;
     }
 
 
@@ -48,14 +47,18 @@ define(function (require, exports, module) {
         var _self = this;
         _self.docs = [];
 
-        if (_self._server) {
-            _self._server.clear();
+        if (_self.tern) {
+            _self.tern.clear();
         }
     };
 
 
-    TernProvider.prototype.query = function (/*query*/) {
-        throw new TypeError("Must implement");
+    TernProvider.prototype.query = function (cm, settings, allowFragments) {
+        var _self = this;
+        return _self.tern.query( cm, settings, allowFragments )
+            .done(function(data, query) {
+                query.doc = _self.findDocByCM(cm);
+            });
     };
 
 
@@ -100,7 +103,7 @@ define(function (require, exports, module) {
             };
 
             _self.docs.push(docMeta);
-            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            _self.tern.addFile(docMeta.name, docMeta.doc.getValue());
         }
         //
         // If the document exists but has not been registered, then we
@@ -125,12 +128,11 @@ define(function (require, exports, module) {
         }
 
         _self.currentDocument = docMeta;
-        TernDemo.setCurrentDocument(docMeta);
-        TernDemo.setDocs(_self.docs);
-        TernDemo.setServer(_self._server);
+        _self.tern.setCurrentDocument(docMeta);
+        _self.tern.setDocs(_self.docs);
 
         docMeta._trackChange = function (cm1, change) {
-            TernDemo.trackChange(docMeta.doc, change);
+            _self.tern.trackChange(docMeta.doc, change);
         };
 
         CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
@@ -167,7 +169,7 @@ define(function (require, exports, module) {
             };
 
             _self.docs.push(docMeta);
-            _self._server.addFile(docMeta.name, docMeta.doc.getValue());
+            _self.tern.addFile(docMeta.name, docMeta.doc.getValue());
         });
     };
 
@@ -177,65 +179,16 @@ define(function (require, exports, module) {
     */
     function LocalProvider() {
         TernProvider.apply(this, arguments);
-
         var _self = this;
-        var _defs = [
-            "text!./defs/reserved.json",
-            "text!./tern/defs/browser.json",
-            "text!./tern/defs/chai.json",
-            "text!./tern/defs/ecma5.json",
-            "text!./tern/defs/browser.json",
-            "text!./tern/defs/jquery.json",
-            "text!./tern/defs/underscore.json"
-        ];
-
-        //
-        // Load up all the definitions that we will need to start with.
-        //
-        require(_defs, function() {
-            var defs = $.map(arguments, function(item) {
-                return JSON.parse(item);
-            });
-
-            _self._server = TernDemo.server({
-                getFile: function() {
-                    return _self.getFile.apply(_self, arguments);
-                },
-                ready:_self.ready.resolve,
-                defs: defs,
-                debug: false,
-                async: true,
-                plugins: {requirejs: {}, node: {}}
-            });
-        });
+        _self.onReady = localServer(this).then(function(tern) {
+            _self.tern = tern;
+            return _self;
+        }).done;
     }
 
 
     LocalProvider.prototype = new TernProvider();
     LocalProvider.prototype.constructor = LocalProvider;
-
-
-    LocalProvider.prototype.query = function( cm, settings, allowFragments ) {
-        var _self = this;
-        var deferred = spromise.defer();
-
-        // Throttle the query request so that doc changes have enough time to be processed
-        setTimeout(function(){
-            var query = TernDemo.buildRequest(cm, settings, allowFragments);
-
-            _self._server.request( query, function(error, data) {
-                if (error) {
-                    deferred.reject(error);
-                }
-                else {
-                    query.doc = _self.findDocByCM(cm);
-                    deferred.resolve(data, query);
-                }
-            });
-        }, 1);
-
-        return deferred.promise;
-    };
 
 
     /**
@@ -246,14 +199,13 @@ define(function (require, exports, module) {
     LocalProvider.prototype.getFile = function (name, root) {
         var _self = this;
         var docMeta = _self.findDocByName(name);
-        var deferred = spromise.defer();
 
         if ( docMeta ) {
-            deferred.resolve(docMeta.doc.getValue());
+            return spromise.resolved(docMeta.doc.getValue());
         }
-        else {
-            fileLoader.fileMeta(name, root || _self.currentDocument.name || "")
-                .done(function(data) {
+
+        return fileLoader.fileMeta(name, root || _self.currentDocument.name || "")
+                .then(function(data) {
                     var docMeta = {
                         name: name, //data.fullPath,
                         doc: new CodeMirror.Doc(data.text, "javascript"),
@@ -261,14 +213,8 @@ define(function (require, exports, module) {
                     };
 
                     _self.docs.push(docMeta);
-                    deferred.resolve(data.text);
-                })
-                .fail(function(error){
-                    deferred.reject(error);
+                    return data.text;
                 });
-        }
-
-        return deferred.promise;
     };
 
 
@@ -276,54 +222,17 @@ define(function (require, exports, module) {
     *  Interface to operate against a remote tern server
     */
     function RemoteProvider() {
+        TernProvider.apply(this, arguments);
         var _self = this;
-        TernProvider.apply(_self, arguments);
-
-        require(['text!./tern/.tern-port'], function(ternport) {
-            _self.port = ternport;
-            _self.ping().done(function(){
-                console.log("Tern Remote Server is ready");
-                _self.ready.resolve(_self);
-            }).fail(function(){
-                throw "Tern Server is not running";
-            });
-        });
+        _self.onReady = remoteServer(this).then(function(tern) {
+            _self.tern = tern;
+            return _self;
+        }).done;
     }
 
 
-    RemoteProvider.prototype = new TernProvider;
+    RemoteProvider.prototype = new TernProvider();
     RemoteProvider.prototype.constructor = RemoteProvider;
-
-
-    RemoteProvider.prototype.ping = function (){
-        return $.ajax({
-            "url": "http://localhost:" + this.port + "/ping",
-            "type": "GET"
-        })
-        .promise();
-    };
-
-
-    RemoteProvider.prototype.query = function( cm, settings, allowFragments ) {
-        var deferred = spromise.defer();
-        var query = TernDemo.buildRequest(cm, settings, allowFragments);
-
-        // Send query to the server
-        $.ajax({
-            "url": "http://localhost:" + this.port,
-            "type": "POST",
-            "contentType": "application/json; charset=utf-8",
-            "data": JSON.stringify(query)
-        })
-        .done(function(data){
-            deferred.resolve(data, query);
-        })
-        .fail(function(error){
-            deferred.reject(error);
-        });
-
-        return deferred.promise;
-    };
 
 
     return {

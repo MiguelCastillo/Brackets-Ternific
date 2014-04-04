@@ -41,7 +41,7 @@ define(function (require, exports, module) {
     function TernManager () {
         var deferred = spromise.defer();
 
-        //var ternProvider = new TernProvider.Remote();
+//        var ternProvider = new TernProvider.Remote();
         var ternProvider = new TernProvider.Local();
         ternProvider.onReady(deferred.resolve);
 
@@ -118,6 +118,7 @@ define(function (require, exports, module) {
             _self.ternProvider.clear();
             _self.ternProvider.register(cm, file.fullPath);
 
+            /*
             var path = file.fullPath.substr(0, file.fullPath.lastIndexOf('/'));
 
             loadFiles(path).done(function(files) {
@@ -126,6 +127,7 @@ define(function (require, exports, module) {
                     _self.ternProvider.addFile(files.files[index]);
                 }
             });
+            */
         }
         else {
             _self.ternProvider.register(cm, file.fullPath);

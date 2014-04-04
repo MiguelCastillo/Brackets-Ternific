@@ -47,17 +47,10 @@ define(function(require, exports, module){
         }
 
         var _self = this;
-        var promise = spromise.defer();
-
-        this.hintManager.ternHints.getHints().done(function (hints) {
+        return this.hintManager.ternHints.getHints().then(function (hints) {
             _self.hints = hints;
-            var transformedHints = HintTransform(hints);
-            promise.resolve(transformedHints);
-        }).fail(function (error) {
-            promise.reject(error);
+            return HintTransform(hints);
         });
-
-        return promise;
     };
 
 

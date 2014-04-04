@@ -133,167 +133,47 @@ define(function(require, exports, module) {
     }
 
 
-    function workerServer(settings) {
-        var worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
-        var msgId = 1, pending = {}, lastRequest;
-
-        worker.postMessage({
-            type: "init",
-            data: {
-                async: settings.async,
-                debug: settings.debug,
-                defs: settings.defs,
-                plugins: settings.plugins,
-            }
-        });
-
-        function send(data, callback) {
-            // If we just need to send a request to tern, we do it quickly
-            // and then exit out.
-            if (!callback) {
-                worker.postMessage(data);
-                return;
-            }
-
-            // Otherwise prepare a request and make sure we don't flood tern
-            // with requests while it is still processing other stuff.
-            data.id = msgId;
-            pending[msgId] = {
-                callback: callback,
-                data: data
-                //,timer: new Timer(true)
-            };
-
-            if ( lastRequest && lastRequest.state() === "pending" ) {
-                //console.log("tern already pending", msgId);
-                return;
-            }
-
-            lastRequest = spromise.defer();
-            lastRequest.done(function(response) {
-                //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
-
-                // Send the last pending request
-                if ( pending[msgId] ) {
-                    console.log("send pending request", msgId);
-                    worker.postMessage(pending[msgId].data);
-                }
-
-                setTimeout(function() {
-                    // Handle callback and clean up the pending object
-                    pending[response.id].callback(response.err, response.body);
-                    delete pending[response.id];
-                }, 1);
-            });
-
-            worker.postMessage(data);
-            msgId++;
-        }
-
-
-        worker.onmessage = function(e) {
-            var data = e.data;
-
-            // If tern requests a file, then we will load it and then send it back to
-            // tern as an addFile action.
-            if (data.type == "getFile") {
-                settings.getFile(data.name).done(function(text){
-                    send({
-                        type: "addFile",
-                        text: text,
-                        id: data.id
-                    });
-                }).fail(function(error) {
-                    send({
-                        type: "addFile",
-                        err: String(error),
-                        id: data.id
-                    });
-                });
-            }
-            else if (data.id && pending[data.id]) {
-                lastRequest.resolve(data);
-            }
-            else if (data.type == "ready") {
-                settings.ready();
-            }
-            else if (data.type == "debug") {
-                console.log(data.message);
-            }
-        };
-
-
-        worker.onerror = function(e) {
-            for (var id in pending) {
-                pending[id].callback(e);
-            }
-
-            pending = {};
-        };
-
+    function ternApi(_server) {
+        server = _server;
 
         return {
-            worker: worker,
-            clear: function() {
-                send({
-                    type: "clear"
-                });
+            server: _server,
+            trackChange: trackChange,
+            buildRequest: buildRequest,
+            query: function(cm, query, allowFragments){
+                if(!curDoc) {
+                    return "";
+                }
+
+                var ternRequest = buildRequest.apply(ternApi, arguments);
+                ternRequest.query = $.extend({
+                    filter: true, // Results will be pretty large if we don't filter stuff out
+                    sort: true,
+                    depths: true,
+                    guess: true,
+                    origins: false,
+                    docs: false,
+                    expandWordForward: false
+                }, ternRequest.query);
+
+                return spromise(function(resolve) {
+                    server.request(ternRequest).done(function(result) {
+                        resolve(result, ternRequest);
+                    });
+                }).promise;
             },
-            addFile: function(name, text) {
-                send({
-                    type: "addFile",
-                    name: name,
-                    text: text
-                });
+            setCurrentDocument: function(_curDoc){
+                curDoc = _curDoc;
             },
-            deleleteFile: function(name) {
-                send({
-                    type: "deleteFile",
-                    name: name
-                });
+            setServer: function(_server){
+                //server = _server;
             },
-            request: function(body, c) {
-                send({
-                    type: "request",
-                    body: body
-                }, c);
+            setDocs: function(_docs){
+                docs = _docs;
             }
         };
     }
 
-
-    var ternDemo = {
-        server: workerServer,
-        trackChange: trackChange,
-        buildRequest: function(cm, query, allowFragments){
-            if(!curDoc) {
-                return "";
-            }
-
-            var ternRequest = buildRequest.apply(ternDemo, arguments);
-            ternRequest.query = $.extend({
-                filter: true, // Results will be pretty large if we don't filter stuff out
-                sort: true,
-                depths: true,
-                guess: true,
-                origins: false,
-                docs: false,
-                expandWordForward: false
-            }, ternRequest.query);
-
-            return ternRequest;
-        },
-        setCurrentDocument: function(_curDoc){
-            curDoc = _curDoc;
-        },
-        setServer: function(_server){
-            server = _server;
-        },
-        setDocs: function(_docs){
-            docs = _docs;
-        }
-    };
-
-    return ternDemo;
+    return ternApi;
 });
 
