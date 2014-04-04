@@ -65,7 +65,7 @@ define(function(require, exports, module) {
     * Bridge to communicate into tern worker thread.
     */
     function RemoteServer(provider) {
-        var portDef = ['text!./tern/.tern-port'];
+        var portDef = ['text!./.tern-port'];
 
         return spromise(function(resolve, reject) {
             require(portDef, function(port) {
