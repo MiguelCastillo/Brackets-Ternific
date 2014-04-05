@@ -44,7 +44,7 @@ define(function(require, exports, module) {
                     });
             }
             else if (data.id && pending[data.id]) {
-                pending[data.id].deferred.resolve(data.body);
+                pending[data.id].deferred.resolve(data);
             }
             else if (data.type == "debug") {
                 console.log(data.message);
@@ -93,7 +93,7 @@ define(function(require, exports, module) {
             worker.postMessage(data);
             msgId++;
 
-            return lastRequest.done(function(response) {
+            return lastRequest.then(function(response) {
                 //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
                 pending[response.id] = null;
 
@@ -107,6 +107,8 @@ define(function(require, exports, module) {
                 if ( msgId !== 2 ) {
                     msgId = 1;
                 }
+
+                return response.body;
             });
         };
 
