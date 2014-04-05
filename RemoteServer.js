@@ -35,6 +35,7 @@ define(function(require, exports, module) {
 
         var instance = {
             send: send,
+            loadSettings: $.noop,
             clear: function() {
                 instance.send({
                     type: "clear"
