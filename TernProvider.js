@@ -87,8 +87,10 @@ define(function (require, exports, module) {
     };
 
 
-    TernProvider.prototype.register = function (cm, name) {
+    TernProvider.prototype.register = function (cm, file) {
         var _self = this;
+        var name = file.fullPath;
+        var dir  = file.parentPath;
         var docMeta = _self.findDocByName(name);
 
         //
@@ -130,6 +132,7 @@ define(function (require, exports, module) {
         _self.currentDocument = docMeta;
         _self.tern.setCurrentDocument(docMeta);
         _self.tern.setDocs(_self.docs);
+        _self.tern.loadSettings(cm, dir);
 
         docMeta._trackChange = function (cm1, change) {
             _self.tern.trackChange(docMeta.doc, change);

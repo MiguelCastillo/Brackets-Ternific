@@ -116,7 +116,7 @@ define(function (require, exports, module) {
         if (_self.currentPath !== pathFile.path && _self.currentPath.indexOf(pathFile.path) !== 0) {
             _self.currentPath = pathFile.path;
             _self.ternProvider.clear();
-            _self.ternProvider.register(cm, file.fullPath);
+            _self.ternProvider.register(cm, file);
 
             /*
             var path = file.fullPath.substr(0, file.fullPath.lastIndexOf('/'));
@@ -130,7 +130,7 @@ define(function (require, exports, module) {
             */
         }
         else {
-            _self.ternProvider.register(cm, file.fullPath);
+            _self.ternProvider.register(cm, file);
         }
     };
 

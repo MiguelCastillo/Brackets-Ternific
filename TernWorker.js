@@ -111,14 +111,16 @@ onmessage = function(e) {
     var data = e.data;
     var method = Server.instance && Server.instance[data.type];
 
+    if ( data.type === "init" ) {
+        Server.instance = new Server(data.body || {});
+        return;
+    }
+
     if ( typeof method === 'function' ) {
         return method.apply(Server.instance, [data || {}]);
     }
 
     switch (data.type) {
-        case "init":
-            Server.instance = new Server(data.data || {});
-            break;
         default:
             throw new Error("Unknown message type: " + data.type);
     }
@@ -129,7 +131,7 @@ var console = {
     log: function(v) {
         postMessage({
             type: "debug",
-            message: v
+            message: arguments
         });
     }
 };

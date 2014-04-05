@@ -1,18 +1,66 @@
 define(function(require, exports, module) {
 
-    var spromise = require("libs/js/spromise");
-    var TernDemo = require("TernDemo");
+    var spromise        = require("libs/js/spromise");
+    var TernDemo        = require("TernDemo"),
+        Settings        = require("Settings"),
+        globalSettings  = require("text!./tern/.tern-project");
+
+    var projectSettings = Settings();
+
+    globalSettings = JSON.parse(globalSettings || {});
 
 
-    function init(provider, settings) {
-        var worker  = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
+    function getWorker( provider ) {
+        if ( getWorker.worker ) {
+            return getWorker.worker;
+        }
+
+        // Create worker thread to process tern requests.
+        var worker  = getWorker.worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
         var msgId   = 1,
-            pending = {},
-            ready   = spromise.defer();
-
+            pending = {};
         var lastRequest;
 
-        function send(data, callback) {
+        worker.onmessage = function(e) {
+            var data = e.data;
+
+            // If tern requests a file, then we will load it and then send it back to
+            // tern as an addFile action.
+            if (data.type == "getFile") {
+                provider.getFile(data.name)
+                    .done(function(text){
+                        worker.send({
+                            type: "addFile",
+                            text: text,
+                            id: data.id
+                        });
+                    })
+                    .fail(function(error) {
+                        worker.send({
+                            type: "addFile",
+                            err: String(error),
+                            id: data.id
+                        });
+                    });
+            }
+            else if (data.id && pending[data.id]) {
+                pending[data.id].deferred.resolve(data.body);
+            }
+            else if (data.type == "debug") {
+                console.log(data.message);
+            }
+        };
+
+
+        worker.onerror = function(e) {
+            if ( lastRequest ) {
+                lastRequest.reject(e);
+                pending = {};
+            }
+        };
+
+
+        worker.send = function send(data, callback) {
             // Some requests to tern dont need to be waited on...  So, just send tern
             // the message and exit out.
             if (!callback) {
@@ -60,124 +108,98 @@ define(function(require, exports, module) {
                     msgId = 1;
                 }
             });
-        }
-
-
-        worker.onmessage = function(e) {
-            var data = e.data;
-
-            // If tern requests a file, then we will load it and then send it back to
-            // tern as an addFile action.
-            if (data.type == "getFile") {
-                provider.getFile(data.name)
-                    .done(function(text){
-                        send({
-                            type: "addFile",
-                            text: text,
-                            id: data.id
-                        });
-                    })
-                    .fail(function(error) {
-                        send({
-                            type: "addFile",
-                            err: String(error),
-                            id: data.id
-                        });
-                    });
-            }
-            else if (data.id && pending[data.id]) {
-                console.log(data);
-                pending[data.id].deferred.resolve(data.body);
-            }
-            else if (data.type == "ready") {
-                ready.resolve(instance);
-            }
-            else if (data.type == "debug") {
-                console.log(data.message);
-            }
         };
 
-
-        worker.onerror = function(e) {
-            lastRequest.reject(e);
-            pending = {};
-        };
+        return worker;
+    }
 
 
+    function init(provider) {
+        var worker   = getWorker(provider);
         var instance = {
-            send: send,
+            send: worker.send,
+            loadSettings: LocalServer.loadSettings,
             clear: function() {
-                instance.send({
+                worker.send({
                     type: "clear"
                 });
             },
             addFile: function(name, text) {
-                instance.send({
+                worker.send({
                     type: "addFile",
                     name: name,
                     text: text
                 });
             },
             deleleteFile: function(name) {
-                instance.send({
+                worker.send({
                     type: "deleteFile",
                     name: name
                 });
             },
             request: function(body) {
-                return instance.send({
+                return worker.send({
                     type: "request",
                     body: body
                 }, true);
-            }
+            },
         };
 
-        // Call TernDemo and extend the instance.
-        $.extend(instance, TernDemo(instance));
-
-        // Post an init message
-        worker.postMessage({
+        // Init with empty settings. Until a document is open that can give us
+        // some context...
+        worker.send({
             type: "init",
-            data: $.extend({}, settings)
+            body: {}
         });
 
-        return ready.promise;
+        // Call TernDemo and extend the instance.
+        return $.extend(instance, TernDemo(instance));
     }
+
+
+    function loadSettings( settings ) {
+        var worker = getWorker(LocalServer.provider);
+        settings = settings || $.extend({}, globalSettings);
+        if ( settings === currentSettings ) {
+            return;
+        }
+
+        currentSettings = settings;
+        settings.libs = $.map(settings.libs || [], function(item) {
+            return "text!./tern/defs/" + item + ".json";
+        });
+
+        require(settings.libs, function() {
+            settings.defs = $.map(arguments, function(item) {
+                return JSON.parse(item);
+            });
+
+            // Post an init message to load settings
+            worker.send({
+                type: "init",
+                body: settings
+            });
+        });
+    }
+
+
+    var currentSettings;
+    LocalServer.loadSettings = function(cm, fullPath) {
+        projectSettings
+            .load(".tern-project", fullPath)
+            .done(loadSettings)
+            .fail(function() {loadSettings();});
+    };
 
 
     /**
     * Bridge to communicate into tern worker thread.
     */
     function LocalServer(provider) {
-        var defs = [
-            "text!./tern/defs/reserved.json",
-            "text!./tern/defs/browser.json",
-            "text!./tern/defs/chai.json",
-            "text!./tern/defs/ecma5.json",
-            "text!./tern/defs/browser.json",
-            "text!./tern/defs/jquery.json",
-            "text!./tern/defs/underscore.json"
-        ];
+        LocalServer.provider = provider;
 
         return spromise(function(resolve) {
-            require(defs, function() {
-                defs = $.map(arguments, function(item) {
-                    return JSON.parse(item);
-                });
-
-                init(provider, {
-                    defs: defs,
-                    debug: true,
-                    async: true,
-                    plugins: {
-                        requirejs: {},
-                        doc_comment: {},
-                        angular: {},
-                        component: {}
-                    }
-                })
-                .always(resolve);
-            });
+            resolve(init(provider));
         });
     }
 

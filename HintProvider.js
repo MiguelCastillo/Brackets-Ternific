@@ -24,7 +24,6 @@
 
 define(function(require, exports, module){
 
-    var spromise      = require("libs/js/spromise");
     var HintTransform = require("HintTransform");
 
 

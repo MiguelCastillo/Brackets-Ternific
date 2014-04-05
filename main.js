@@ -57,8 +57,8 @@ define(function (require, exports, module) {
             }
         }
 
-        // uninstall/install change listener as the active editor changes
-        $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+        // install change listener as the active editor changes
+        $(EditorManager).on("activeEditorChange.ternific", handleActiveEditorChange);
 
         // immediately install the current editor
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
