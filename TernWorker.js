@@ -1,8 +1,8 @@
 /**
-* Lifted from tern demo/worker.js and it has been adapted with a couple
-* of extra features needed such as a ready message as well as a message
-* to clear all the server data.
-*/
+ * Ternific Copyright (c) 2014 Miguel Castillo.
+ *
+ * Licensed under MIT
+ */
 
 
 importScripts("tern/node_modules/acorn/acorn.js",
