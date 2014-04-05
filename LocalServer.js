@@ -150,7 +150,7 @@ define(function(require, exports, module) {
     */
     function LocalServer(provider) {
         var defs = [
-            "text!./defs/reserved.json",
+            "text!./tern/defs/reserved.json",
             "text!./tern/defs/browser.json",
             "text!./tern/defs/chai.json",
             "text!./tern/defs/ecma5.json",
@@ -171,7 +171,9 @@ define(function(require, exports, module) {
                     async: true,
                     plugins: {
                         requirejs: {},
-                        node: {}
+                        doc_comment: {},
+                        angular: {},
+                        component: {}
                     }
                 })
                 .always(resolve);

@@ -12,18 +12,43 @@ importScripts("tern/node_modules/acorn/acorn.js",
               "tern/lib/tern.js",
               "tern/lib/def.js",
               "tern/lib/infer.js",
-              "tern/lib/comment.js",
-              "tern/plugin/requirejs.js",
-              "tern/plugin/node.js",
-              "tern/plugin/component.js",
-              "tern/plugin/angular.js",
-              "tern/plugin/doc_comment.js");
+              "tern/lib/comment.js");
+
+
+function Extender(/*target, [source]+ */) {
+    var sources = Array.prototype.slice.call(arguments),
+        target  = sources.shift();
+
+    for ( var source in sources ) {
+        source = sources[source];
+
+        // Copy properties
+        for (var property in source) {
+            target[property] = source[property];
+        }
+    }
+
+    return target;
+}
+
+
+function LoadPlugins(settings) {
+    var plugins = [];
+    for ( var i in settings.plugins ) {
+        plugins.push("tern/plugin/" + i + ".js");
+    }
+
+    // Import plugins
+    importScripts.apply((void 0), plugins);
+}
 
 
 function Server(settings) {
     var _self = this, nextId = 1;
     _self.pending = {};
-    _self.server = new tern.Server({
+
+    LoadPlugins(settings);
+    Extender(settings, {
         getFile: function(file, c) {
             _self.pending[nextId] = c;
 
@@ -34,12 +59,11 @@ function Server(settings) {
             });
 
             ++nextId;
-        },
-        async: settings.async,
-        defs: settings.defs,
-        debug: settings.debug,
-        plugins: settings.plugins
+        }
     });
+
+    // Instantiate tern server.
+    _self.server = new tern.Server(settings);
 
     postMessage({
         type:"ready"
@@ -93,7 +117,7 @@ onmessage = function(e) {
 
     switch (data.type) {
         case "init":
-            Server.instance = new Server(data.data);
+            Server.instance = new Server(data.data || {});
             break;
         default:
             throw new Error("Unknown message type: " + data.type);
@@ -109,3 +133,4 @@ var console = {
         });
     }
 };
+
