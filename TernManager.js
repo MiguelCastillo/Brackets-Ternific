@@ -14,8 +14,7 @@ define(function (require, exports, module) {
     var TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
         TernReferences = require("TernReferences"),
-        TernTypes      = require("TernTypes"),
-        HintHelper     = require("HintHelper");
+        TernTypes      = require("TernTypes");
 
 
     /**
