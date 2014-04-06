@@ -22,7 +22,7 @@ define(function(require, exports, module){
 
     HintProvider.prototype.getHints = function (implicitChar) {
         // If it is not an implicit hint start and it is not a
-        // character that be used for hinting, then we don not
+        // character that is used for hinting, then we don not
         // make any hinting requests.
         if (implicitChar !== null && this.hintManager.ternHints.canHint(implicitChar) === false) {
             return null;

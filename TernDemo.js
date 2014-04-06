@@ -12,14 +12,9 @@ define(function(require, exports, module) {
     var Timer    = require("Timer");
 
     var Pos = CodeMirror.Pos, bigDoc = 250, curDoc = null, docs = [], server = null;
-    var cachedFunction = {line: null, ch: null, name: null, type: null, bad: null};
 
 
     function trackChange(doc, change) {
-      if (cachedFunction.line > change.from.line ||
-          cachedFunction.line == change.from.line && cachedFunction.ch >= change.from.ch)
-        cachedFunction.line = -1;
-
       for (var i = 0; i < docs.length; ++i) {var data = docs[i]; if (data.doc == doc) break;}
       var changed = data.changed;
       if (changed == null)

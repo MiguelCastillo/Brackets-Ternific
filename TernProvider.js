@@ -71,16 +71,17 @@ define(function (require, exports, module) {
 
 
     TernProvider.prototype.register = function (cm, file) {
-        var _self = this;
-        var name = file.fullPath;
-        var dir  = file.parentPath;
-        var docMeta = _self.findDocByName(name);
+        var _self   = this,
+            name    = file.name,
+            dir     = file.parentPath,
+            docMeta = _self.findDocByName(name);
 
         //
         // If the document has not been registered, then we set one up
         //
         if (!docMeta) {
             docMeta = {
+                file: file,
                 name: name,
                 cm: cm,
                 doc: cm.getDoc(),
@@ -107,8 +108,8 @@ define(function (require, exports, module) {
         // current instance of brackets.
         //
         else {
-            docMeta.cm = cm;
-            docMeta.doc = cm.getDoc();
+            docMeta.cm      = cm;
+            docMeta.doc     = cm.getDoc();
             docMeta.changed = null;
         }
 
@@ -130,7 +131,6 @@ define(function (require, exports, module) {
         var docMeta = this.findDocByCM(cm);
         if (docMeta) {
             delete docMeta.cm;
-
             if (docMeta.doc && docMeta._trackChange) {
                 CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
             }
@@ -147,7 +147,7 @@ define(function (require, exports, module) {
     TernProvider.prototype.addFile = function (name, root) {
         var _self = this;
 
-        return fileLoader.fileMeta(name, root || _self.currentDocument.name || "").done(function(data) {
+        return fileLoader.fileMeta(name, root || _self.currentDocument.file.parentPath || "").done(function(data) {
             var docMeta = {
                 name: name, //data.fullPath,
                 doc: new CodeMirror.Doc(data.text, "javascript"),
@@ -190,7 +190,7 @@ define(function (require, exports, module) {
             return spromise.resolved(docMeta.doc.getValue());
         }
 
-        return fileLoader.fileMeta(name, root || _self.currentDocument.name || "")
+        return fileLoader.fileMeta(name, root || _self.currentDocument.file.parentPath || "")
                 .then(function(data) {
                     var docMeta = {
                         name: name, //data.fullPath,

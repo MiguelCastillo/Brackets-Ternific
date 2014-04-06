@@ -95,9 +95,8 @@ define(function (require, exports, module) {
         // is not a subfolder of the currentPath, then we will clear all tern
         // stuff because we are most likely working in a different context.
         //
-        var pathFile = HintHelper.pathFile(file.fullPath);
-        if (_self.currentPath !== pathFile.path && _self.currentPath.indexOf(pathFile.path) !== 0) {
-            _self.currentPath = pathFile.path;
+        if (_self.currentPath !== file.parentPath && _self.currentPath.indexOf(file.parentPath) !== 0) {
+            _self.currentPath = file.parentPath;
             _self.ternProvider.clear();
             _self.ternProvider.register(cm, file);
 
