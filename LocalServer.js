@@ -24,9 +24,8 @@ define(function(require, exports, module) {
 
         // Create worker thread to process tern requests.
         var worker  = getWorker.worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
-        var msgId   = 1,
-            pending = {};
-        var lastRequest;
+        var current = null,
+            pending = null;
 
         worker.onmessage = function(e) {
             var data = e.data;
@@ -50,8 +49,8 @@ define(function(require, exports, module) {
                         });
                     });
             }
-            else if (data.id && pending[data.id]) {
-                pending[data.id].deferred.resolve(data);
+            else if (data.id && current) {
+                current.deferred.resolve(data);
             }
             else if (data.type == "debug") {
                 console.log(data.message);
@@ -60,9 +59,8 @@ define(function(require, exports, module) {
 
 
         worker.onerror = function(e) {
-            if ( lastRequest ) {
-                lastRequest.reject(e);
-                pending = {};
+            if ( current ) {
+                current.deferred.reject(e);
             }
         };
 
@@ -79,42 +77,40 @@ define(function(require, exports, module) {
             // request and queue up the incoming new one...  This will generally be the
             // case when someone types so fast that skipping results does not affect the
             // user; a person couldn't type that fast and use hints at the same time. :)
-            if ( pending[msgId] ) {
-                pending[msgId].deferred.resolve();
+            if ( pending ) {
+                pending.deferred.resolve();
             }
 
-            // Queue up the next request to tern
-            data.id = msgId;
-            pending[msgId] = {
+            // Message ID is no longer needed, but the worker thread needs it
+            data.id = 1;
+
+            // New request
+            pending = {
                 data: data,
                 deferred: spromise.defer()
             };
 
-            if ( lastRequest && lastRequest.state() === "pending" ) {
-                console.log("tern request is already pending", msgId);
-                return pending[msgId].deferred.then( resolvePending );
+            if ( current && current.deferred.state() === "pending" ) {
+                return pending.deferred.then( resolvePending );
             }
             else {
-                lastRequest = pending[msgId].deferred;
+                current = pending;
+                pending = null;
                 worker.postMessage(data);
-                return pending[msgId++].deferred.then( resolvePending );
+                return current.deferred.then( resolvePending );
             }
         };
 
 
         function resolvePending(response) {
-            //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
-            pending[response.id] = null;
-
             // Send the last pending request
-            if ( pending[msgId] ) {
-                lastRequest = pending[msgId].deferred;
-                worker.postMessage(pending[msgId].data);
+            if ( pending ) {
+                current = pending;
+                pending = null;
+                worker.postMessage(current.data);
             }
-
-            // Reset the msgId so that we don't run into a very unlikely buffer overflow
-            if ( msgId !== 2 ) {
-                msgId = 1;
+            else {
+                current = null;
             }
 
             return response.body;
