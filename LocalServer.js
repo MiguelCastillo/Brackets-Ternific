@@ -88,36 +88,38 @@ define(function(require, exports, module) {
             pending[msgId] = {
                 data: data,
                 deferred: spromise.defer()
-                //,timer: new Timer(true)
             };
 
             if ( lastRequest && lastRequest.state() === "pending" ) {
                 console.log("tern request is already pending", msgId);
-                return pending[msgId].deferred.promise;
+                return pending[msgId].deferred.then( resolvePending );
+            }
+            else {
+                lastRequest = pending[msgId].deferred;
+                worker.postMessage(data);
+                return pending[msgId++].deferred.then( resolvePending );
+            }
+        };
+
+
+        function resolvePending(response) {
+            //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
+            pending[response.id] = null;
+
+            // Send the last pending request
+            if ( pending[msgId] ) {
+                lastRequest = pending[msgId].deferred;
+                worker.postMessage(pending[msgId].data);
             }
 
-            lastRequest = pending[msgId].deferred;
-            worker.postMessage(data);
-            msgId++;
+            // Reset the msgId so that we don't run into a very unlikely buffer overflow
+            if ( msgId !== 2 ) {
+                msgId = 1;
+            }
 
-            return lastRequest.then(function(response) {
-                //console.log("last request finsihed", response.id, pending[response.id].timer.elapsed());
-                pending[response.id] = null;
+            return response.body;
+        }
 
-                // Send the last pending request
-                if ( pending[msgId] ) {
-                    lastRequest = pending[msgId].deferred;
-                    worker.postMessage(pending[msgId].data);
-                }
-
-                // Reset the msgId so that we don't run into a very unlikely buffer overflow
-                if ( msgId !== 2 ) {
-                    msgId = 1;
-                }
-
-                return response.body;
-            });
-        };
 
         return worker;
     }
