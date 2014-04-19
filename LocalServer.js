@@ -13,7 +13,6 @@ define(function(require, exports, module) {
         globalSettings  = require("text!./tern/.tern-project");
 
     var projectSettings = Settings();
-
     globalSettings = JSON.parse(globalSettings || {});
 
 
@@ -49,11 +48,11 @@ define(function(require, exports, module) {
                         });
                     });
             }
-            else if (data.id && current) {
-                current.deferred.resolve(data);
-            }
             else if (data.type == "debug") {
                 console.log(data.message);
+            }
+            else if (current) {
+                current.deferred.resolve(data);
             }
         };
 
@@ -73,16 +72,16 @@ define(function(require, exports, module) {
                 return;
             }
 
-            // If there is already a pending request, we will besically invalidate that
-            // request and queue up the incoming new one...  This will generally be the
-            // case when someone types so fast that skipping results does not affect the
-            // user; a person couldn't type that fast and use hints at the same time. :)
+            // If there is already a pending request, we will basically invalidate that
+            // request and queue up the incoming new one...  What this will do is that it
+            // will make make sure we are only processing the first and last request for
+            // hints.  Anything in the middle isn't as important because we are generally
+            // interested in the very last input to properly show which hints are available
+            // at the time the user stops typing.  Keeping track of the first request allows
+            // me to make sure I don't flood tern with requests.
             if ( pending ) {
                 pending.deferred.resolve();
             }
-
-            // Message ID is no longer needed, but the worker thread needs it
-            data.id = 1;
 
             // New request
             pending = {
