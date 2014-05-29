@@ -568,6 +568,10 @@
       node.start == start - 1 && node.end <= end + 1;
   }
 
+  var jsKeywords = ("break do instanceof typeof case else new var " +
+    "catch finally return void continue for switch while debugger " +
+    "function this with default if throw delete in try").split(" ");
+
   function findCompletions(srv, query, file) {
     if (query.end == null) throw ternError("missing .query.end field");
     var wordStart = resolvePos(file, query.end), wordEnd = wordStart, text = file.text;
@@ -614,6 +618,7 @@
                                   : memberExpr.node.object.end < wordStart)) {
       var prop = memberExpr.node.property;
       prop = prop.type == "Literal" ? prop.value.slice(1) : prop.name;
+      srv.cx.completingProperty = prop;
 
       memberExpr.node = memberExpr.node.object;
       var tp = infer.expressionType(memberExpr);
@@ -626,9 +631,11 @@
         for (var prop in srv.cx.props) gather(prop, srv.cx.props[prop][0], 0);
     } else {
       infer.forAllLocalsAt(file.ast, wordStart, file.scope, gather);
+      if (query.includeKeywords) jsKeywords.forEach(function(kw) { gather(kw, null, 0); });
     }
 
     if (query.sort !== false) completions.sort(compareCompletions);
+    srv.cx.completingProperty = null;
 
     return {start: outputPos(query, file, wordStart),
             end: outputPos(query, file, wordEnd),
@@ -783,17 +790,17 @@
       };
     }
 
-    if (scope.node) {
+    if (scope.originNode) {
       type = "local";
       if (checkShadowing) {
         for (var prev = scope.prev; prev; prev = prev.prev)
           if (checkShadowing in prev.props) break;
-        if (prev) infer.findRefs(scope.node, scope, checkShadowing, prev, function(node) {
+        if (prev) infer.findRefs(scope.originNode, scope, checkShadowing, prev, function(node) {
           throw ternError("Renaming `" + name + "` to `" + checkShadowing + "` would shadow the definition used at line " +
                           (asLineChar(file, node.start).line + 1));
         });
       }
-      infer.findRefs(scope.node, scope, name, scope, storeRef(file));
+      infer.findRefs(scope.originNode, scope, name, scope, storeRef(file));
     } else {
       type = "global";
       for (var i = 0; i < srv.files.length; ++i) {
