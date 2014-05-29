@@ -8,8 +8,9 @@
 define(function(require, exports, module) {
     "use strict";
 
-    var spromise = require("libs/js/spromise");
-    var Timer    = require("Timer");
+    var spromise   = require("libs/js/spromise");
+    var Timer      = require("Timer");
+    var CodeMirror = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
 
     var Pos = CodeMirror.Pos, bigDoc = 250, curDoc = null, docs = [], server = null;
 
