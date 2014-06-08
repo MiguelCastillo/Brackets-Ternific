@@ -156,7 +156,7 @@
     },
     "findKey": {
       "!doc": "This method is like _.findIndex except that it returns the key of the first element that passes the callback check, instead of the element itself.",
-      "!type": "fn(object: ?, callback?: fun(?) -> bool, thisArg: !0) -> ?",
+      "!type": "fn(object: ?, callback?: fn(?) -> bool, thisArg: !0) -> ?",
       "!url": "http://lodash.com/docs#findKey"
     },
     "findLast": {
