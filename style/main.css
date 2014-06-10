@@ -25,34 +25,36 @@
   text-align: center;
   color: white;
   box-sizing: border-box;
+  text-shadow: 0 0 2pt #161616;
+  box-shadow: 0 0 2pt #CACACA;
 }
 .Tern-completion-unknown:before {
   content: "?";
-  background: #4bb;
+  background: #5cc;
 }
 .Tern-completion-object:before {
   content: "O";
-  background: #77c;
+  background: #88d;
 }
 .Tern-completion-fn:before {
   content: "F";
-  background: #7c7;
+  background: #8d8;
 }
 .Tern-completion-array:before {
   content: "A";
-  background: #c66;
+  background: #d77;
 }
 .Tern-completion-number:before {
   content: "1";
-  background: #999;
+  background: #AAA;
 }
 .Tern-completion-string:before {
   content: "S";
-  background: #999;
+  background: #AAA;
 }
 .Tern-completion-bool:before {
   content: "B";
-  background: #999;
+  background: #AAA;
 }
 
 .Tern-completion-guess {
