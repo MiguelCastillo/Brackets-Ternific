@@ -42,6 +42,7 @@ Credit
 1. Brackets' javascript hinting has been used and code has been lifted and integrated into this extension.<br>
 2. Code has been taken from tern demo.js in order to make tern integration possible.<br>
 3. Original Ternific By Miguel del Castillo (this is a fork).<br>
+4. Me, David Sánchez Gregori the author of this fork.
 
 License
 =============
