@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -57,14 +57,15 @@ define(function (require, exports, module) {
         }
 
         _self.query(cm).done(function(refsPerFile) {
-            var i = 0;
+            var i,file,refs,marker,refLen;
 
-            for (var file in refsPerFile) {
-                var refs = refsPerFile[file], doc = _self.ternProvider.findDocByName(file).doc;
+            for (file in refsPerFile) {
+                refs = refsPerFile[file];
                 refs.sort(refSort);
 
-                for (i = 0; i < refs.length; ++i) {
-                    var marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
+                refLen = refs.length;
+                for (i = 0; i < refLen; ++i) {
+                    marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
                     _self.textMarkers.push(marker);
                 }
             }
@@ -91,15 +92,14 @@ define(function (require, exports, module) {
         }
 
         _self.query().done(function(refsPerFile) {
-            var i = 0;
+            var i,file,refs,marker,refLen;
 
-            for (var file in refsPerFile) {
-                var refs = refsPerFile[file], doc = _self.ternProvider.findDocByName(file).doc;
+            for (file in refsPerFile) {
+                refs = refsPerFile[file];
                 refs.sort(refSort);
-
-                for (i = 0; i < refs.length; ++i) {
-                    //doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
-                    var marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
+                refLen = refs.length;
+                for (i = 0; i < refLen; ++i) {
+                    marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
                     _self.textMarkers.push(marker);
                 }
             }

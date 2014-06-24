@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -73,13 +73,13 @@ define(function (require, exports, module) {
             "name": "ternBindings",
             "Ctrl-I": function(){
                 _self.ternTypes.findType(cm);
-            },
+            },/*
             "Alt-.": function() {
                 //_self.ternReferences.jumpToDef
             },
             "Alt-,": function() {
                 //_self.ternReferences.jumpBack
-            },
+            },*/
             "Ctrl-R": function() {
                 _self.ternReferences.findReferences(cm);
             }
@@ -99,16 +99,6 @@ define(function (require, exports, module) {
             _self.ternProvider.clear();
             _self.ternProvider.register(cm, file);
 
-            /*
-            var path = file.fullPath.substr(0, file.fullPath.lastIndexOf('/'));
-
-            loadFiles(path).done(function(files) {
-                var index = 0, length = Math.min(files.files.length, 100);
-                for( index; index < length; index++ ) {
-                    _self.ternProvider.addFile(files.files[index]);
-                }
-            });
-            */
         }
         else {
             _self.ternProvider.register(cm, file);
@@ -147,8 +137,8 @@ define(function (require, exports, module) {
             }
 
             var i, files = [];
-
-            for (i = 0; i < entries.length; i++) {
+            
+            for (i in entries) {
                 if (entries[i].isFile && endsWith(entries[i].name, ".js")) {
                     files.push(entries[i].name);
                 }

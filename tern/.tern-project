@@ -1,18 +1,7 @@
 {
   "libs": [
-    "reserved",
-    "browser",
-    "chai",
-    "ecma5",
-    "browser",
-    "jquery",
-    "underscore"
   ],
-  "loadEagerly": [],
-  "async": true,
   "plugins": {
-    "requirejs": {},
-    "doc_comment": {},
-    "component": {}
+    "node": {}
   }
 }

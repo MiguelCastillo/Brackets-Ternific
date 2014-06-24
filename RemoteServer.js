@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 

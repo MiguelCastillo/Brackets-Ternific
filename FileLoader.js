@@ -1,5 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
+ * Fork by David Sánchez i Gregori
  *
  * Licensed under MIT
  */
@@ -11,32 +12,32 @@ define(function (require, exports, module) {
     var FileSystem   = brackets.getModule("filesystem/FileSystem"),
         ProjectFiles = require("ProjectFiles");
 
-    var fileLoader = (function(){
-        var inProgress= {};
+    return (function () {
+        var inProgress = {};
         var httpCache = {};
 
         // Load up the file from a remote location via http
         function fromHTTP(fileName) {
-            if (httpCache[fileName]){
+            if (httpCache[fileName]) {
                 return spromise.resolved(httpCache[fileName]);
             }
 
             inProgress[fileName] = $.ajax({
-                    "url": fileName,
-                    "contentType": "text"
-                });
+                "url": fileName,
+                "contentType": "text"
+            });
 
 
-            inProgress[fileName].then(function(data) {
-                    httpCache[fileName] = {
-                        fileName: fileName,
-                        fullPath: fileName,
-                        text: data
-                    };
+            inProgress[fileName].then(function (data) {
+                httpCache[fileName] = {
+                    fileName: fileName,
+                    fullPath: fileName,
+                    text: data
+                };
 
-                    return httpCache[fileName];
-                })
-                .always(function(){
+                return httpCache[fileName];
+            })
+                .always(function () {
                     delete inProgress[fileName];
                 });
 
@@ -49,8 +50,8 @@ define(function (require, exports, module) {
             var deferred = spromise.defer();
             var directoryPath = fileMeta.resolvePath(rootFile);
 
-            fileHandle(fileName, rootFile).done(function(file) {
-                file.read().done(function(text) {
+            fileHandle(fileName, rootFile).done(function (file) {
+                file.read().done(function (text) {
                     var data = {
                         fileName: fileName,
                         fullPath: directoryPath + fileName,
@@ -59,7 +60,7 @@ define(function (require, exports, module) {
 
                     deferred.resolve(data);
                 })
-                .fail(deferred.reject);
+                    .fail(deferred.reject);
             });
 
             return deferred.promise;
@@ -91,24 +92,24 @@ define(function (require, exports, module) {
                 // and if that does not work, then we will try to open it from the
                 // project directory.  Sometime both directories will be the same...
                 //
-                fromDirectory(fileName, rootFile).done(function(data) {
+                fromDirectory(fileName, rootFile).done(function (data) {
+                    deferred.resolve(data);
+                }).fail(function () {
+
+                    fromProject(fileName).done(function (data) {
                         deferred.resolve(data);
-                    }).fail(function( ) {
-
-                        fromProject(fileName).done(function(data) {
-                                deferred.resolve(data);
-                            }).fail(function(error){
-                                deferred.reject(error);
-                            });
-
+                    }).fail(function (error) {
+                        deferred.reject(error);
                     });
+
+                });
             }
 
             return deferred;
         }
 
 
-        fileMeta.resolvePath = function(rootFile){
+        fileMeta.resolvePath = function (rootFile) {
             return rootFile ? rootFile.substr(0, rootFile.lastIndexOf("/")) + "/" : "";
         };
 
@@ -116,19 +117,19 @@ define(function (require, exports, module) {
         function fileHandle(fileName, rootFile) {
             var deferred = spromise.defer();
             var directoryPath = fileMeta.resolvePath(rootFile);
-            var _file = FileSystem.getFileForPath (directoryPath + fileName);
+            var _file = FileSystem.getFileForPath(directoryPath + fileName);
 
-            _file.exists(function( err /*, exists*/ ) {
-                if ( err ) {
+            _file.exists(function (err /*, exists*/) {
+                if (err) {
                     deferred.reject(err);
                 }
 
                 deferred.resolve({
-                    read: function() {
+                    read: function () {
                         var _deferred = spromise.defer();
 
-                        _file.read(function( err, content /*, stat*/ ) {
-                            if ( err ) {
+                        _file.read(function (err, content /*, stat*/) {
+                            if (err) {
                                 _deferred.reject(err);
                                 return;
                             }
@@ -137,7 +138,7 @@ define(function (require, exports, module) {
 
                         return _deferred;
                     },
-                    write: function() {
+                    write: function () {
 
                     }
                 });
@@ -153,8 +154,5 @@ define(function (require, exports, module) {
         };
 
     })();
-
-
-    return fileLoader;
 });
 

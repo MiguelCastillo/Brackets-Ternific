@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -13,11 +13,10 @@ define(function (require, exports, module) {
     "use strict";
 
     var _ = brackets.getModule("thirdparty/lodash");
-    var HintHelper  = require("HintHelper"),
-        SortingTmpl = require("text!tmpl/sorting.html");
+    var HintHelper  = require("HintHelper");
 
 
-    var MAX_DISPLAYED_HINTS = 400,
+    var MAX_DISPLAYED_HINTS = 512,
         SINGLE_QUOTE        = HintHelper.SINGLE_QUOTE,
         DOUBLE_QUOTE        = HintHelper.DOUBLE_QUOTE;
 
@@ -157,33 +156,33 @@ define(function (require, exports, module) {
                 match  = _.escape(hint.slice(index, index + criteria.length)),
                 suffix = _.escape(hint.slice(index + criteria.length));
 
-            hintHtml = ("<span class='brackets-js-hints {0}'>" +
-                            "<span class='type {1}'></span>" +
-                            "{2}" + //"<span class='prefix'></span>"
-                            "<span class='matched-hint'>{3}</span>" +
-                            "{4}" + //"<span class='suffix'></span>"
-                        "</span>").format(priority, icon, prefix, match, suffix);
+            if (completionType.name==="fn"){
+                hintHtml = "<span class='brackets-js-hints " + priority + "'>" +
+                    "<span class='type " + icon + "'></span>" +
+                    prefix + //"<span class='prefix'></span>"
+                    "<span class='matched-hint'>" + match + "</span>" +
+                    suffix + //"<span class='suffix'></span>"
+                    "<small>" + token.type.substring(2) +"</small>"
+                    "</span> ";
+            }else {
+                hintHtml = "<span class='brackets-js-hints " + priority + "'>" +
+                    "<span class='type " + icon + "'></span>" +
+                    prefix + //"<span class='prefix'></span>"
+                    "<span class='matched-hint'>" + match + "</span>" +
+                    suffix + //"<span class='suffix'></span>"
+                    "</span> ";
+            }
         }
         else {
-            hintHtml = ("<span class='brackets-js-hints {0}'>" +
-                            "<span class='type {1}'></span>" +
-                            "<span class='hint'>{2}</span>" +
-                        "</span>").format(priority, icon, hint);
+            hintHtml = "<span class='brackets-js-hints "+priority+"'>" +
+                       "<span class='type "+icon+"'></span>" +
+                       "<span class='hint'>"+hint+"</span>" +
+                       "</span>";
         }
 
         return $(hintHtml).data("token", token);
     }
 
-
-    var Settings = (function() {
-        var $sorting = $(SortingTmpl).on("click", "li a", function(evt) {
-            console.log(evt);
-        });
-
-        return {
-            $sorting: $sorting
-        };
-    })();
 
 
     function HintsTransform(hints, sortType) {

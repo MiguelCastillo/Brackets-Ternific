@@ -6,7 +6,7 @@
 .Tern-farg { color: #70a; }
 .Tern-farg-current { text-decoration: underline; }
 .Tern-type { color: #07c; }
-.Tern-fhint-guess { opacity: .7; }
+.Tern-fhint-guess { opacity: .9; }
 
 .Tern-completion {
   padding-left: 22px;
@@ -16,11 +16,11 @@
   position: absolute;
   left: 2px;
   bottom: 2px;
-  border-radius: 50%;
+  border-radius: 22%;
   font-size: 12px;
   font-weight: bold;
-  height: 15px;
-  width: 15px;
+  height: 16px;
+  width: 16px;
   line-height: 16px;
   text-align: center;
   color: white;
@@ -30,35 +30,39 @@
 }
 .Tern-completion-unknown:before {
   content: "?";
-  background: #5cc;
+  background: #AAA;
 }
 .Tern-completion-object:before {
-  content: "O";
-  background: #88d;
+  content: "{ }";
+  background: #97d;
 }
 .Tern-completion-fn:before {
-  content: "F";
-  background: #8d8;
+  content: "fn";
+  background: #7d7;
 }
 .Tern-completion-array:before {
-  content: "A";
-  background: #d77;
+  content: "[ ]";
+  background: #da4;
 }
 .Tern-completion-number:before {
-  content: "1";
-  background: #AAA;
+  content: "#";
+  background: #FF5050;
 }
 .Tern-completion-string:before {
-  content: "S";
-  background: #AAA;
+  content: "“”";
+  background: #F8E;
+    font-weight: bold;
 }
 .Tern-completion-bool:before {
-  content: "B";
-  background: #AAA;
+  content: "0/1";
+  background: #4cd;
+  font-size: x-small;
+
 }
 
 .Tern-completion-guess {
-  color: #999;
+  color: #248;
+  background:#FAFAEA;
 }
 
 

@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -10,10 +10,16 @@ define(function(require, exports, module) {
     var spromise        = require("libs/js/spromise");
     var TernDemo        = require("TernDemo"),
         Settings        = require("Settings"),
-        globalSettings  = require("text!./tern/.tern-project");
+        globalSettingsTxt  = require("text!./tern/.tern-project"),
+        globalSettings = {};
 
     var projectSettings = Settings();
-    globalSettings = JSON.parse(globalSettings || {});
+
+   globalSettings = JSON.parse(globalSettingsTxt||"{}");
+
+
+    // Free memory
+    globalSettingsTxt=null;
 
 
     function getWorker( provider ) {
@@ -31,7 +37,7 @@ define(function(require, exports, module) {
 
             // If tern requests a file, then we will load it and then send it back to
             // tern as an addFile action.
-            if (data.type == "getFile") {
+            if (data.type === "getFile") {
                 provider.getFile(data.name)
                     .done(function(text){
                         worker.send({
@@ -48,7 +54,7 @@ define(function(require, exports, module) {
                         });
                     });
             }
-            else if (data.type == "debug") {
+            else if (data.type === "debug") {
                 console.log(data.message);
             }
             else if (current) {
@@ -148,7 +154,7 @@ define(function(require, exports, module) {
                     type: "request",
                     body: body
                 }, true);
-            },
+            }
         };
 
         // Init with empty settings. Until a document is open that can give us
