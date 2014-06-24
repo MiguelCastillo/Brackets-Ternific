@@ -25,15 +25,15 @@ Screenshots
 
 Completing an Array...
 
-(https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_Array.png)
+![](https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_Array.png)
 
 Working with functions...
 
-(https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_function.png)
+![](https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_function.png)
 
 What can I do with a String ? ...
 
-(https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_string.png)
+![](https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_string.png)
 
 
 Credit
