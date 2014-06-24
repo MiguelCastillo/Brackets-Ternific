@@ -22,13 +22,18 @@ FAQ
 
 Screenshots
 =============
-Tern hints on a string
 
-** pending **
+Completing an Array...
 
-Tern hints on a function
+(https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_Array.png)
 
-** pending **
+Working with functions...
+
+(https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_function.png)
+
+What can I do with a String ? ...
+
+(https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_string.png)
 
 
 Credit
