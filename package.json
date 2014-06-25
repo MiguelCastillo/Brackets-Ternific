@@ -4,12 +4,11 @@
     "description": "Javascript hinting with Tern in Brackets",
     "version": "0.0.1",
     "author": "David Sánchez i Gregori",
-    "homepage": "",
-    /*
+    "homepage": "https://github.com/David5i6/Brackets-Ternific",
     "repository": {
         "type": "git",
         "url": "git://github.com/David5i6/Brackets-Ternific.git"
-    },*/
+    },
     "engines": {
         "brackets": ">=0.34.0"
     }
