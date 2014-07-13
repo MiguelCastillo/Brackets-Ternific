@@ -2,7 +2,7 @@
     "title": "Ternifico",
     "name": "ternifico",
     "description": "Javascript hinting with Tern in Brackets",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "David Sánchez i Gregori",
     "homepage": "https://github.com/David5i6/Brackets-Ternific",
     "repository": {
