@@ -166,10 +166,11 @@ define(function (require, exports, module) {
      * Strips all commments from a json string.
      */
     function stripComments( text ) {
-        var string = text || '';
-        string = string.replace(/\/\*(?:[^\*\/])*\*\//g, '');
-        string = string.replace(/\/\/.*/g, '');
-        return string;
+        if (typeof text==='string'){
+            return text.replace(/\/\*(?:[^\*\/])*\*\//g, '').replace(/\/\/.*/g, '');
+        }else{
+            return '';
+        }
     }
 
 

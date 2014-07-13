@@ -23,7 +23,7 @@ define(function(require, exports, module) {
                 $.ajax({
                     "url": "http://localhost:" + settings.port,
                     "type": "POST",
-                    "contentType": "application/json; charset=utf-8",
+                    "contentType": "application/json;charset=utf-8",
                     "data": JSON.stringify(data.body)
                 })
                 .done(function(result) {

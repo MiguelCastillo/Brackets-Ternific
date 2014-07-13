@@ -87,8 +87,7 @@ define(function (require, exports, module) {
 
                 if (remaining > itemsLength) {
                     Array.prototype.push.apply(result, group.items);
-                }
-                else {
+                } else {
                     Array.prototype.push.apply(result, group.items.slice(0, maxItems));
                     return false;
                 }
@@ -137,6 +136,47 @@ define(function (require, exports, module) {
     })();
 
 
+    /**
+     * Formats the function parameters and it's return value.
+     * @param toke {string}
+     * @return {string}
+     */
+    function functionToHtml(token){
+        token = ''+token;
+        token=token.replace(/(\s+)|(\(+)|(\)+)/g, '');
+
+        var txt=" (",tok,par,pars,param,pname,ptype,ret,auxtype;
+        var tokens = token.split('->')||[];
+
+        if (tokens.length>0){
+            tok=tokens[0];
+
+            pars=tok.split(',');
+            for(par in pars){
+                param = pars[par].split(':')||[];
+                pname=param[0];
+
+                auxtype=param.length>0?param[1].toLowerCase():'unknown';
+                ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
+
+                txt+='<span class="Tern-completion-'+ptype+'"> '+pname+'</span>, ';
+            }
+
+            txt=txt.substring(0,txt.length-2);
+
+            txt+=")";
+            if (tokens.length>1){
+                auxtype=tokens[1].toLowerCase();
+
+                ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
+                txt+=' >> <span class="Tern-completion-'+ptype+'"> ['+auxtype+']</span>';
+            }
+
+        }
+        return txt;
+    }
+
+
     function tokenToHtml(criteria, token) {
         var hint           = token.name,
             index          = token.index,
@@ -157,12 +197,15 @@ define(function (require, exports, module) {
                 suffix = _.escape(hint.slice(index + criteria.length));
 
             if (completionType.name==="fn"){
+
+                var xx = functionToHtml(token.type.substring(2));
+
                 hintHtml = "<span class='brackets-js-hints " + priority + "'>" +
                     "<span class='type " + icon + "'></span>" +
                     prefix + //"<span class='prefix'></span>"
                     "<span class='matched-hint'>" + match + "</span>" +
                     suffix + //"<span class='suffix'></span>"
-                    "<small>" + token.type.substring(2) +"</small>"
+                    "<small>" + xx +"</small>"+
                     "</span> ";
             }else {
                 hintHtml = "<span class='brackets-js-hints " + priority + "'>" +

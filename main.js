@@ -18,8 +18,6 @@ define(function (require, exports, module) {
     var jsHints;
     var _ternManager;
 
-    // Load up string utils...
-    require("string");
 
     ExtensionUtils.loadStyleSheet(module, "style/main.css");
     ExtensionUtils.loadStyleSheet(module, "style/hintsMenu.css");
