@@ -7,6 +7,8 @@
 
 define(function(require, exports, module) {
 
+    "use strict";
+
     var spromise = require("libs/js/spromise");
     var TernDemo = require("TernDemo");
 

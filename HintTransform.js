@@ -52,12 +52,7 @@ define(function (require, exports, module) {
             else {
                 // Give items that match the criteria higher priority than
                 // items with just perfect depth but no matching criteria.
-                if ( token.index !== -1 ) {
-                    return token.index + token.depth;
-                }
-                else {
-                    return placementOffset + token.depth;
-                }
+                return (token.index !== -1?token.index:placementOffset)+token.depth;
             }
         }
 
@@ -222,6 +217,7 @@ define(function (require, exports, module) {
                        "<span class='hint'>"+hint+"</span>" +
                        "</span>";
         }
+
 
         return $(hintHtml).data("token", token);
     }

@@ -4,9 +4,10 @@
 *
 */
 
-"use strict";
 
 define(function(require, exports, module){
+
+    "use strict";
 
     var SINGLE_QUOTE    = "\'",
         DOUBLE_QUOTE    = "\"",

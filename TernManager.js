@@ -73,13 +73,7 @@ define(function (require, exports, module) {
             "name": "ternBindings",
             "Ctrl-I": function(){
                 _self.ternTypes.findType(cm);
-            },/*
-            "Alt-.": function() {
-                //_self.ternReferences.jumpToDef
             },
-            "Alt-,": function() {
-                //_self.ternReferences.jumpBack
-            },*/
             "Ctrl-R": function() {
                 _self.ternReferences.findReferences(cm);
             }

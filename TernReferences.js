@@ -24,8 +24,8 @@ define(function (require, exports, module) {
         return this.ternProvider.query( cm, "refs" )
             .then(function(data) {
                 var perFile = {}, i, use;
-
-                for (i = 0; i < data.refs.length; ++i) {
+                var drl = data,refs.length;
+                for (i = 0; i < drl; ++i) {
                     use = data.refs[i];
                     (perFile[use.file] || (perFile[use.file] = [])).push(use);
                 }
