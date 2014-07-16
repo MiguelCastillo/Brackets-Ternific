@@ -6,12 +6,12 @@
 
 
 define(function (require, exports, module) {
-    'use strict';
+
 
     var FileSystem = brackets.getModule("filesystem/FileSystem");
 
-    var spromise       = require("libs/js/spromise");
-    var TernProvider   = require("TernProvider"),
+    var spromise       = require("libs/js/spromise"),
+        TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
         TernReferences = require("TernReferences"),
         TernTypes      = require("TernTypes");
@@ -22,15 +22,14 @@ define(function (require, exports, module) {
     */
     function TernManager () {
         var deferred = spromise.defer();
-
-//        var ternProvider = new TernProvider.Remote();
+        //var ternProvider = new TernProvider.Remote();
         var ternProvider = new TernProvider.Local();
         ternProvider.onReady(deferred.resolve);
 
+        this.ternProvider   = ternProvider;
         this.ternHints      = new TernHints(ternProvider);
         this.ternReferences = new TernReferences(ternProvider);
         this.ternTypes      = new TernTypes(ternProvider);
-        this.ternProvider   = ternProvider;
         this.onReady        = deferred.promise.done;
         this.currentPath    = "";
     }

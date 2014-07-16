@@ -154,7 +154,7 @@ define(function (require, exports, module) {
                 auxtype=param.length>0?param[1].toLowerCase():'unknown';
                 ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
 
-                txt+='<span class="Tern-completion-'+ptype+'"> '+pname+'</span>, ';
+                txt+='<span class="Tern-completionR-'+ptype+'"> '+pname+'</span>, ';
             }
 
             txt=txt.substring(0,txt.length-2);
@@ -164,7 +164,7 @@ define(function (require, exports, module) {
                 auxtype=tokens[1].toLowerCase();
 
                 ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
-                txt+=' >> <span class="Tern-completion-'+ptype+'"> ['+auxtype+']</span>';
+                txt+=' >> <span class="Tern-completionR-'+ptype+'"> ['+auxtype+']</span>';
             }
 
         }

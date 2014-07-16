@@ -57,9 +57,7 @@
   content: "0/1";
   background: #4cd;
   font-size: x-small;
-
 }
-
 .Tern-completion-guess {
   color: #248;
   background:#FAFAEA;
@@ -68,4 +66,56 @@
 
 .Tern-reference-highlight {
     background-color: yellow;
+}
+
+
+
+.Tern-completionR-unknown {
+  background: #AAA;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
+}
+.Tern-completionR-object {
+  background: #97d;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
+}
+.Tern-completionR-fn {
+  background: #7d7;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
+}
+.Tern-completionR-array {
+  background: #da4;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
+}
+.Tern-completionR-number {
+  background: #FF5050;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
+}
+.Tern-completionR-string {
+  background: #F8E;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
+}
+.Tern-completionR-bool {
+  background: #4cd;
+    width:8pt;
+    border-radius: 2pt;
+    color:white;
+    text-shadow: 0 0 1pt black;
 }

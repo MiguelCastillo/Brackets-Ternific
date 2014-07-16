@@ -6,7 +6,7 @@
 
 
 define(function (require, exports, module) {
-    'use strict';
+    "use strict";
 
     var spromise = require("libs/js/spromise");
 
@@ -24,12 +24,11 @@ define(function (require, exports, module) {
         return this.ternProvider.query( cm, "refs" )
             .then(function(data) {
                 var perFile = {}, i, use;
-                var drl = data,refs.length;
+                var drl = data.refs.length;
                 for (i = 0; i < drl; ++i) {
                     use = data.refs[i];
                     (perFile[use.file] || (perFile[use.file] = [])).push(use);
                 }
-
                 return perFile;
             },
             function(error) {
