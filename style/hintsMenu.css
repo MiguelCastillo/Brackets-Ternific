@@ -4,10 +4,11 @@
 
 .dropdown.codehint-menu.open .dropdown-menu::before {
     position: absolute;
-    top: -10px;
-    right: 0px;
+    top: 0px;
+    left: 2pt;
     content: "»";
     color: blue;
     height: 30px;
-    width: 30px;
+	min-height: 30px;
+    width: 30px;	
 }

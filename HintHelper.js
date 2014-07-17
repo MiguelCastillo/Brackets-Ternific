@@ -1,11 +1,14 @@
 /**
 *  This code has been taken from brackets javascriptcodehints.
+*  Fork by David Sánchez i Gregori
 *
 */
 
-define(function(require, exports, module){
 
-    var SINGLE_QUOTE    = "\'",
+define(function(require, exports, module){
+    "use strict";
+
+    var SINGLE_QUOTE    = "'",
         DOUBLE_QUOTE    = "\"",
         identifierRegex = /[0-9a-z_.\$]/i;
 
@@ -25,16 +28,16 @@ define(function(require, exports, module){
     function typeDetails (type) {
         var suffix;
 
-        if (type == "?") {
+        if (type === "?") {
             suffix = "unknown";
         }
-        else if (type == "number" || type == "string" || type == "bool") {
+        else if (type === "number" || type === "string" || type === "bool") {
             suffix = type;
         }
-        else if (/^fn\(/.test(type)) {
+        else if (type.length>3 && type.substring(0,3)==='fn('){
             suffix = "fn";
         }
-        else if (/^\[/.test(type)) {
+        else if (type.chartAt(0)==='[') {
             suffix = "array";
         }
         else {
@@ -60,8 +63,8 @@ define(function(require, exports, module){
      */
     function maybeIdentifier(key) {
         return identifierRegex.test(key) ||
-            (key.indexOf(SINGLE_QUOTE) === 0) ||
-            (key.indexOf(DOUBLE_QUOTE) === 0);
+            (key.charAt(0) === SINGLE_QUOTE) ||
+            (key.charAt(0) === DOUBLE_QUOTE);
     }
 
 
@@ -75,6 +78,7 @@ define(function(require, exports, module){
         switch (token.className) {
         case "comment":
         case "number":
+        case "string":
         case "regexp":
             return false;
         default:

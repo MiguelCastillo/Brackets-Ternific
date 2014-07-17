@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -13,11 +13,10 @@ define(function (require, exports, module) {
     "use strict";
 
     var _ = brackets.getModule("thirdparty/lodash");
-    var HintHelper  = require("HintHelper"),
-        SortingTmpl = require("text!tmpl/sorting.html");
+    var HintHelper  = require("HintHelper");
 
 
-    var MAX_DISPLAYED_HINTS = 400,
+    var MAX_DISPLAYED_HINTS = 512,
         SINGLE_QUOTE        = HintHelper.SINGLE_QUOTE,
         DOUBLE_QUOTE        = HintHelper.DOUBLE_QUOTE;
 
@@ -53,12 +52,7 @@ define(function (require, exports, module) {
             else {
                 // Give items that match the criteria higher priority than
                 // items with just perfect depth but no matching criteria.
-                if ( token.index !== -1 ) {
-                    return token.index + token.depth;
-                }
-                else {
-                    return placementOffset + token.depth;
-                }
+                return (token.index !== -1?token.index:placementOffset)+token.depth;
             }
         }
 
@@ -70,7 +64,8 @@ define(function (require, exports, module) {
                 length,
                 token,
                 group,
-                groupdId;
+                groupdId,
+                groupx;
 
             for(index = 0, length = tokens.length; index < length; index++) {
                 token = tokens[index];
@@ -79,7 +74,11 @@ define(function (require, exports, module) {
                 group.items.push(toHtml(token));
             }
 
-            $.each(groups, function(groupdId, group) {
+            groupdId=0;
+
+
+            for(groupx in groups){
+                group=groups[groupx];
                 var itemsLength = group.items.length,
                     resultLength = result.length;
 
@@ -88,15 +87,13 @@ define(function (require, exports, module) {
 
                 if (remaining > itemsLength) {
                     Array.prototype.push.apply(result, group.items);
-                }
-                else {
+                } else {
                     Array.prototype.push.apply(result, group.items.slice(0, maxItems));
                     return false;
                 }
 
-                // Or... Just copy all of it?
-                //Array.prototype.push.apply(result, group.items);
-            });
+                groupdId++;
+            }
 
             return result;
         }
@@ -138,6 +135,50 @@ define(function (require, exports, module) {
     })();
 
 
+    /**
+     * Formats the function parameters and it's return value.
+     * @param toke {string}
+     * @return {string}
+     */
+    function functionToHtml(token){
+        token = token||'';
+        token=token.replace(/(\s+)|(\(+)|(\)+)/g, '');
+
+        var txt=" (",tok,par,pars,param,pname,ptype,ret,auxtype;
+        var tokens = token.split('->')||[];
+
+        if (tokens.length>0){
+            tok=tokens[0];
+
+            pars=tok.split(',');
+            for(par in pars){
+                param = pars[par].split(':')||[];
+                pname=param[0];
+
+                auxtype=param.length>0?param[1].toLowerCase():'unknown';
+                ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
+
+                txt+='<span class="Tern-completionR-'+ptype+'"> '+pname+'</span>, ';
+            }
+
+            txt=txt.substring(0,txt.length-2);
+
+            txt+=")";
+            if (tokens.length>1){
+                auxtype=tokens[1].toLowerCase();
+
+                if (auxtype.length>0 && auxtype.charAt(0)==='{'){
+                    return txt;
+                }else{
+                    ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
+                }
+                txt+=' >> <span class="Tern-completionR-'+ptype+'">'+auxtype+'</span>';
+            }
+        }
+        return txt;
+    }
+
+
     function tokenToHtml(criteria, token) {
         var hint           = token.name,
             index          = token.index,
@@ -155,35 +196,38 @@ define(function (require, exports, module) {
         if ( index >= 0 ) {
             var prefix = _.escape(hint.slice(0, index)),
                 match  = _.escape(hint.slice(index, index + criteria.length)),
-                suffix = _.escape(hint.slice(index + criteria.length));
+                suffix = _.escape(hint.slice(index + criteria.length)),
+                xx;
 
-            hintHtml = ("<span class='brackets-js-hints {0}'>" +
-                            "<span class='type {1}'></span>" +
-                            "{2}" + //"<span class='prefix'></span>"
-                            "<span class='matched-hint'>{3}</span>" +
-                            "{4}" + //"<span class='suffix'></span>"
-                        "</span>").format(priority, icon, prefix, match, suffix);
+            if (completionType.name==="fn"){
+
+                xx = functionToHtml(token.type.substring(2));
+
+                hintHtml = "<span class='brackets-js-hints " + priority + "'>" +
+                    "<span class='type " + icon + "'></span>" +
+                    prefix + //"<span class='prefix'></span>"
+                    "<span class='matched-hint'>" + match + "</span>" +
+                    suffix + //"<span class='suffix'></span>"
+                    "<small>" + xx +"</small>"+
+                    "</span> ";
+            }else {
+                hintHtml = "<span class='brackets-js-hints " + priority + "'>" +
+                    "<span class='type " + icon + "'></span>" +
+                    prefix + //"<span class='prefix'></span>"
+                    "<span class='matched-hint'>" + match + "</span>" +
+                    suffix + //"<span class='suffix'></span>"
+                    "</span> ";
+            }
         }
         else {
-            hintHtml = ("<span class='brackets-js-hints {0}'>" +
-                            "<span class='type {1}'></span>" +
-                            "<span class='hint'>{2}</span>" +
-                        "</span>").format(priority, icon, hint);
+            hintHtml = "<span class='brackets-js-hints "+priority+"'>" +
+                       "<span class='type "+icon+"'></span>" +
+                       "<span class='hint'>"+hint+"</span>" +
+                       "</span>";
         }
-
-        return $(hintHtml).data("token", token);
+        return $(hintHtml).data("token",token);
     }
 
-
-    var Settings = (function() {
-        var $sorting = $(SortingTmpl).on("click", "li a", function(evt) {
-            console.log(evt);
-        });
-
-        return {
-            $sorting: $sorting
-        };
-    })();
 
 
     function HintsTransform(hints, sortType) {

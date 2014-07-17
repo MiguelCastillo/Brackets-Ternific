@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -24,7 +24,7 @@ define(function (require, exports, module) {
             caseInsensitive: true,
             type: "completions",
             types: true,
-            docs: true,
+            docs: false,
             filter: this.newSession !== true
         })
         .then(function(result, query) {
@@ -92,7 +92,6 @@ define(function (require, exports, module) {
         if ( !hint || !hints ) {
             throw new TypeError("Must provide valid hint and hints object as they are returned by calling getHints");
         }
-
         hints.cm.getDoc().replaceRange(hint.name, hints.result.start, hints.result.end);
     };
 

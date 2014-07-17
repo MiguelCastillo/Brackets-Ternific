@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -47,7 +47,7 @@ define(function (require, exports, module) {
 
 
     TernProvider.prototype.findDocByProperty = function (_propName, data) {
-        var index = 0, length = this.docs.length;
+        var index, length = this.docs.length;
         for (index = 0; index < length; index++) {
             if (this.docs[index][_propName] === data) {
                 return this.docs[index];

@@ -1,15 +1,15 @@
 {
-    "title": "Ternific",
-    "name": "ternific",
+    "title": "Ternifico",
+    "name": "ternifico",
     "description": "Javascript hinting with Tern in Brackets",
-    "version": "0.2.1",
-    "author": "Miguel Castillo <mahchagnu@gmail.com>",
-    "homepage": "https://github.com/MiguelCastillo/Brackets-Ternific",
+    "version": "0.0.3",
+    "author": "David Sánchez i Gregori",
+    "homepage": "https://github.com/David5i6/Brackets-Ternific",
     "repository": {
         "type": "git",
-        "url": "git://github.com/MiguelCastillo/Brackets-Ternific.git"
+        "url": "git://github.com/David5i6/Brackets-Ternific.git"
     },
     "engines": {
-        "brackets": ">=0.33.0"
+        "brackets": ">=0.34.0"
     }
 }

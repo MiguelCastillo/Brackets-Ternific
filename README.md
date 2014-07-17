@@ -1,4 +1,4 @@
-Brackets-Tern
+Ternifico
 =============
 
 [Tern](http://ternjs.net/) integration with brackets.<br>
@@ -22,8 +22,18 @@ FAQ
 
 Screenshots
 =============
-Tern hints on a string
-![Tern hints on a string](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/HintTypes.png)
+
+Completing an Array...
+
+![](https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_Array.png)
+
+Working with functions...
+
+![](https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_function.png)
+
+What can I do with a String ? ...
+
+![](https://raw.githubusercontent.com/David5i6/wiki/master/ternifico/images/Brackets_tern_string.png)
 
 
 Credit
@@ -31,7 +41,8 @@ Credit
 
 1. Brackets' javascript hinting has been used and code has been lifted and integrated into this extension.<br>
 2. Code has been taken from tern demo.js in order to make tern integration possible.<br>
-
+3. Original Ternific By Miguel del Castillo (this is a fork).<br>
+4. Me, David Sánchez Gregori the author of this fork.
 
 License
 =============

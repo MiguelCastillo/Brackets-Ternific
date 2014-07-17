@@ -115,6 +115,7 @@
       for (var i = 0, f; i < this.files.length; ++i) if ((f = this.files[i]).name == name) {
         clearFile(this, f, null, true);
         this.files.splice(i--, 1);
+        delete this.fileMap[name];
         return;
       }
     },
@@ -138,7 +139,7 @@
         c(err, data);
         if (self.uses > 40) {
           self.reset();
-          analyzeAll(self, function(){});
+          analyzeAll(self, null, function(){});
         }
       });
     },
@@ -149,7 +150,7 @@
 
     flush: function(c) {
       var cx = this.cx;
-      analyzeAll(this, function(err) {
+      analyzeAll(this, null, function(err) {
         if (err) return c(err);
         infer.withContext(cx, c);
       });
@@ -179,8 +180,9 @@
       ensureFile(srv, file.name, null, file.type == "full" ? file.text : null);
     }
 
+    var timeBudget = typeof doc.timeout == "number" ? [doc.timeout] : null;
     if (!query) {
-      analyzeAll(srv, function(){});
+      analyzeAll(srv, timeBudget, function(){});
       return;
     }
 
@@ -190,13 +192,13 @@
       if (!/^#/.test(query.file)) ensureFile(srv, query.file, null);
     }
 
-    analyzeAll(srv, function(err) {
+    analyzeAll(srv, timeBudget, function(err) {
       if (err) return c(err);
       var file = queryType.takesFile && resolveFile(srv, files, query.file);
       if (queryType.fullFile && file.type == "part")
         return c("Can't run a " + query.type + " query on a file fragment");
 
-      infer.withContext(srv.cx, function() {
+      function run() {
         var result;
         try {
           result = queryType.run(srv, query, file);
@@ -205,7 +207,8 @@
           return c(e);
         }
         c(null, result);
-      });
+      }
+      infer.withContext(srv.cx, timeBudget ? function() { infer.withTimeout(timeBudget[0], run); } : run);
     });
   }
 
@@ -248,14 +251,16 @@
     }
   }
 
-  function clearFile(srv, file, newText, purge) {
+  function clearFile(srv, file, newText, purgeVars) {
     if (file.scope) {
-      if (purge) infer.withContext(srv.cx, function() {
+      infer.withContext(srv.cx, function() {
         // FIXME try to batch purges into a single pass (each call needs
         // to traverse the whole graph)
         infer.purgeTypes(file.name);
-        infer.markVariablesDefinedBy(file.scope, file.name);
-        infer.purgeMarkedVariables(file.scope);
+        if (purgeVars) {
+          infer.markVariablesDefinedBy(file.scope, file.name);
+          infer.purgeMarkedVariables(file.scope);
+        }
       });
       file.scope = null;
     }
@@ -283,18 +288,18 @@
     if (done) c();
   }
 
-  function waitOnFetch(srv, c) {
+  function waitOnFetch(srv, timeBudget, c) {
     var done = function() {
       srv.off("everythingFetched", done);
       clearTimeout(timeout);
-      analyzeAll(srv, c);
+      analyzeAll(srv, timeBudget, c);
     };
     srv.on("everythingFetched", done);
     var timeout = setTimeout(done, srv.options.fetchTimeout);
   }
 
-  function analyzeAll(srv, c) {
-    if (srv.pending) return waitOnFetch(srv, c);
+  function analyzeAll(srv, timeBudget, c) {
+    if (srv.pending) return waitOnFetch(srv, timeBudget, c);
 
     var e = srv.fetchError;
     if (e) { srv.fetchError = null; return c(e); }
@@ -312,14 +317,19 @@
       toAnalyze.sort(function(a, b) { return parentDepth(a.parent) - parentDepth(b.parent); });
       for (var j = 0; j < toAnalyze.length; j++) {
         var file = toAnalyze[j];
-        if (file.parent && !chargeOnBudget(srv, file))
+        if (file.parent && !chargeOnBudget(srv, file)) {
           file.excluded = true;
-        else
+        } else if (timeBudget) {
+          var startTime = +new Date;
+          infer.withTimeout(timeBudget[0], function() { analyzeFile(srv, file); });
+          timeBudget[0] -= +new Date - startTime;
+        } else {
           analyzeFile(srv, file);
+        }
       }
     }
     if (done) c();
-    else waitOnFetch(srv, c);
+    else waitOnFetch(srv, timeBudget, c);
   }
 
   function firstLine(str) {
@@ -613,6 +623,7 @@
     }
 
     var memberExpr = infer.findExpressionAround(file.ast, null, wordStart, file.scope, "MemberExpression");
+    var hookname;
     if (memberExpr &&
         (memberExpr.node.computed ? isStringAround(memberExpr.node.property, wordStart, wordEnd)
                                   : memberExpr.node.object.end < wordStart)) {
@@ -629,10 +640,14 @@
       }
       if (!completions.length && word.length >= 2 && query.guess !== false)
         for (var prop in srv.cx.props) gather(prop, srv.cx.props[prop][0], 0);
+      hookname = "memberCompletion";
     } else {
       infer.forAllLocalsAt(file.ast, wordStart, file.scope, gather);
       if (query.includeKeywords) jsKeywords.forEach(function(kw) { gather(kw, null, 0); });
+      hookname = "completion";
     }
+    if (srv.passes[hookname])
+      srv.passes[hookname].forEach(function(hook) {hook(file, wordStart, wordEnd, gather);});
 
     if (query.sort !== false) completions.sort(compareCompletions);
     srv.cx.completingProperty = null;
@@ -874,5 +889,5 @@
     return {files: srv.files.map(function(f){return f.name;})};
   }
 
-  exports.version = "0.5.1";
+  exports.version = "0.6.3";
 });

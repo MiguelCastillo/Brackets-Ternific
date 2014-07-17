@@ -1,11 +1,12 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
 
 define(function(require, exports, module) {
+    "use strict";
 
     var spromise = require("libs/js/spromise");
     var TernDemo = require("TernDemo");
@@ -23,7 +24,7 @@ define(function(require, exports, module) {
                 $.ajax({
                     "url": "http://localhost:" + settings.port,
                     "type": "POST",
-                    "contentType": "application/json; charset=utf-8",
+                    "contentType": "application/json;charset=utf-8",
                     "data": JSON.stringify(data.body)
                 })
                 .done(function(result) {
@@ -79,7 +80,7 @@ define(function(require, exports, module) {
             require(portDef, function(port) {
                 $.ajax({
                     "url": "http://localhost:" + port + "/ping",
-                    "type": "GET"
+                    "type": "POST"
                 })
                 .done(function(result) {
                     resolve(init(provider, {

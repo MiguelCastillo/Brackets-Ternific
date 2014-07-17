@@ -1,8 +1,10 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
+
+"use strict";
 
 
 importScripts("tern/node_modules/acorn/acorn.js",
@@ -107,7 +109,7 @@ Server.prototype.request = function(data) {
 };
 
 
-onmessage = function(e) {
+var onmessage = function(e) {
     var data = e.data;
     var method = Server.instance && Server.instance[data.type];
 

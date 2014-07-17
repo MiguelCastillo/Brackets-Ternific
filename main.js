@@ -1,6 +1,6 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
- *
+ * Fork by David Sánchez i Gregori
  * Licensed under MIT
  */
 
@@ -15,14 +15,15 @@ define(function (require, exports, module) {
     var HintProvider = require('HintProvider'),
         TernManager  = require('TernManager');
 
-    // Load up string utils...
-    require("string");
+    var jsHints;
+    var _ternManager;
+
 
     ExtensionUtils.loadStyleSheet(module, "style/main.css");
     ExtensionUtils.loadStyleSheet(module, "style/hintsMenu.css");
     ExtensionUtils.loadStyleSheet(module, "style/ternSettings.css");
 
-    var _ternManager = new TernManager();
+    _ternManager = new TernManager();
     _ternManager.onReady(function () {
         /*
          * Handle the activeEditorChange event fired by EditorManager.
@@ -45,8 +46,7 @@ define(function (require, exports, module) {
         // immediately install the current editor
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
 
-        var jsHints = new HintProvider(_ternManager);
+        jsHints = new HintProvider(_ternManager);
         CodeHintManager.registerHintProvider(jsHints, ["javascript"], 1);
     });
-
 });
