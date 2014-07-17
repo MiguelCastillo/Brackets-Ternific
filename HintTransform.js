@@ -167,11 +167,14 @@ define(function (require, exports, module) {
             if (tokens.length>1){
                 auxtype=tokens[1].toLowerCase();
 
-                ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
+                if (auxtype.length>0 && auxtype.charAt(0)==='{'){
+                    return txt;
+                }else{
+                    ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
+                }
                 txt+=' >> <span class="Tern-completionR-'+ptype+'">'+auxtype+'</span>';
             }
         }
-
         return txt;
     }
 
@@ -222,8 +225,7 @@ define(function (require, exports, module) {
                        "<span class='hint'>"+hint+"</span>" +
                        "</span>";
         }
-
-        return hintHtml;
+        return $(hintHtml).data("token",token);
     }
 
 

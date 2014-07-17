@@ -6,7 +6,6 @@
 
 
 define(function(require, exports, module) {
-
     "use strict";
 
     var spromise = require("libs/js/spromise");
@@ -81,7 +80,7 @@ define(function(require, exports, module) {
             require(portDef, function(port) {
                 $.ajax({
                     "url": "http://localhost:" + port + "/ping",
-                    "type": "GET"
+                    "type": "POST"
                 })
                 .done(function(result) {
                     resolve(init(provider, {

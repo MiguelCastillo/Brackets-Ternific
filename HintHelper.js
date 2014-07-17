@@ -6,10 +6,9 @@
 
 
 define(function(require, exports, module){
-
     "use strict";
 
-    var SINGLE_QUOTE    = "\'",
+    var SINGLE_QUOTE    = "'",
         DOUBLE_QUOTE    = "\"",
         identifierRegex = /[0-9a-z_.\$]/i;
 
@@ -35,10 +34,10 @@ define(function(require, exports, module){
         else if (type === "number" || type === "string" || type === "bool") {
             suffix = type;
         }
-        else if (/^fn\(/.test(type)) {
+        else if (type.length>3 && type.substring(0,3)==='fn('){
             suffix = "fn";
         }
-        else if (/^\[/.test(type)) {
+        else if (type.chartAt(0)==='[') {
             suffix = "array";
         }
         else {
