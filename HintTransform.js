@@ -64,7 +64,8 @@ define(function (require, exports, module) {
                 length,
                 token,
                 group,
-                groupdId;
+                groupdId,
+                groupx;
 
             for(index = 0, length = tokens.length; index < length; index++) {
                 token = tokens[index];
@@ -73,7 +74,11 @@ define(function (require, exports, module) {
                 group.items.push(toHtml(token));
             }
 
-            $.each(groups, function(groupdId, group) {
+            groupdId=0;
+
+
+            for(groupx in groups){
+                group=groups[groupx];
                 var itemsLength = group.items.length,
                     resultLength = result.length;
 
@@ -87,9 +92,8 @@ define(function (require, exports, module) {
                     return false;
                 }
 
-                // Or... Just copy all of it?
-                //Array.prototype.push.apply(result, group.items);
-            });
+                groupdId++;
+            }
 
             return result;
         }
@@ -137,7 +141,7 @@ define(function (require, exports, module) {
      * @return {string}
      */
     function functionToHtml(token){
-        token = ''+token;
+        token = token||'';
         token=token.replace(/(\s+)|(\(+)|(\)+)/g, '');
 
         var txt=" (",tok,par,pars,param,pname,ptype,ret,auxtype;
@@ -164,10 +168,10 @@ define(function (require, exports, module) {
                 auxtype=tokens[1].toLowerCase();
 
                 ptype=auxtype==='?'?'unknown':(auxtype==='undefined'?'unknown':auxtype);
-                txt+=' >> <span class="Tern-completionR-'+ptype+'"> ['+auxtype+']</span>';
+                txt+=' >> <span class="Tern-completionR-'+ptype+'">'+auxtype+'</span>';
             }
-
         }
+
         return txt;
     }
 
@@ -189,11 +193,12 @@ define(function (require, exports, module) {
         if ( index >= 0 ) {
             var prefix = _.escape(hint.slice(0, index)),
                 match  = _.escape(hint.slice(index, index + criteria.length)),
-                suffix = _.escape(hint.slice(index + criteria.length));
+                suffix = _.escape(hint.slice(index + criteria.length)),
+                xx;
 
             if (completionType.name==="fn"){
 
-                var xx = functionToHtml(token.type.substring(2));
+                xx = functionToHtml(token.type.substring(2));
 
                 hintHtml = "<span class='brackets-js-hints " + priority + "'>" +
                     "<span class='type " + icon + "'></span>" +
@@ -218,8 +223,7 @@ define(function (require, exports, module) {
                        "</span>";
         }
 
-
-        return $(hintHtml).data("token", token);
+        return hintHtml;
     }
 
 
