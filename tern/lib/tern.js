@@ -4,14 +4,14 @@
 // project, and defines an interface for querying the code in the
 // project.
 
-(function(mod) {
+(function(root, mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
     return mod(exports, require("./infer"), require("./signal"),
                require("acorn/acorn"), require("acorn/util/walk"));
   if (typeof define == "function" && define.amd) // AMD
     return define(["exports", "./infer", "./signal", "acorn/acorn", "acorn/util/walk"], mod);
-  mod(self.tern || (self.tern = {}), tern, tern.signal, acorn, acorn.walk); // Plain browser env
-})(function(exports, infer, signal, acorn, walk) {
+  mod(root.tern || (root.tern = {}), tern, tern.signal, acorn, acorn.walk); // Plain browser env
+})(this, function(exports, infer, signal, acorn, walk) {
   "use strict";
 
   var plugins = Object.create(null);
@@ -115,6 +115,7 @@
       for (var i = 0, f; i < this.files.length; ++i) if ((f = this.files[i]).name == name) {
         clearFile(this, f, null, true);
         this.files.splice(i--, 1);
+        delete this.fileMap[name];
         return;
       }
     },
@@ -138,7 +139,7 @@
         c(err, data);
         if (self.uses > 40) {
           self.reset();
-          analyzeAll(self, function(){});
+          analyzeAll(self, null, function(){});
         }
       });
     },
@@ -149,7 +150,7 @@
 
     flush: function(c) {
       var cx = this.cx;
-      analyzeAll(this, function(err) {
+      analyzeAll(this, null, function(err) {
         if (err) return c(err);
         infer.withContext(cx, c);
       });
@@ -179,8 +180,9 @@
       ensureFile(srv, file.name, null, file.type == "full" ? file.text : null);
     }
 
+    var timeBudget = typeof doc.timeout == "number" ? [doc.timeout] : null;
     if (!query) {
-      analyzeAll(srv, function(){});
+      analyzeAll(srv, timeBudget, function(){});
       return;
     }
 
@@ -190,13 +192,13 @@
       if (!/^#/.test(query.file)) ensureFile(srv, query.file, null);
     }
 
-    analyzeAll(srv, function(err) {
+    analyzeAll(srv, timeBudget, function(err) {
       if (err) return c(err);
       var file = queryType.takesFile && resolveFile(srv, files, query.file);
       if (queryType.fullFile && file.type == "part")
         return c("Can't run a " + query.type + " query on a file fragment");
 
-      infer.withContext(srv.cx, function() {
+      function run() {
         var result;
         try {
           result = queryType.run(srv, query, file);
@@ -205,7 +207,8 @@
           return c(e);
         }
         c(null, result);
-      });
+      }
+      infer.withContext(srv.cx, timeBudget ? function() { infer.withTimeout(timeBudget[0], run); } : run);
     });
   }
 
@@ -225,7 +228,7 @@
     var known = srv.findFile(name);
     if (known) {
       if (text != null) clearFile(srv, known, text);
-      if (parentDepth(known.parent) > parentDepth(parent)) {
+      if (parentDepth(srv, known.parent) > parentDepth(srv, parent)) {
         known.parent = parent;
         if (known.excluded) known.excluded = null;
       }
@@ -248,14 +251,16 @@
     }
   }
 
-  function clearFile(srv, file, newText, purge) {
+  function clearFile(srv, file, newText, purgeVars) {
     if (file.scope) {
-      if (purge) infer.withContext(srv.cx, function() {
+      infer.withContext(srv.cx, function() {
         // FIXME try to batch purges into a single pass (each call needs
         // to traverse the whole graph)
         infer.purgeTypes(file.name);
-        infer.markVariablesDefinedBy(file.scope, file.name);
-        infer.purgeMarkedVariables(file.scope);
+        if (purgeVars) {
+          infer.markVariablesDefinedBy(file.scope, file.name);
+          infer.purgeMarkedVariables(file.scope);
+        }
       });
       file.scope = null;
     }
@@ -283,18 +288,18 @@
     if (done) c();
   }
 
-  function waitOnFetch(srv, c) {
+  function waitOnFetch(srv, timeBudget, c) {
     var done = function() {
       srv.off("everythingFetched", done);
       clearTimeout(timeout);
-      analyzeAll(srv, c);
+      analyzeAll(srv, timeBudget, c);
     };
     srv.on("everythingFetched", done);
     var timeout = setTimeout(done, srv.options.fetchTimeout);
   }
 
-  function analyzeAll(srv, c) {
-    if (srv.pending) return waitOnFetch(srv, c);
+  function analyzeAll(srv, timeBudget, c) {
+    if (srv.pending) return waitOnFetch(srv, timeBudget, c);
 
     var e = srv.fetchError;
     if (e) { srv.fetchError = null; return c(e); }
@@ -309,17 +314,24 @@
         if (file.text == null) done = false;
         else if (file.scope == null && !file.excluded) toAnalyze.push(file);
       }
-      toAnalyze.sort(function(a, b) { return parentDepth(a.parent) - parentDepth(b.parent); });
+      toAnalyze.sort(function(a, b) {
+        return parentDepth(srv, a.parent) - parentDepth(srv, b.parent);
+      });
       for (var j = 0; j < toAnalyze.length; j++) {
         var file = toAnalyze[j];
-        if (file.parent && !chargeOnBudget(srv, file))
+        if (file.parent && !chargeOnBudget(srv, file)) {
           file.excluded = true;
-        else
+        } else if (timeBudget) {
+          var startTime = +new Date;
+          infer.withTimeout(timeBudget[0], function() { analyzeFile(srv, file); });
+          timeBudget[0] -= +new Date - startTime;
+        } else {
           analyzeFile(srv, file);
+        }
       }
     }
     if (done) c();
-    else waitOnFetch(srv, c);
+    else waitOnFetch(srv, timeBudget, c);
   }
 
   function firstLine(str) {
@@ -582,7 +594,7 @@
     if (query.caseInsensitive) word = word.toLowerCase();
     var wrapAsObjs = query.types || query.depths || query.docs || query.urls || query.origins;
 
-    function gather(prop, obj, depth) {
+    function gather(prop, obj, depth, addInfo) {
       // 'hasOwnProperty' and such are usually just noise, leave them
       // out when no prefix is provided.
       if (query.omitObjectPrototype !== false && obj == srv.cx.protos.Object && !word) return;
@@ -595,8 +607,8 @@
       var rec = wrapAsObjs ? {name: prop} : prop;
       completions.push(rec);
 
-      if (query.types || query.docs || query.urls || query.origins) {
-        var val = obj ? obj.props[prop] : infer.ANull;
+      if (obj && (query.types || query.docs || query.urls || query.origins)) {
+        var val = obj.props[prop];
         infer.resetGuessing();
         var type = val.getType();
         rec.guess = infer.didGuess();
@@ -610,9 +622,11 @@
           maybeSet(rec, "origin", val.origin || type && type.origin);
       }
       if (query.depths) rec.depth = depth;
+      if (wrapAsObjs && addInfo) addInfo(rec);
     }
 
     var memberExpr = infer.findExpressionAround(file.ast, null, wordStart, file.scope, "MemberExpression");
+    var hookname;
     if (memberExpr &&
         (memberExpr.node.computed ? isStringAround(memberExpr.node.property, wordStart, wordEnd)
                                   : memberExpr.node.object.end < wordStart)) {
@@ -629,16 +643,23 @@
       }
       if (!completions.length && word.length >= 2 && query.guess !== false)
         for (var prop in srv.cx.props) gather(prop, srv.cx.props[prop][0], 0);
+      hookname = "memberCompletion";
     } else {
       infer.forAllLocalsAt(file.ast, wordStart, file.scope, gather);
-      if (query.includeKeywords) jsKeywords.forEach(function(kw) { gather(kw, null, 0); });
+      if (query.includeKeywords) jsKeywords.forEach(function(kw) {
+        gather(kw, null, 0, function(rec) { rec.isKeyword = true; });
+      });
+      hookname = "completion";
     }
+    if (srv.passes[hookname])
+      srv.passes[hookname].forEach(function(hook) {hook(file, wordStart, wordEnd, gather);});
 
     if (query.sort !== false) completions.sort(compareCompletions);
     srv.cx.completingProperty = null;
 
     return {start: outputPos(query, file, wordStart),
             end: outputPos(query, file, wordEnd),
+            isProperty: hookname == "memberCompletion",
             completions: completions};
   }
 
@@ -874,5 +895,5 @@
     return {files: srv.files.map(function(f){return f.name;})};
   }
 
-  exports.version = "0.5.1";
+  exports.version = "0.7.1";
 });

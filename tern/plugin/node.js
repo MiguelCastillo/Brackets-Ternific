@@ -70,19 +70,19 @@
         var file = module_._resolveFilename(name, currentModule);
       } catch(e) { return infer.ANull; }
 
-      if (data.modules[file]) return data.modules[file];
-      else {
-        // If the module resolves to a file that doesn't exist, then it is likely a node.js stdlib
-        // module that is not predefined below.
-        if (fs.existsSync(file) && /^(\.js)?$/.test(path.extname(file)))
-          server.addFile(relativePath(server.options.projectDir, file), null, data.currentOrigin);
-        return data.modules[file] = new infer.AVal;
-      }
+      var norm = normPath(file);
+      if (data.modules[norm]) return data.modules[norm];
+
+      if (fs.existsSync(file) && /^(\.js)?$/.test(path.extname(file)))
+        server.addFile(relativePath(server.options.projectDir, file), null, data.currentOrigin);
+      return data.modules[norm] = new infer.AVal;
     };
   })();
 
+  function normPath(name) { return name.replace(/\\/g, "/"); }
+
   function resolveProjectPath(server, pth) {
-    return resolvePath(server.options.projectDir + "/", pth.replace(/\\/g, "/"));
+    return resolvePath(normPath(server.options.projectDir) + "/", normPath(pth));
   }
 
   infer.registerFunction("nodeRequire", function(_self, _args, argNodes) {
@@ -2564,7 +2564,7 @@
           "!doc": "Stop a timer that was previously created with setInterval(). The callback will not execute."
         },
         setImmediate: {
-          "!type": "fn(callback: fn(), ms: number) -> timers.Timer",
+          "!type": "fn(callback: fn()) -> timers.Timer",
           "!url": "http://nodejs.org/api/timers.html#timers_setimmediate_callback_arg",
           "!doc": "Schedule the 'immediate' execution of callback after I/O events callbacks."
         },
