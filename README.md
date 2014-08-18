@@ -4,10 +4,11 @@ Brackets-Tern
 [Tern](http://ternjs.net/) integration with brackets.<br>
 
 1. Integration with brackets' native hint manager system.
-2. Run Tern as a server or integrated instance, which runs in a web worker.  Soon to come, ability to fire up a tern server from the UI.
-3. Per folder/project .tern-project.  Ternific will traverse the directory structure looking for the first available  .tern-project file. If no .tern-project is found, then a default .tern-project is loaded.
-4. Live reload of .tern-project.  So, saving changes will automatically take effect without reloading Brackets. [Only for integrated tern and not for servers yet].
-5. Support for Meteor plugin!  Thanks to Slava for https://github.com/Slava/tern-meteor.
+2. By default this extension runs tern in a worker thread (a web worker).
+3. You can also run a Tern server yourself. Soon to come, ability to fire up a tern server from the UI.
+4. Per folder/project .tern-project.  Ternific will traverse the directory structure looking for the first available  .tern-project file. If no .tern-project is found, then a default .tern-project is loaded.
+5. Live reload of .tern-project.  So, saving changes will automatically take effect without reloading Brackets. [Only for integrated tern and not for servers yet].
+6. Support for Meteor plugin!  Thanks to Slava for https://github.com/Slava/tern-meteor.
 
 
 FAQ
