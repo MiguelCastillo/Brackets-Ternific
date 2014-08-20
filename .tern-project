@@ -6,7 +6,7 @@
     "ecma5",
     "browser",
     "jquery",
-    "underscore"
+    "lodash"
   ],
   "loadEagerly": [],
   "async": true,
