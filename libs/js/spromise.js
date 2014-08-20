@@ -468,7 +468,7 @@ define( 'src/async',[],function() {
 define('src/promise',[
   "src/async"
 ], function (Async) {
-  
+
 
   var states = {
     "pending": 0,
@@ -491,12 +491,12 @@ define('src/promise',[
    * Small Promise
    */
   function Promise(resolver, options) {
-    if ( this instanceof Promise === false ) {
+    if (this instanceof Promise === false) {
       return new Promise(resolver, options);
     }
 
     var target       = this;
-    var stateManager = new StateManager(target, options || {});
+    var stateManager = new StateManager(options || {});
 
     /**
      * callback registration (then, done, fail, always) must be synchrounous so
@@ -547,6 +547,7 @@ define('src/promise',[
 
     target.always = always;
     target.done = done;
+    target.catch = fail;
     target.fail = fail;
     target.notify = notify;
     target.resolve = resolve;
@@ -556,6 +557,7 @@ define('src/promise',[
     target.promise = {
       always: always,
       done: done,
+      catch: fail,
       fail: fail,
       notify: notify,
       then: then,
@@ -563,7 +565,7 @@ define('src/promise',[
     };
 
     // Interface to allow to post pone calling the resolver as long as its not needed
-    if ( typeof(resolver) === "function" ) {
+    if (typeof (resolver) === "function") {
       resolver.call(target, target.resolve, target.reject);
     }
   }
@@ -587,7 +589,7 @@ define('src/promise',[
   /**
    * Create a promise that's already rejected
    */
-  Promise.rejected = function () {
+  Promise.reject = Promise.rejected = function () {
     return new Promise(null, {
       context: this,
       value: arguments,
@@ -598,7 +600,7 @@ define('src/promise',[
   /**
    * Create a promise that's already resolved
    */
-  Promise.resolved = function () {
+  Promise.resolve = Promise.resolved = function () {
     return new Promise(null, {
       context: this,
       value: arguments,
@@ -610,7 +612,7 @@ define('src/promise',[
   /**
    * StateManager is the state manager for a promise
    */
-  function StateManager(promise, options) {
+  function StateManager(options) {
     // Initial state is pending
     this.state = states.pending;
 
@@ -624,7 +626,7 @@ define('src/promise',[
   // action with the callback based on that.
   StateManager.prototype.enqueue = function (state, cb, sync) {
     var _self = this,
-        _state = _self.state;
+      _state  = _self.state;
 
     if (!_state) {
       (this.queue || (this.queue = [])).push({
@@ -635,7 +637,7 @@ define('src/promise',[
 
     // If resolved, then lets try to execute the queue
     else if (_state === state || states.always === state) {
-      if ( sync ) {
+      if (sync) {
         cb.apply(_self.context, _self.value);
       }
       else {
@@ -647,7 +649,7 @@ define('src/promise',[
 
     // Do proper notify events
     else if (states.notify === state) {
-      if ( sync ) {
+      if (sync) {
         cb.call(_self.context, _self.state, _self.value);
       }
       else {
@@ -677,7 +679,7 @@ define('src/promise',[
 
       this.queue = null;
 
-      for ( ; i < length; i++ ) {
+      for (; i < length; i++) {
         item = queue[i];
         this.enqueue(item.state, item.cb, sync);
       }
@@ -696,7 +698,7 @@ define('src/promise',[
     }
 
     resolution = new Resolution(new Promise());
-    this.enqueue( states.notify, resolution.notify(onResolved, onRejected) );
+    this.enqueue(states.notify, resolution.notify(onResolved, onRejected));
     return resolution.promise;
   };
 
@@ -709,15 +711,15 @@ define('src/promise',[
   }
 
   // Notify when a promise has change state.
-  Resolution.prototype.notify = function(onResolved, onRejected) {
+  Resolution.prototype.notify = function (onResolved, onRejected) {
     var _self = this;
     return function notify(state, value) {
       var handler = (onResolved || onRejected) && (state === states.resolved ? (onResolved || onRejected) : (onRejected || onResolved));
       try {
-        _self.context  = this;
+        _self.context = this;
         _self.finalize(state, handler ? [handler.apply(this, value)] : value);
       }
-      catch(ex) {
+      catch (ex) {
         _self.promise.reject.call(_self.context, ex);
       }
     };
@@ -737,7 +739,7 @@ define('src/promise',[
           _self.finalize(state, arguments);
         }
       }
-      catch(ex) {
+      catch (ex) {
         _self.promise.reject.call(_self.context, ex);
       }
     };
@@ -757,9 +759,10 @@ define('src/promise',[
     }
 
     // 2.3.2
-    // Shortcut if the incoming promise is an instance of SPromise
+    // Shortcut if the incoming promise is an instance of spromise
     if (then && then.constructor === Promise) {
-      return then.stateManager.enqueue(states.notify, this.notify(), true);
+      then.stateManager.enqueue(states.notify, this.notify(), true);
+      return;
     }
 
     // 2.3.3
@@ -780,7 +783,7 @@ define('src/promise',[
     // 2.3.4
     // Just resolve the promise
     else {
-      promise.then.stateManager.transition(state, context, data);
+      promise.then.stateManager.transition(state, context, data, true);
     }
   };
 
@@ -795,11 +798,11 @@ define('src/promise',[
  */
 
 
-define('src/when',[
+define('src/all',[
   "src/promise",
   "src/async"
 ], function(Promise, Async) {
-  
+
 
   function _result(input, args, context) {
     if (typeof(input) === "function") {
@@ -808,58 +811,45 @@ define('src/when',[
     return input;
   }
 
-  /**
-  * Interface to allow multiple promises to be synchronized
-  */
-  function When( ) {
-    // The input is the queue of items that need to be resolved.
-    var queue    = Array.prototype.slice.call(arguments),
-        promise  = Promise.defer(),
-        context  = this,
-        i, item, remaining, queueLength;
+  function All(values) {
+    values = values || [];
 
-    if ( !queue.length ) {
-      return promise.resolve(null);
+    // The input is the queue of items that need to be resolved.
+    var resolutions = [],
+        promise     = Promise.defer(),
+        context     = this,
+        remaining   = values.length;
+
+    if (!values.length) {
+      return promise.resolve(values);
     }
 
-    //
     // Check everytime a new resolved promise occurs if we are done processing all
     // the dependent promises.  If they are all done, then resolve the when promise
-    //
     function checkPending() {
-      if ( remaining ) {
-        remaining--;
-      }
-
-      if ( !remaining ) {
-        promise.resolve.apply(context, queue);
+      remaining--;
+      if (!remaining) {
+        promise.resolve.call(context, resolutions);
       }
     }
 
     // Wrap the resolution to keep track of the proper index in the closure
-    function resolve( index ) {
+    function resolve(index) {
       return function() {
-        // We will replace the item in the queue with result to make
-        // it easy to send all the data into the resolve interface.
-        queue[index] = arguments.length === 1 ? arguments[0] : arguments;
+        resolutions[index] = arguments.length === 1 ? arguments[0] : arguments;
         checkPending();
       };
     }
 
-    function reject() {
-      promise.reject.apply(this, arguments);
-    }
-
     function processQueue() {
-      queueLength = remaining = queue.length;
-      for ( i = 0; i < queueLength; i++ ) {
-        item = queue[i];
-
-        if ( item && typeof item.then === "function" ) {
-          item.then(resolve(i), reject);
+      var i, item, length;
+      for (i = 0, length = remaining; i < length; i++) {
+        item = values[i];
+        if (item && typeof item.then === "function") {
+          item.then(resolve(i), promise.reject);
         }
         else {
-          queue[i] = _result(item);
+          resolutions[i] = _result(item);
           checkPending();
         }
       }
@@ -868,6 +858,37 @@ define('src/when',[
     // Process the promises and callbacks
     Async(processQueue);
     return promise;
+  }
+
+  return All;
+});
+
+
+/**
+ * spromise Copyright (c) 2014 Miguel Castillo.
+ * Licensed under MIT
+ */
+
+
+define('src/when',[
+  "src/promise",
+  "src/all"
+], function(Promise, All) {
+
+
+  /**
+  * Interface to allow multiple promises to be synchronized
+  */
+  function When() {
+    var context = this, args = arguments;
+    return Promise(function(resolve, reject) {
+      All.call(context, args).then(function(results) {
+        resolve.apply(context, results);
+      },
+      function(reason) {
+        reject.call(context, reason);
+      });
+    });
   }
 
   return When;
@@ -883,10 +904,12 @@ define('src/when',[
 define('src/spromise',[
   "src/promise",
   "src/async",
-  "src/when"
-], function(promise, async, when) {
-  promise.when = when;
+  "src/when",
+  "src/all"
+], function(promise, async, when, all) {
   promise.async  = async;
+  promise.when = when;
+  promise.all = all;
   return promise;
 });
 
