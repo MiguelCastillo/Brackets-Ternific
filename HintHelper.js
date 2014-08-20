@@ -59,9 +59,7 @@ define(function(require, exports, module){
      * @return {boolean} - could key be a valid identifier?
      */
     function maybeIdentifier(key) {
-        return identifierRegex.test(key) ||
-            (key.indexOf(SINGLE_QUOTE) === 0) ||
-            (key.indexOf(DOUBLE_QUOTE) === 0);
+        return identifierRegex.test(key);
     }
 
 
@@ -72,8 +70,9 @@ define(function(require, exports, module){
      * @return {boolean} - could the token be hintable?
      */
     function hintable(token) {
-        switch (token.className) {
+        switch (token.type) {
         case "comment":
+        case "string":
         case "number":
         case "regexp":
             return false;

@@ -23,6 +23,7 @@ define(function (require, exports, module) {
     ExtensionUtils.loadStyleSheet(module, "style/ternSettings.css");
 
     var _ternManager = new TernManager();
+
     _ternManager.onReady(function () {
         /*
          * Handle the activeEditorChange event fired by EditorManager.
@@ -35,18 +36,13 @@ define(function (require, exports, module) {
          */
         function handleActiveEditorChange(event, current, previous) {
             if (current) {
-                _ternManager.register(current._codeMirror, current.document.file);
+                _ternManager.registerDocument(current._codeMirror, current.document.file);
             }
         }
 
-        // install change listener as the active editor changes
         $(EditorManager).on("activeEditorChange.ternific", handleActiveEditorChange);
-
-        // immediately install the current editor
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
-
-        var jsHints = new HintProvider(_ternManager);
-        CodeHintManager.registerHintProvider(jsHints, ["javascript"], 1);
+        CodeHintManager.registerHintProvider(new HintProvider(_ternManager), ["javascript"], 1);
     });
 
 });

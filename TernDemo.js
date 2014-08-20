@@ -116,11 +116,10 @@ define(function(require, exports, module) {
         server = _server;
 
         return {
-            server: _server,
             trackChange: trackChange,
             buildRequest: buildRequest,
             query: function(cm, query, allowFragments){
-                if(!curDoc) {
+                if (!curDoc) {
                     return "";
                 }
 
@@ -135,17 +134,13 @@ define(function(require, exports, module) {
                     expandWordForward: false
                 }, ternRequest.query);
 
-                return spromise(function(resolve) {
-                    server.request(ternRequest).done(function(result) {
-                        resolve(result, ternRequest);
-                    });
-                }).promise;
+                return server.request(ternRequest);
             },
             setCurrentDocument: function(_curDoc){
                 curDoc = _curDoc;
             },
             setServer: function(_server){
-                //server = _server;
+                server = _server;
             },
             setDocs: function(_docs){
                 docs = _docs;

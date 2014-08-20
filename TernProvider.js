@@ -15,11 +15,11 @@ define(function (require, exports, module) {
         fileLoader   = require("FileLoader");
 
     /**
-    * @constructor
-    *
-    * TernProvider is a set of interfaces that facilitate the interaction
-    * with tern.
-    */
+     * @constructor
+     *
+     * TernProvider is a set of interfaces that facilitate the interaction
+     * with tern.
+     */
     function TernProvider() {
         var _self = this;
         _self.docs = [];
@@ -38,18 +38,14 @@ define(function (require, exports, module) {
 
 
     TernProvider.prototype.query = function (cm, settings, allowFragments) {
-        var _self = this;
-        return _self.tern.query( cm, settings, allowFragments )
-            .done(function(data, query) {
-                query.doc = _self.findDocByCM(cm);
-            });
+        return this.tern.query(cm, settings, allowFragments);
     };
 
 
-    TernProvider.prototype.findDocByProperty = function (_propName, data) {
+    TernProvider.prototype.findDocByProperty = function (propName, data) {
         var index = 0, length = this.docs.length;
         for (index = 0; index < length; index++) {
-            if (this.docs[index][_propName] === data) {
+            if (this.docs[index][propName] === data) {
                 return this.docs[index];
             }
         }
@@ -71,7 +67,7 @@ define(function (require, exports, module) {
     };
 
 
-    TernProvider.prototype.register = function (cm, file) {
+    TernProvider.prototype.registerDocument = function (cm, file) {
         var _self   = this,
             name    = file.name,
             dir     = file.parentPath,
@@ -128,7 +124,7 @@ define(function (require, exports, module) {
     };
 
 
-    TernProvider.prototype.unregister = function (cm) {
+    TernProvider.prototype.unregisterDocument = function (cm) {
         var docMeta = this.findDocByCM(cm);
         if (docMeta) {
             delete docMeta.cm;
@@ -140,11 +136,11 @@ define(function (require, exports, module) {
 
 
     /**
-    * Will read file from disk or remote http file, then will load the content
-    * into tern's server.
-    *
-    * * This will bypass the list of cached documents.
-    */
+     * Will read file from disk or remote http file, then will load the content
+     * into tern's server.
+     *
+     * This will bypass the list of cached documents.
+     */
     TernProvider.prototype.addFile = function (name, root) {
         var _self = this;
 
@@ -162,8 +158,8 @@ define(function (require, exports, module) {
 
 
     /**
-    *  Interface to operate against a local instance of tern
-    */
+     *  Interface to operate against a local instance of tern
+     */
     function LocalProvider() {
         TernProvider.apply(this, arguments);
         var _self = this;
@@ -179,10 +175,10 @@ define(function (require, exports, module) {
 
 
     /**
-    * Gets a file from the list of cached documents. If the document isn't cached,
-    * it will get loaded either from local drive or remote via http.  This newly
-    * retrieved document will be added to the list of cached documents.
-    */
+     * Gets a file from the list of cached documents. If the document isn't cached,
+     * it will get loaded either from local drive or remote via http.  This newly
+     * retrieved document will be added to the list of cached documents.
+     */
     LocalProvider.prototype.getFile = function (name, root) {
         var _self = this;
         var docMeta = _self.findDocByName(name);
@@ -206,8 +202,8 @@ define(function (require, exports, module) {
 
 
     /**
-    *  Interface to operate against a remote tern server
-    */
+     *  Interface to operate against a remote tern server
+     */
     function RemoteProvider() {
         TernProvider.apply(this, arguments);
         var _self = this;

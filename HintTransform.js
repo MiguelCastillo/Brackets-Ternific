@@ -36,7 +36,7 @@ define(function (require, exports, module) {
 
         function matchByType(type, criteria, token) {
             token.index = token.name.indexOf(criteria);
-            if (token.type === type) {
+            if (token.typeInfo.name === type) {
                 return token.index;
             }
             else {
@@ -74,28 +74,14 @@ define(function (require, exports, module) {
 
             for(index = 0, length = tokens.length; index < length; index++) {
                 token = tokens[index];
+                token.typeInfo = HintHelper.typeDetails(token.type);
                 token.level = groupdId = clasify(token);
                 group = groups[groupdId] || (groups[groupdId] = {items:[]});
                 group.items.push(toHtml(token));
             }
 
-            $.each(groups, function(groupdId, group) {
-                var itemsLength = group.items.length,
-                    resultLength = result.length;
-
-                var remaining = (limit - resultLength);
-                var maxItems = remaining > itemsLength ? itemsLength : remaining;
-
-                if (remaining > itemsLength) {
-                    Array.prototype.push.apply(result, group.items);
-                }
-                else {
-                    Array.prototype.push.apply(result, group.items.slice(0, maxItems));
-                    return false;
-                }
-
-                // Or... Just copy all of it?
-                //Array.prototype.push.apply(result, group.items);
+            _.each(groups, function(group, groupId) {
+                Array.prototype.push.apply(result, group.items);
             });
 
             return result;
@@ -139,11 +125,10 @@ define(function (require, exports, module) {
 
 
     function tokenToHtml(criteria, token) {
-        var hint           = token.name,
-            index          = token.index,
-            priority       = Priorities[token.level] || Priorities['1'],
-            completionType = HintHelper.typeDetails(token.type),
-            icon           = completionType.icon;
+        var hint     = token.name,
+            index    = token.index,
+            icon     = token.typeInfo.icon,
+            priority = Priorities[token.level] || Priorities['1'];
 
         if (token.guess) {
             icon += " Tern-completion-guess";
@@ -152,7 +137,7 @@ define(function (require, exports, module) {
         var hintHtml;
 
         // higlight the matched portion of each hint
-        if ( index >= 0 ) {
+        if (index >= 0) {
             var prefix = _.escape(hint.slice(0, index)),
                 match  = _.escape(hint.slice(index, index + criteria.length)),
                 suffix = _.escape(hint.slice(index + criteria.length));
@@ -175,29 +160,16 @@ define(function (require, exports, module) {
     }
 
 
-    var Settings = (function() {
-        var $sorting = $(SortingTmpl).on("click", "li a", function(evt) {
-            console.log(evt);
-        });
-
-        return {
-            $sorting: $sorting
-        };
-    })();
-
-
     function HintsTransform(hints, sortType) {
         var hintList;
-        sortType = sortType || "byMatch";
-
-        var trimmedQuery;
+        var hintList, trimmedQuery, lastChar;
         var query = hints.text;
         var firstChar = query.charAt(0);
 
         if (firstChar === SINGLE_QUOTE || firstChar === DOUBLE_QUOTE) {
             trimmedQuery = query.substring(1);
-            var lastChar = trimmedQuery.charAt(trimmedQuery.length - 1);
-            if( lastChar === SINGLE_QUOTE || lastChar === DOUBLE_QUOTE) {
+            lastChar = trimmedQuery.charAt(trimmedQuery.length - 1);
+            if (lastChar === SINGLE_QUOTE || lastChar === DOUBLE_QUOTE) {
                 trimmedQuery = trimmedQuery.substring(0, trimmedQuery.length - 1);
             }
         }
@@ -205,14 +177,24 @@ define(function (require, exports, module) {
             trimmedQuery = query;
         }
 
-        hintList = sorter[sortType](hints.result.completions, trimmedQuery);
+        // Build list of hints.
+        hintList = sorter[sortType || HintsTransform.sort.byMatch](hints.result.completions, trimmedQuery);
 
         return {
             hints: hintList,
-            match: null, // the CodeHintManager should not format the results
+            match: null, // Prevent CodeHintManager from formatting results
             selectInitial: true
         };
     }
+
+
+    HintsTransform.sort = {
+        "byFunction": "byFunction",
+        "byMatch": "byMatch",
+        "byPass": "byPass",
+        "byObject": "byObject",
+        "byString": "byString"
+    };
 
 
     return HintsTransform;

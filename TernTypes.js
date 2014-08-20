@@ -34,7 +34,6 @@ define(function (require, exports, module) {
                     type: findTypeType.name,
                     icon: findTypeType.icon,
                     className: className,
-                    query: data.query,
                     _find: data,
                     _type: HintHelper.findTypeType
                 };

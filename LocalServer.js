@@ -52,7 +52,7 @@ define(function(require, exports, module) {
                 console.log(data.message);
             }
             else if (current) {
-                current.deferred.resolve(data);
+                current.deferred.resolve(data.body);
             }
         };
 
@@ -72,47 +72,39 @@ define(function(require, exports, module) {
                 return;
             }
 
-            // If there is already a pending request, we will basically invalidate that
-            // request and queue up the incoming new one...  What this will do is that it
-            // will make make sure we are only processing the first and last request for
-            // hints.  Anything in the middle isn't as important because we are generally
-            // interested in the very last input to properly show which hints are available
-            // at the time the user stops typing.  Keeping track of the first request allows
-            // me to make sure I don't flood tern with requests.
-            if ( pending ) {
-                pending.deferred.resolve();
-            }
-
             // New request
-            pending = {
+            var request = {
                 data: data,
                 deferred: spromise.defer()
             };
 
-            if ( current && current.deferred.state() === "pending" ) {
-                return pending.deferred.then( resolvePending );
+
+            if (!current) {
+                current = request;
+                worker.postMessage(request.data);
             }
             else {
-                current = pending;
-                pending = null;
-                worker.postMessage(data);
-                return current.deferred.then( resolvePending );
+                if (pending) {
+                    // Resolve with null to trigger a cancellation...  This happens when we
+                    // can safely skip requests before they are sent for processing to tern.
+                    pending.deferred.resolve(null);
+                }
+
+                pending = request;
             }
+
+            return request.deferred.done(processResponse);
         };
 
 
-        function resolvePending(response) {
-            // Send the last pending request
-            if ( pending ) {
+        function processResponse(response) {
+            if (response !== null) {
                 current = pending;
-                pending = null;
-                worker.postMessage(current.data);
+                if (pending) {
+                    pending = null;
+                    worker.postMessage(current.data);
+                }
             }
-            else {
-                current = null;
-            }
-
-            return response.body;
         }
 
 
