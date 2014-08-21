@@ -79,7 +79,7 @@
     };
   })();
 
-  function normPath(name) { return name.replace(/\\/g, "/"); }
+  function normPath(name) { return ("" + name).replace(/\\/g, "/"); }
 
   function resolveProjectPath(server, pth) {
     return resolvePath(normPath(server.options.projectDir) + "/", normPath(pth));
@@ -102,7 +102,7 @@
     } else {
       // data.currentFile is only available while analyzing a file; at query
       // time, determine the calling file from the caller's AST.
-      var currentFile = data.currentFile || resolveProjectPath(server, argNodes[0].sourceFile.name);
+      var currentFile = data.currentFile || resolveProjectPath(server._node, argNodes[0].sourceFile.name);
 
       var relative = /^\.{0,2}\//.test(name);
       if (relative) {
@@ -148,7 +148,7 @@
     };
 
     server.on("beforeLoad", function(file) {
-      this._node.currentFile = resolveProjectPath(server, file.name);
+      this._node.currentFile = resolveProjectPath(server._node, file.name);
       this._node.currentOrigin = file.name;
       this._node.currentRequires = [];
       file.scope = buildWrappingScope(file.scope, this._node.currentOrigin, file.ast);
@@ -185,7 +185,7 @@
         return target;
       }
 
-      var known = server._node.modules[resolveProjectPath(server, file.name)];
+      var known = server._node.modules[resolveProjectPath(server._node, file.name)];
       if (!known) return {};
       var type = known.getType(false);
       var resp = describe(known);
