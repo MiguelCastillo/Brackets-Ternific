@@ -79,7 +79,7 @@
     };
   })();
 
-  function normPath(name) { return ("" + name).replace(/\\/g, "/"); }
+  function normPath(name) { return (name || "").replace(/\\/g, "/"); }
 
   function resolveProjectPath(server, pth) {
     return resolvePath(normPath(server._node.options.projectDir) + "/", normPath(pth));
