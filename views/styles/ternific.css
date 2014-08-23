@@ -1,0 +1,23 @@
+#ternific * {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+#ternific > .resizable-content {
+    padding: 12px;
+    position: relative;
+}
+
+.hintDetails .name {
+}
+
+.hintDetails .arguments {
+}
+
+.hintDetails .returns {
+}
+
+.hintDetails .description {
+}
+

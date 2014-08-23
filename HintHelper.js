@@ -22,8 +22,8 @@ define(function(require, exports, module){
     }
 
 
-    function typeDetails (type) {
-        var suffix;
+    function typeInfo (type) {
+        var suffix, args, returns;
 
         if (type == "?") {
             suffix = "unknown";
@@ -33,6 +33,12 @@ define(function(require, exports, module){
         }
         else if (/^fn\(/.test(type)) {
             suffix = "fn";
+            args = /^fn\(([\w\W]*)\)(?:[\s]*->[\s]*([\w\W]*))?/g.exec(type);
+
+            if (args) {
+                returns = args[2];
+                args = args[1];
+            }
         }
         else if (/^\[/.test(type)) {
             suffix = "array";
@@ -43,7 +49,9 @@ define(function(require, exports, module){
 
         return {
             icon: "Tern-completion Tern-completion-" + suffix,
-            name: suffix
+            name: suffix,
+            args: args,
+            returns: returns
         };
     }
 
@@ -85,7 +93,7 @@ define(function(require, exports, module){
     return {
         SINGLE_QUOTE: SINGLE_QUOTE,
         DOUBLE_QUOTE: DOUBLE_QUOTE,
-        typeDetails: typeDetails,
+        typeInfo: typeInfo,
         maybeIdentifier: maybeIdentifier,
         hintable: hintable,
         pathFile: pathFile

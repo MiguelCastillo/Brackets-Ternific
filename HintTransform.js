@@ -13,8 +13,8 @@ define(function (require, exports, module) {
     "use strict";
 
     var _ = brackets.getModule("thirdparty/lodash");
-    var HintHelper  = require("HintHelper"),
-        SortingTmpl = require("text!tmpl/sorting.html");
+    var CodeHintManager = brackets.getModule("editor/CodeHintManager"),
+        HintHelper      = require("HintHelper");
 
 
     var MAX_DISPLAYED_HINTS = 400,
@@ -74,7 +74,7 @@ define(function (require, exports, module) {
 
             for(index = 0, length = tokens.length; index < length; index++) {
                 token = tokens[index];
-                token.typeInfo = HintHelper.typeDetails(token.type);
+                token.typeInfo = HintHelper.typeInfo(token.type);
                 token.level = groupdId = clasify(token);
                 group = groups[groupdId] || (groups[groupdId] = {items:[]});
                 group.items.push(toHtml(token));
@@ -179,6 +179,12 @@ define(function (require, exports, module) {
 
         // Build list of hints.
         hintList = sorter[sortType || HintsTransform.sort.byMatch](hints.result.completions, trimmedQuery);
+
+        setTimeout(function() {
+            if (CodeHintManager._getCodeHintList()) {
+                //console.log(CodeHintManager._getCodeHintList()._calcHintListLocation());
+            }
+        }, 0);
 
         return {
             hints: hintList,

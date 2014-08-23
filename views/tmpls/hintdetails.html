@@ -1,0 +1,15 @@
+<div class='hintDetails'>
+    <div class='name'>{{name}}</div>
+
+    {{#typeInfo.args}}
+    <div class='arguments'><span class='header'>Arguments:</span> <div class='body'>{{typeInfo.args}}</div></div>
+    {{/typeInfo.args}}
+
+    {{#typeInfo.returns}}
+    <div class='returns'><span class='header'>Returns:</span> <div class='body'>{{typeInfo.returns}}</div></div>
+    {{/typeInfo.returns}}
+
+    {{#doc}}
+    <div class='description'><span class='header'>Description:</span> <div class='body'>{{doc}}</div></div>
+    {{/doc}}
+</div>
