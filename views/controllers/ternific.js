@@ -19,6 +19,11 @@ define(function(require, exports, module) {
     });
 
 
+    $(document).on("click", ".ternific-toolbar-icon", function(evt) {
+        toggle(true);
+    });
+
+
     $(menu).on("manager.ternific", function(evt) {
         toggle(true);
     });
@@ -55,6 +60,8 @@ define(function(require, exports, module) {
         $container = $("<div id='ternific' class='bottom-panel vert-resizable top-resizer'>").append(tmpls.$ternific);
         $container.on("click", ".close", function (evt) {toggle(false);});
         PanelManager.createBottomPanel("tomcat.manager", $container, 100);
+
+        $("#main-toolbar .buttons").append("<a href='#' class='ternific-toolbar-icon' title='Ternific'></a>");
     }
 
     exports.init = init;

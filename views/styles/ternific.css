@@ -71,3 +71,21 @@
 #ternific .hintDetails .description {
 }
 
+.ternific-toolbar-icon {
+    display: inline-block;
+    font-family: FontAwesome;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-size: 1.25em;
+    color: #c7c7c7;
+}
+
+.ternific-toolbar-icon:hover {
+    color: #c7c7c7;
+}
+
+.ternific-toolbar-icon:before {
+    content: "\f03a";
+}
