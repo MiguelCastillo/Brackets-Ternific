@@ -1,13 +1,10 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
  *
+ * Some of the code in this module has been derived from brackets javascript hints
  * Licensed under MIT
  */
 
-
-/*
-* Some of the code in this module has been derived from brackets javascript hints
-*/
 
 define(function (require, exports, module) {
     "use strict";

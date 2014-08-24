@@ -1,9 +1,13 @@
 /**
-*  This code has been taken from brackets javascriptcodehints.
-*
-*/
+ * Ternific Copyright (c) 2014 Miguel Castillo.
+ *
+ * Some of this code has been taken from brackets javascriptcodehints.
+ * Licensed under MIT
+ */
 
-define(function(require, exports, module){
+
+define(function(require, exports, module) {
+    "use strict";
 
     var SINGLE_QUOTE    = "\'",
         DOUBLE_QUOTE    = "\"",

@@ -1,4 +1,13 @@
+/**
+ * Ternific Copyright (c) 2014 Miguel Castillo.
+ *
+ * Licensed under MIT
+ */
+
+
 define(function(require, exports, module) {
+    "use strict";
+
     var CommandManager = brackets.getModule("command/CommandManager"),
         Commands       = brackets.getModule("command/Commands"),
         Menus          = brackets.getModule("command/Menus");

@@ -1,4 +1,12 @@
+/**
+ * Ternific Copyright (c) 2014 Miguel Castillo.
+ *
+ * Licensed under MIT
+ */
+
+
 define(function(require, exports, module) {
+    "use strict";
 
     var PanelManager   = brackets.getModule("view/PanelManager"),
         Resizer        = brackets.getModule("utils/Resizer"),
