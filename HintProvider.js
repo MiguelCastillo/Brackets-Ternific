@@ -5,7 +5,8 @@
  */
 
 
-define(function(require, exports, module){
+define(function(require, exports, module) {
+    "use strict";
 
     var CodeHintManager = brackets.getModule("editor/CodeHintManager");
     var HintTransform = require("HintTransform"),
