@@ -5,7 +5,7 @@ define(function(require, exports, module) {
         menu           = require("Menu"),
         hintProvider   = require("HintProvider");
 
-    var $container;
+    var $container, $hints, hints;
 
     var tmpls = {
         $ternific: $(require("text!views/tmpls/ternific.html")),
@@ -13,19 +13,32 @@ define(function(require, exports, module) {
     };
 
 
+    $(document).on("click", ".hintList li", function(evt) {
+        $hints.filter(".active").removeClass("active");
+        highlightHint( hints[  $hints.index( $(this).addClass("active") ) ] );
+    });
+
+
     $(menu).on("manager.ternific", function(evt) {
         toggle(true);
     });
 
 
-    $(hintProvider).on("hints", function(evt, hints, hintsHtml) {
-        tmpls.$ternific.find(".hintList").html($("<ul>").append($(hintsHtml)));
+    $(hintProvider).on("hints", function(evt, hintsList, hintsHtml) {
+        hints = hintsList;
+        $hints = $(hintsHtml);
+        tmpls.$ternific.find(".hintList").html($("<ul>").append($hints));
     });
 
 
-    $(hintProvider).on("highlight", function(evt, highlight) {
-        tmpls.$ternific.find(".hintDetails").html($(Mustache.render(tmpls.hintdetails, highlight)));
+    $(hintProvider).on("highlight", function(evt, hint) {
+        highlightHint(hint);
     });
+
+
+    function highlightHint(hint) {
+        tmpls.$ternific.find(".hintDetails").html($(Mustache.render(tmpls.hintdetails, hint)));
+    }
 
 
     function toggle(open) {

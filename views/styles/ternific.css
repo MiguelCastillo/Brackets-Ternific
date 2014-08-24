@@ -15,23 +15,35 @@
 
 
 #ternific .hintList {
+    height: inherit;
+    width: 240px;
     position: absolute;
     right: 0px;
     top: 0px;
-    height: inherit;
-    width: 240px;
+    padding: 4px;
+    border-left: 1px solid #cdcdcd;
 }
 
 #ternific .hintList > ul {
     height: 100%;
     overflow: scroll;
+    margin: 0px;
+}
+
+#ternific .hintList > ul > li:hover {
+    cursor: pointer;
+    background: #e0f0fa;
+}
+
+#ternific .hintList > ul > li.active {
+    background: #e0f0fa;
 }
 
 
 #ternific .hintDetails {
-    padding: 12px;
     height: inherit;
     overflow: scroll;
+    padding: 12px;
 }
 
 #ternific .hintDetails > div {
