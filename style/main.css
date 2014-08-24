@@ -34,7 +34,7 @@
   content: "O";
   background: #77c;
 }
-.Tern-completion-fn:before {
+.Tern-completion-function:before {
   content: "F";
   background: #7c7;
 }

@@ -65,7 +65,9 @@ define(function (require, exports, module) {
 
         function _sort(tokens, clasify, toHtml) {
             var groups = {},
-                result = [],
+                result = {tokens: [], hints: [], html: ""},
+                html   = "",
+                hint,
                 index,
                 length,
                 token,
@@ -76,12 +78,18 @@ define(function (require, exports, module) {
                 token = tokens[index];
                 token.typeInfo = HintHelper.typeInfo(token.type);
                 token.level = groupdId = clasify(token);
-                group = groups[groupdId] || (groups[groupdId] = {items:[]});
-                group.items.push(toHtml(token));
+
+                group = groups[groupdId] || (groups[groupdId] = {html: '', hints: [], tokens: []});
+                hint = toHtml(token);
+                group.html += "<li>" + hint + "</li>";
+                group.hints.push(hint);
+                group.tokens.push(token);
             }
 
             _.each(groups, function(group, groupId) {
-                Array.prototype.push.apply(result, group.items);
+                result.html += group.html;
+                result.hints.push.apply(result.hints, group.hints);
+                result.tokens.push.apply(result.tokens, group.tokens);
             });
 
             return result;
@@ -156,7 +164,7 @@ define(function (require, exports, module) {
                         "</span>").format(priority, icon, hint);
         }
 
-        return $(hintHtml).data("token", token);
+        return hintHtml;
     }
 
 
@@ -178,19 +186,7 @@ define(function (require, exports, module) {
         }
 
         // Build list of hints.
-        hintList = sorter[sortType || HintsTransform.sort.byMatch](hints.result.completions, trimmedQuery);
-
-        setTimeout(function() {
-            if (CodeHintManager._getCodeHintList()) {
-                //console.log(CodeHintManager._getCodeHintList()._calcHintListLocation());
-            }
-        }, 0);
-
-        return {
-            hints: hintList,
-            match: null, // Prevent CodeHintManager from formatting results
-            selectInitial: true
-        };
+        return sorter[sortType || HintsTransform.sort.byMatch](hints.result.completions, trimmedQuery);
     }
 
 

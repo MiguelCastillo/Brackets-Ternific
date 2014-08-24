@@ -59,7 +59,7 @@ define(function(require, exports, module){
                 },
                 set: function(newValue) {
                     _self.selectedIndex = newValue;
-                    $(HintProvider).triggerHandler("highlight", [_self.$hints.hints[newValue].data("token")]);
+                    $(HintProvider).triggerHandler("highlight", [_self.transformed.tokens[newValue]]);
                 }
             });
         }
@@ -95,15 +95,21 @@ define(function(require, exports, module){
             };
 
             _self.hints = hints;
-            _self.$hints = HintTransform(hints, HintTransform.sort.byMatch);
-            return _self.$hints;
+            _self.transformed = HintTransform(hints, HintTransform.sort.byMatch);
+            $(HintProvider).triggerHandler("hints", [_self.transformed.tokens, _self.transformed.html]);
+
+            return {
+                hints: _self.transformed.hints,
+                match: null, // Prevent CodeHintManager from formatting results
+                selectInitial: true
+            };
         });
     };
 
 
     HintProvider.prototype.insertHint = function ($hintObj) {
         var hints = this.hints,
-            hint = $hintObj.data("token");
+            hint = this.transformed.tokens[this.selectedIndex];
 
         this._cm.getDoc().replaceRange(hint.name, hints.result.start, hints.result.end);
 

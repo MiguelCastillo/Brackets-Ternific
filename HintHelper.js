@@ -32,7 +32,7 @@ define(function(require, exports, module){
             suffix = type;
         }
         else if (/^fn\(/.test(type)) {
-            suffix = "fn";
+            suffix = "function";
             args = /^fn\(([\w\W]*)\)(?:[\s]*->[\s]*([\w\W]*))?/g.exec(type);
 
             if (args) {

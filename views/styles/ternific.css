@@ -1,3 +1,5 @@
+#ternific,
+#ternific > *,
 #ternific * {
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
@@ -5,19 +7,55 @@
 }
 
 #ternific > .resizable-content {
-    padding: 12px;
+    overflow: scroll;
+    padding-right: 240px;
     position: relative;
+    background-color: white;
 }
 
-.hintDetails .name {
+
+#ternific .hintList {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    height: inherit;
+    width: 240px;
 }
 
-.hintDetails .arguments {
+#ternific .hintList > ul {
+    height: 100%;
+    overflow: scroll;
 }
 
-.hintDetails .returns {
+
+#ternific .hintDetails {
+    padding: 12px;
+    height: inherit;
+    overflow: scroll;
 }
 
-.hintDetails .description {
+#ternific .hintDetails > div {
+    padding-bottom: 0.5em;
+}
+
+#ternific .hintDetails .header {
+    font-weight: 300;
+    font-size: 1.2em;
+}
+
+#ternific .hintDetails .type-name {
+    text-transform: capitalize;
+}
+
+#ternific .hintDetails .name {
+}
+
+#ternific .hintDetails .arguments {
+}
+
+#ternific .hintDetails .returns {
+}
+
+#ternific .hintDetails .description {
 }
 

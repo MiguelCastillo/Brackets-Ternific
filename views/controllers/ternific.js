@@ -17,11 +17,16 @@ define(function(require, exports, module) {
         toggle(true);
     });
 
-    $(hintProvider).on("highlight", function(evt, data) {
-        console.log(data);
-        var hintdetail = Mustache.render(tmpls.hintdetails, data);
-        tmpls.$ternific.filter(".resizable-content").html(hintdetail);
+
+    $(hintProvider).on("hints", function(evt, hints, hintsHtml) {
+        tmpls.$ternific.find(".hintList").html($("<ul>").append($(hintsHtml)));
     });
+
+
+    $(hintProvider).on("highlight", function(evt, highlight) {
+        tmpls.$ternific.find(".hintDetails").html($(Mustache.render(tmpls.hintdetails, highlight)));
+    });
+
 
     function toggle(open) {
         if (open === undefined) {
