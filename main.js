@@ -22,7 +22,6 @@ define(function (require, exports, module) {
     require("string");
 
     ExtensionUtils.loadStyleSheet(module, "style/main.css");
-    ExtensionUtils.loadStyleSheet(module, "style/hintsMenu.css");
     ExtensionUtils.loadStyleSheet(module, "views/styles/ternific.css");
     ExtensionUtils.loadStyleSheet(module, "libs/font-awesome/css/font-awesome.css");
 
