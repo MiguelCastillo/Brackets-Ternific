@@ -39,21 +39,17 @@ define(function(require, exports, module) {
             suffix = "function";
             var arrow = type.lastIndexOf("->");
 
-            if (arrow === -1) {
-                args = /^fn\(([\w\W]*)\)/g.exec(type)[1];
-            }
-            else {
+            if (arrow !== -1) {
                 returns = type.substr(arrow + 3).trim();
                 if (/fn\([\s]*\)/g.test(returns) || !/[\(\)]+/g.test(returns)) {
-                    args = type.substr(0, arrow).trim();
+                    type = type.substr(0, arrow).trim();
                 }
                 else {
-                    args = type;
                     returns = null;
                 }
-
-                args = /^fn\(([\w\W]*)\)/g.exec(args)[1];
             }
+
+            args = /^fn\(([\w\W]*)\)/g.exec(type)[1];
         }
         else if (/^\[/.test(type)) {
             suffix = "array";
