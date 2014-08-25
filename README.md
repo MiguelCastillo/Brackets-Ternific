@@ -23,6 +23,10 @@ FAQ
 
 Screenshots
 =============
+
+Ternific hints panel
+![Ternific panel](https://github.com/MiguelCastillo/Brackets-Ternific/blob/master/images/ternific.gif)
+
 Tern hints on a string
 ![Tern hints on a string](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/HintTypes.png)
 
