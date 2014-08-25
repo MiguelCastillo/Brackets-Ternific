@@ -37,11 +37,22 @@ define(function(require, exports, module) {
         }
         else if (/^fn\(/.test(type)) {
             suffix = "function";
-            args = /^fn\(([\w\W]*)\)(?:[\s]*->[\s]*([\w\W]*))?/g.exec(type);
+            var arrow = type.lastIndexOf("->");
 
-            if (args) {
-                returns = args[2];
-                args = args[1];
+            if (arrow === -1) {
+                args = /^fn\(([\w\W]*)\)/g.exec(type)[1];
+            }
+            else {
+                returns = type.substr(arrow + 3).trim();
+                if (/fn\([\s]*\)/g.test(returns) || !/[\(\)]+/g.test(returns)) {
+                    args = type.substr(0, arrow).trim();
+                }
+                else {
+                    args = type;
+                    returns = null;
+                }
+
+                args = /^fn\(([\w\W]*)\)/g.exec(args)[1];
             }
         }
         else if (/^\[/.test(type)) {
@@ -103,4 +114,3 @@ define(function(require, exports, module) {
         pathFile: pathFile
     };
 });
-
