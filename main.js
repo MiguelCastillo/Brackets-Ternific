@@ -8,22 +8,24 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var EditorManager   = brackets.getModule("editor/EditorManager"),
+    var AppInit         = brackets.getModule("utils/AppInit"),
+        EditorManager   = brackets.getModule("editor/EditorManager"),
         ExtensionUtils  = brackets.getModule("utils/ExtensionUtils"),
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
-    var HintProvider = require('HintProvider'),
-        TernManager  = require('TernManager');
+    var Menu = require('Menu'),
+        HintProvider = require('HintProvider'),
+        TernManager  = require('TernManager'),
+        TernificManager = require("views/controllers/ternific");
 
     // Load up string utils...
     require("string");
 
     ExtensionUtils.loadStyleSheet(module, "style/main.css");
-    ExtensionUtils.loadStyleSheet(module, "style/hintsMenu.css");
-    ExtensionUtils.loadStyleSheet(module, "style/ternSettings.css");
+    ExtensionUtils.loadStyleSheet(module, "views/styles/ternific.css");
+    ExtensionUtils.loadStyleSheet(module, "libs/font-awesome/css/font-awesome.css");
 
     var _ternManager = new TernManager();
-
     _ternManager.onReady(function () {
         /*
          * Handle the activeEditorChange event fired by EditorManager.
@@ -45,4 +47,11 @@ define(function (require, exports, module) {
         CodeHintManager.registerHintProvider(new HintProvider(_ternManager), ["javascript"], 1);
     });
 
+    AppInit.appReady(function() {
+        Menu.init();
+    });
+
+    AppInit.htmlReady(function () {
+        TernificManager.init();
+    });
 });

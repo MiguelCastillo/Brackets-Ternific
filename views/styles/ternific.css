@@ -1,0 +1,91 @@
+#ternific,
+#ternific > *,
+#ternific * {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+#ternific > .resizable-content {
+    overflow: scroll;
+    padding-right: 240px;
+    position: relative;
+    background-color: white;
+}
+
+
+#ternific .hintList {
+    height: inherit;
+    width: 240px;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    padding: 4px;
+    border-left: 1px solid #cdcdcd;
+}
+
+#ternific .hintList > ul {
+    height: 100%;
+    overflow: scroll;
+    margin: 0px;
+}
+
+#ternific .hintList > ul > li:hover {
+    cursor: pointer;
+    background: #e0f0fa;
+}
+
+#ternific .hintList > ul > li.active {
+    background: #e0f0fa;
+}
+
+
+#ternific .hintDetails {
+    height: inherit;
+    overflow: scroll;
+    padding: 12px;
+}
+
+#ternific .hintDetails > div {
+    padding-bottom: 0.5em;
+}
+
+#ternific .hintDetails .header {
+    font-weight: 300;
+    font-size: 1.2em;
+}
+
+#ternific .hintDetails .type-name {
+    text-transform: capitalize;
+}
+
+#ternific .hintDetails .name {
+}
+
+#ternific .hintDetails .arguments {
+}
+
+#ternific .hintDetails .returns {
+}
+
+#ternific .hintDetails .description {
+}
+
+.ternific-toolbar-icon {
+    display: inline-block;
+    font-family: FontAwesome;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-size: 1.25em;
+    color: #c7c7c7;
+}
+
+.ternific-toolbar-icon:hover {
+    color: #c7c7c7;
+}
+
+.ternific-toolbar-icon:before {
+    content: "\f03a";
+}

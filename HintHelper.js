@@ -1,9 +1,13 @@
 /**
-*  This code has been taken from brackets javascriptcodehints.
-*
-*/
+ * Ternific Copyright (c) 2014 Miguel Castillo.
+ *
+ * Some of this code has been taken from brackets javascriptcodehints.
+ * Licensed under MIT
+ */
 
-define(function(require, exports, module){
+
+define(function(require, exports, module) {
+    "use strict";
 
     var SINGLE_QUOTE    = "\'",
         DOUBLE_QUOTE    = "\"",
@@ -22,8 +26,8 @@ define(function(require, exports, module){
     }
 
 
-    function typeDetails (type) {
-        var suffix;
+    function typeInfo (type) {
+        var suffix, args, returns;
 
         if (type == "?") {
             suffix = "unknown";
@@ -32,7 +36,20 @@ define(function(require, exports, module){
             suffix = type;
         }
         else if (/^fn\(/.test(type)) {
-            suffix = "fn";
+            suffix = "function";
+            var arrow = type.lastIndexOf("->");
+
+            if (arrow !== -1) {
+                returns = type.substr(arrow + 3).trim();
+                if (/fn\([\s]*\)/g.test(returns) || !/[\(\)]+/g.test(returns)) {
+                    type = type.substr(0, arrow).trim();
+                }
+                else {
+                    returns = null;
+                }
+            }
+
+            args = /^fn\(([\w\W]*)\)/g.exec(type)[1];
         }
         else if (/^\[/.test(type)) {
             suffix = "array";
@@ -43,7 +60,9 @@ define(function(require, exports, module){
 
         return {
             icon: "Tern-completion Tern-completion-" + suffix,
-            name: suffix
+            name: suffix,
+            args: args,
+            returns: returns
         };
     }
 
@@ -85,10 +104,9 @@ define(function(require, exports, module){
     return {
         SINGLE_QUOTE: SINGLE_QUOTE,
         DOUBLE_QUOTE: DOUBLE_QUOTE,
-        typeDetails: typeDetails,
+        typeInfo: typeInfo,
         maybeIdentifier: maybeIdentifier,
         hintable: hintable,
         pathFile: pathFile
     };
 });
-

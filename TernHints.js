@@ -23,6 +23,7 @@ define(function (require, exports, module) {
             type: "completions",
             types: true,
             docs: true,
+            urls: true,
             filter: filter
         });
     };

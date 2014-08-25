@@ -5,10 +5,12 @@
  */
 
 
-define(function(require, exports, module){
+define(function(require, exports, module) {
+    "use strict";
 
+    var CodeHintManager = brackets.getModule("editor/CodeHintManager");
     var HintTransform = require("HintTransform"),
-        HintHelper = require("HintHelper")
+        HintHelper = require("HintHelper");
 
 
     /**
@@ -16,6 +18,7 @@ define(function(require, exports, module){
      */
     function HintProvider(hintManager) {
         this.hintManager = hintManager;
+        this.selectedIndex = 0;
     }
 
 
@@ -27,20 +30,40 @@ define(function(require, exports, module){
     HintProvider.prototype.hasHints = function (editor, implicitChar) {
         var cm = editor._codeMirror;
 
-        if (!implicitChar || HintHelper.maybeIdentifier(implicitChar)) {
-            this._cm = cm;
-            this.newSession = true;
-            return HintHelper.hintable(cm.getTokenAt(cm.getCursor()));
+        if (implicitChar && !HintHelper.maybeIdentifier(implicitChar)) {
+            delete this._cm;
+            return false;
         }
 
-        delete this._cm;
-        return false;
+        var hintable = HintHelper.hintable(cm.getTokenAt(cm.getCursor()));
+
+        if (hintable) {
+            this._cm = cm;
+            this.newSession = true;
+        }
+
+        return hintable;
     };
 
 
     HintProvider.prototype.getHints = function (implicitChar) {
         var _self = this,
             newSession = this.newSession;
+
+        if (this.newSession) {
+            _self._codeHintList = CodeHintManager._getCodeHintList();
+            // Let's highjack the CodeHint selectedIndex :)
+            Object.defineProperty(_self._codeHintList, "selectedIndex", {
+                enumerable: true,
+                get: function() {
+                    return _self.selectedIndex;
+                },
+                set: function(newValue) {
+                    _self.selectedIndex = newValue;
+                    $(HintProvider).triggerHandler("highlight", [_self.transformed.tokens[newValue]]);
+                }
+            });
+        }
 
         // Condition to make we are providing hints for characters we know are valid
         if (implicitChar !== null && HintHelper.maybeIdentifier(implicitChar) === false) {
@@ -73,14 +96,21 @@ define(function(require, exports, module){
             };
 
             _self.hints = hints;
-            return HintTransform(hints, HintTransform.sort.byMatch);
+            _self.transformed = HintTransform(hints, HintTransform.sort.byMatch);
+            $(HintProvider).triggerHandler("hints", [_self.transformed.tokens, _self.transformed.html]);
+
+            return {
+                hints: _self.transformed.hints,
+                match: null, // Prevent CodeHintManager from formatting results
+                selectInitial: true
+            };
         });
     };
 
 
     HintProvider.prototype.insertHint = function ($hintObj) {
         var hints = this.hints,
-            hint = $hintObj.data("token");
+            hint = this.transformed.tokens[this.selectedIndex];
 
         this._cm.getDoc().replaceRange(hint.name, hints.result.start, hints.result.end);
 

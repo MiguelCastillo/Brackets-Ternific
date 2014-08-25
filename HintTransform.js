@@ -1,20 +1,17 @@
 /**
  * Ternific Copyright (c) 2014 Miguel Castillo.
  *
+ * Some of the code in this module has been derived from brackets javascript hints
  * Licensed under MIT
  */
 
-
-/*
-* Some of the code in this module has been derived from brackets javascript hints
-*/
 
 define(function (require, exports, module) {
     "use strict";
 
     var _ = brackets.getModule("thirdparty/lodash");
-    var HintHelper  = require("HintHelper"),
-        SortingTmpl = require("text!tmpl/sorting.html");
+    var CodeHintManager = brackets.getModule("editor/CodeHintManager"),
+        HintHelper      = require("HintHelper");
 
 
     var MAX_DISPLAYED_HINTS = 400,
@@ -65,7 +62,9 @@ define(function (require, exports, module) {
 
         function _sort(tokens, clasify, toHtml) {
             var groups = {},
-                result = [],
+                result = {tokens: [], hints: [], html: ""},
+                html   = "",
+                hint,
                 index,
                 length,
                 token,
@@ -74,14 +73,20 @@ define(function (require, exports, module) {
 
             for(index = 0, length = tokens.length; index < length; index++) {
                 token = tokens[index];
-                token.typeInfo = HintHelper.typeDetails(token.type);
+                token.typeInfo = HintHelper.typeInfo(token.type);
                 token.level = groupdId = clasify(token);
-                group = groups[groupdId] || (groups[groupdId] = {items:[]});
-                group.items.push(toHtml(token));
+
+                group = groups[groupdId] || (groups[groupdId] = {html: '', hints: [], tokens: []});
+                hint = toHtml(token);
+                group.html += "<li>" + hint + "</li>";
+                group.hints.push(hint);
+                group.tokens.push(token);
             }
 
             _.each(groups, function(group, groupId) {
-                Array.prototype.push.apply(result, group.items);
+                result.html += group.html;
+                result.hints.push.apply(result.hints, group.hints);
+                result.tokens.push.apply(result.tokens, group.tokens);
             });
 
             return result;
@@ -156,7 +161,7 @@ define(function (require, exports, module) {
                         "</span>").format(priority, icon, hint);
         }
 
-        return $(hintHtml).data("token", token);
+        return hintHtml;
     }
 
 
@@ -178,13 +183,7 @@ define(function (require, exports, module) {
         }
 
         // Build list of hints.
-        hintList = sorter[sortType || HintsTransform.sort.byMatch](hints.result.completions, trimmedQuery);
-
-        return {
-            hints: hintList,
-            match: null, // Prevent CodeHintManager from formatting results
-            selectInitial: true
-        };
+        return sorter[sortType || HintsTransform.sort.byMatch](hints.result.completions, trimmedQuery);
     }
 
 

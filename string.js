@@ -6,6 +6,7 @@
 
 
 define(function(){
+    "use strict";
 
     //
     // Directly pulled from http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format

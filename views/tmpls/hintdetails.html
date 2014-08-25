@@ -1,0 +1,21 @@
+<div class='name'>
+    <span class='header'>Hint:</span>
+    <div class='body {{typeInfo.icon}}'>
+        <span class='type-name'>{{name}}</span>
+        {{#url}}
+            - <a href='{{url}}'>More info</a>
+        {{/url}}
+    </div>
+</div>
+
+{{#typeInfo.args}}
+<div class='arguments'><span class='header'>Parameters:</span> <div class='body'>{{typeInfo.args}}</div></div>
+{{/typeInfo.args}}
+
+{{#typeInfo.returns}}
+<div class='returns'><span class='header'>Returns:</span> <div class='body'>{{typeInfo.returns}}</div></div>
+{{/typeInfo.returns}}
+
+{{#doc}}
+<div class='description'><span class='header'>Description:</span> <div class='body'>{{doc}}</div></div>
+{{/doc}}

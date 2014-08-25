@@ -6,7 +6,7 @@
 
 
 define(function (require, exports, module) {
-    'use strict';
+    "use strict";
 
     // From http://msdn.microsoft.com/en-us/library/ie/ff679974(v=vs.94).aspx
 
