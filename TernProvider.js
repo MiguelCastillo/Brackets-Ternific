@@ -144,10 +144,10 @@ define(function (require, exports, module) {
     TernProvider.prototype.addFile = function (name, root) {
         var _self = this;
 
-        return fileLoader.fileMeta(name, root || _self.currentDocument.file.parentPath || "").done(function(data) {
+        return fileLoader.loadFile(name, root || _self.currentDocument.file.parentPath || "").done(function(data) {
             var docMeta = {
                 name: name, //data.fullPath,
-                doc: new CodeMirror.Doc(data.text, "javascript"),
+                doc: new CodeMirror.Doc(data.content, "javascript"),
                 changed: null
             };
 
@@ -181,22 +181,29 @@ define(function (require, exports, module) {
      */
     LocalProvider.prototype.getFile = function (name, root) {
         var _self = this;
-        var docMeta = _self.findDocByName(name);
+        var docMeta = _self.findDocByName(name),
+            rootPath = root || _self.currentDocument.file.parentPath || "";
 
-        if ( docMeta ) {
-            return spromise.resolved(docMeta.doc.getValue());
+        if (docMeta) {
+            return spromise.resolved({
+                fullPath: docMeta.fullPath,
+                fullName: docMeta.fullName,
+                content: docMeta.doc.getValue()
+            });
         }
 
-        return fileLoader.fileMeta(name, root || _self.currentDocument.file.parentPath || "")
+        return fileLoader.loadFile(name, rootPath)
                 .then(function(data) {
                     var docMeta = {
+                        fullPath: data.fullPath,
+                        fullName: data.fullName,
                         name: name, //data.fullPath,
-                        doc: new CodeMirror.Doc(data.text, "javascript"),
+                        doc: new CodeMirror.Doc(data.content, "javascript"),
                         changed: null
                     };
 
                     _self.docs.push(docMeta);
-                    return data.text;
+                    return data;
                 });
     };
 

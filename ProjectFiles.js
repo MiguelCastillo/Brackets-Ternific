@@ -8,50 +8,40 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var ProjectManager  = brackets.getModule("project/ProjectManager"),
-        FileSystem      = brackets.getModule("filesystem/FileSystem");
+    var spromise       = require("libs/js/spromise"),
+        FileStream     = require("FileStream"),
+        ProjectManager = brackets.getModule("project/ProjectManager"),
+        FileSystem     = brackets.getModule("filesystem/FileSystem");
 
 
     function ProjectFiles() {
     }
 
 
-    ProjectFiles.prototype.openFile = function( fileName, forceCreate ) {
-        var deferred = $.Deferred();
-        var directoryPath = this.currentProject.fullPath;
-        var file = FileSystem.getFileForPath (directoryPath + fileName);
+    ProjectFiles.prototype.openFile = function(fileName, forceCreate) {
+        var deferred = spromise.defer();
+        var filePath = this.currentProject.fullPath;
+        var handle = FileSystem.getFileForPath(filePath + fileName);
 
-        file.exists(function( err /*, exists*/ ) {
-            if ( err ) {
-                deferred.reject(err);
-            }
-
-            deferred.resolve({
-                read: function() {
-                    var _deferred = $.Deferred();
-
-                    file.read(function( err, content /*, stat*/ ) {
-                        if ( err ) {
-                            _deferred.reject(err);
-                            return;
-                        }
-                        _deferred.resolve(content);
-                    });
-
-                    return _deferred;
-                },
-                write: function() {
-
+        return spromise(function(resolve, reject) {
+            handle.exists(function(err, exists) {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    resolve(new FileStream({
+                        handle: handle,
+                        fileName: fileName,
+                        filePath: filePath
+                    }));
                 }
             });
         });
-
-        return deferred;
     };
 
 
     ProjectFiles.prototype.resolveName = function(fileName) {
-        return currentProject.fullPath + fileName;
+        return this.currentProject.fullPath + fileName;
     };
 
 
@@ -63,5 +53,4 @@ define(function (require, exports, module) {
 
 
     return _projectFiles;
-
 });

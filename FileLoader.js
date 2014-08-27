@@ -7,154 +7,112 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var spromise     = require("libs/js/spromise");
     var FileSystem   = brackets.getModule("filesystem/FileSystem"),
+        spromise     = require("libs/js/spromise"),
+        FileStream   = require("FileStream"),
         ProjectFiles = require("ProjectFiles");
 
-    var fileLoader = (function(){
-        var inProgress= {};
-        var httpCache = {};
-
-        // Load up the file from a remote location via http
-        function fromHTTP(fileName) {
-            if (httpCache[fileName]){
-                return spromise.resolved(httpCache[fileName]);
-            }
-
-            inProgress[fileName] = $.ajax({
-                    "url": fileName,
-                    "contentType": "text"
-                });
+    var inProgress = {};
+    var httpCache  = {};
 
 
-            inProgress[fileName].then(function(data) {
-                    httpCache[fileName] = {
-                        fileName: fileName,
-                        fullPath: fileName,
-                        text: data
-                    };
+    function resolvePath(rootFile) {
+        return rootFile ? rootFile.substr(0, rootFile.lastIndexOf("/")) + "/" : "";
+    }
 
-                    return httpCache[fileName];
-                })
-                .always(function(){
-                    delete inProgress[fileName];
-                });
 
+    /**
+     * Load file from a remote location via http
+     *
+     * @param {string} fileName is the name of the file to load
+     * @returns {spromise}
+     */
+    function fromHttp (fileName) {
+        if (inProgress[fileName]) {
             return inProgress[fileName];
         }
 
+        if (httpCache[fileName]) {
+            return httpCache[fileName];
+        }
 
-        // Load up the file from a local directory
-        function fromDirectory(fileName, rootFile) {
-            var deferred = spromise.defer();
-            var directoryPath = fileMeta.resolvePath(rootFile);
-
-            fileHandle(fileName, rootFile).done(function(file) {
-                file.read().done(function(text) {
-                    var data = {
-                        fileName: fileName,
-                        fullPath: directoryPath + fileName,
-                        text: text
-                    };
-
-                    deferred.resolve(data);
-                })
-                .fail(deferred.reject);
+        inProgress[fileName] = spromise.thenable($.ajax(fileName, {"contentType": "text"}))
+            .always(function() {
+                delete inProgress[fileName];
+            })
+            .then(function(content) {
+                return {
+                    fileName: fileName,
+                    fullPath: fileName,
+                    content: content
+                };
             });
 
-            return deferred.promise;
-        }
+        return inProgress[fileName];
+    }
 
 
-        // Load up the file from the directory of the current project
-        function fromProject(fileName) {
-            return fromDirectory(fileName, ProjectFiles.currentProject.fullPath);
-        }
+    /**
+     * Load file from local filesystem
+     */
+    function fromDirectory (fileName, rootFile) {
+        var filePath = resolvePath(rootFile);
+        var handle = FileSystem.getFileForPath(filePath + fileName);
 
-
-        // Interface to load the file...
-        function fileMeta(fileName, rootFile) {
-            if (fileName in inProgress) {
-                return inProgress[fileName];
-            }
-
-            var deferred;
-
-            if (/^https?:\/\//.test(fileName)) {
-                deferred = fromHTTP(fileName);
-            }
-            else {
-                deferred = spromise.defer();
-
-                //
-                // First try to load the file from the specified rootFile directoty
-                // and if that does not work, then we will try to open it from the
-                // project directory.  Sometime both directories will be the same...
-                //
-                fromDirectory(fileName, rootFile).done(function(data) {
-                        deferred.resolve(data);
-                    }).fail(function( ) {
-
-                        fromProject(fileName).done(function(data) {
-                                deferred.resolve(data);
-                            }).fail(function(error){
-                                deferred.reject(error);
-                            });
-
-                    });
-            }
-
-            return deferred;
-        }
-
-
-        fileMeta.resolvePath = function(rootFile){
-            return rootFile ? rootFile.substr(0, rootFile.lastIndexOf("/")) + "/" : "";
-        };
-
-
-        function fileHandle(fileName, rootFile) {
-            var deferred = spromise.defer();
-            var directoryPath = fileMeta.resolvePath(rootFile);
-            var _file = FileSystem.getFileForPath (directoryPath + fileName);
-
-            _file.exists(function( err /*, exists*/ ) {
-                if ( err ) {
-                    deferred.reject(err);
+        return spromise(function(resolve, reject) {
+            handle.exists(function(err, exists) {
+                if (err || !exists) {
+                    reject(err);
                 }
-
-                deferred.resolve({
-                    read: function() {
-                        var _deferred = spromise.defer();
-
-                        _file.read(function( err, content /*, stat*/ ) {
-                            if ( err ) {
-                                _deferred.reject(err);
-                                return;
-                            }
-                            _deferred.resolve(content);
-                        });
-
-                        return _deferred;
-                    },
-                    write: function() {
-
-                    }
-                });
+                else {
+                    resolve(new FileStream({
+                        handle: handle,
+                        fileName: fileName,
+                        filePath: filePath
+                    }));
+                }
             });
+        });
+    }
 
-            return deferred;
+
+    /**
+     * Load file from the directory of the current project
+     */
+    function fromProject (fileName) {
+        return fromDirectory(fileName, ProjectFiles.currentProject.fullPath);
+    }
+
+
+    /**
+     * Interface to load a file
+     */
+    function loadFile (fileName, rootFile) {
+        if (/^https?:\/\//.test(fileName)) {
+            return fromHTTP(fileName);
         }
 
+        return spromise(function(resolve, reject) {
+            fromDirectory(fileName, rootFile)
+            .done(function(file) {
+                file.read().done(resolve);
+            })
+            .fail(function() {
+                fromProject(fileName).done(function(file) {
+                    file.read().done(resolve).fail(reject);
+                }).fail(reject);
+            });
+        }).fail(function(err) {
+            console.log("====> error", err);
+        });
+    }
 
-        return {
-            fileMeta: fileMeta,
-            fileHandle: fileHandle
-        };
 
-    })();
-
-
-    return fileLoader;
+    return {
+        loadFile: loadFile,
+        fromHttp: fromHttp,
+        fromProject: fromProject,
+        fromDirectory: fromDirectory
+    };
 });
 

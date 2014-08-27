@@ -165,6 +165,13 @@ define(function (require, exports, module) {
     }
 
 
+	/**
+	 * Process hints from tern to sort and create the needed html to display the thints.
+	 *
+	 * @param {{completions: Array}} hints tern response from completion query
+	 * @param {HintsTransform.sort} sortType sorting type for the hints to be generated.
+	 * @returns {Object}
+	 */
     function HintsTransform(hints, sortType) {
         var hintList;
         var hintList, trimmedQuery, lastChar;

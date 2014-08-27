@@ -11,13 +11,15 @@ define(function(require, exports, module) {
     var PanelManager   = brackets.getModule("view/PanelManager"),
         Resizer        = brackets.getModule("utils/Resizer"),
         menu           = require("Menu"),
-        hintProvider   = require("HintProvider");
+        hintProvider   = require("HintProvider"),
+        ternReferences = require("TernReferences");
 
     var $container, $hints, hints;
 
     var tmpls = {
         $ternific: $(require("text!views/tmpls/ternific.html")),
-        hintdetails: require("text!views/tmpls/hintdetails.html")
+        hintdetails: require("text!views/tmpls/hintdetails.html"),
+        references: require("text!views/tmpls/references.html")
     };
 
 
@@ -46,6 +48,16 @@ define(function(require, exports, module) {
 
     $(hintProvider).on("highlight", function(evt, hint) {
         highlightHint(hint);
+    });
+
+
+    $(ternReferences).on("references", function(evt, ternProvider, references) {
+        toggle(true);
+        for (var reference in references) {
+            ternProvider.getFile(reference).done(function(file) {
+                console.log(file);
+            });
+        }
     });
 
 
