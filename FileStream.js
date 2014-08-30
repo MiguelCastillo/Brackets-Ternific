@@ -36,6 +36,7 @@ define(function (require, exports, module) {
                 }
                 else {
                     resolve({
+                        file: _self._file,
                         fileName: _self._fileName,
                         fullPath: _self._filePath + _self._fileName,
                         content: content
@@ -62,6 +63,7 @@ define(function (require, exports, module) {
                 }
                 else {
                     resolve({
+                        file: _self._file,
                         fileName: _self._fileName,
                         fullPath: _self._filePath + _self._fileName,
                         content: content

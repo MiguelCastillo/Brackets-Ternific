@@ -156,10 +156,10 @@ define(function(require, exports, module) {
     }
 
 
-    function loadSettings( settings ) {
+    function loadSettings(settings) {
         var worker = getWorker(LocalServer.provider);
         settings = settings || $.extend({}, globalSettings);
-        if ( settings === currentSettings ) {
+        if (settings === currentSettings) {
             return;
         }
 
@@ -183,7 +183,7 @@ define(function(require, exports, module) {
 
 
     var currentSettings;
-    LocalServer.loadSettings = function(cm, fullPath) {
+    LocalServer.loadSettings = function(fullPath) {
         projectSettings
             .load(".tern-project", fullPath)
             .done(loadSettings)

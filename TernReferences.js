@@ -30,7 +30,7 @@ define(function (require, exports, module) {
     TernReferences.prototype.query = function( ) {
         var cm = this._cm;
 
-        return this.ternProvider.query( cm, "refs" )
+        return this.ternProvider.query(cm, "refs")
             .then(function(data) {
                 var perFile = {}, i, use;
 
@@ -54,7 +54,7 @@ define(function (require, exports, module) {
      */
     TernReferences.prototype.findReferences = function( ) {
         var _self = this,
-            cm = _self.ternProvider.currentDocument.cm;
+            cm = _self.ternProvider.cm;
 
         // Clear markers
         $.each( _self.textMarkers.slice(0), function(index, textMarker) {
@@ -69,7 +69,7 @@ define(function (require, exports, module) {
         }
 
         _self.query().done(function(refsPerFile) {
-            var i, refs, doc, marker;
+            var i, refs, doc, marker, token = {};
 
             for (var file in refsPerFile) {
                 refs = refsPerFile[file];
@@ -82,7 +82,11 @@ define(function (require, exports, module) {
                 }
             }
 
-            $(TernReferences).triggerHandler("references", [_self.ternProvider, refsPerFile]);
+            if (refs) {
+                token = cm.getTokenAt({line: refs[0].start.line, ch: refs[0].start.ch + 1});
+            }
+
+            $(TernReferences).triggerHandler("references", [_self.ternProvider, refsPerFile, token.string]);
         });
     };
 
@@ -93,7 +97,7 @@ define(function (require, exports, module) {
      */
     TernReferences.prototype.replaceReferences = function( ) {
         var _self = this,
-            cm = _self.ternProvider.currentDocument.cm;
+            cm = _self.ternProvider.cm;
 
         $.each( _self.textMarkers.slice(0), function(index, textMarker) {
             textMarker.clear();

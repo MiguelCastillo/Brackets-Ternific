@@ -16,11 +16,6 @@ define(function (require, exports, module) {
     var httpCache  = {};
 
 
-    function resolvePath(rootFile) {
-        return rootFile ? rootFile.substr(0, rootFile.lastIndexOf("/")) + "/" : "";
-    }
-
-
     /**
      * Load file from a remote location via http
      *
@@ -54,9 +49,13 @@ define(function (require, exports, module) {
 
     /**
      * Load file from local filesystem
+     *
+     * @param {string} fileName is the name of the file to open
+     * @param {string} filePath is a fully resolved file path to search fileName in
+     * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
+     *   is provided.
      */
-    function fromDirectory (fileName, rootFile) {
-        var filePath = resolvePath(rootFile);
+    function fromDirectory (fileName, filePath) {
         var handle = FileSystem.getFileForPath(filePath + fileName);
 
         return spromise(function(resolve, reject) {
@@ -77,41 +76,52 @@ define(function (require, exports, module) {
 
 
     /**
-     * Load file from the directory of the current project
-     */
-    function fromProject (fileName) {
-        return fromDirectory(fileName, ProjectFiles.currentProject.fullPath);
-    }
-
-
-    /**
      * Interface to load a file
+     *
+     * @param {string} fileName is the name of the file to open
+     * @param {string} filePath is a fully resolved file path to search fileName in
+     * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
+     *   is provided.
      */
-    function loadFile (fileName, rootFile) {
+    function readFile (fileName, filePath) {
         if (/^https?:\/\//.test(fileName)) {
             return fromHTTP(fileName);
         }
 
         return spromise(function(resolve, reject) {
-            fromDirectory(fileName, rootFile)
-            .done(function(file) {
-                file.read().done(resolve);
-            })
-            .fail(function() {
-                fromProject(fileName).done(function(file) {
-                    file.read().done(resolve).fail(reject);
-                }).fail(reject);
-            });
+            openFile(fileName, filePath)
+                .done(function(file) {
+                    file.read().done(resolve);
+                })
+                .fail(reject);
+        });
+    }
+
+
+    /**
+     * Opens a file from local filesystem.
+     *
+     * @param {string} fileName is the name of the file to open
+     * @param {string} filePath is a fully resolved file path to search fileName in
+     * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
+     *   is provided.
+     */
+    function openFile (fileName, filePath) {
+        return spromise(function(resolve, reject) {
+            fromDirectory(fileName, filePath).done(resolve)
+                .fail(function() {
+                    fromDirectory(fileName, ProjectFiles.currentProject.fullPath).done(resolve).fail(reject);
+                });
         }).fail(function(err) {
-            console.log("====> error", err);
+            console.log("====> error", err, fileName, filePath);
         });
     }
 
 
     return {
-        loadFile: loadFile,
+        readFile: readFile,
+        openFile: openFile,
         fromHttp: fromHttp,
-        fromProject: fromProject,
         fromDirectory: fromDirectory
     };
 });
