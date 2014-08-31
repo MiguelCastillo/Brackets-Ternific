@@ -8,13 +8,13 @@
 define(function(require, exports, module) {
     "use strict";
 
-    var spromise        = require("libs/js/spromise");
-    var TernDemo        = require("TernDemo"),
-        Settings        = require("Settings"),
-        globalSettings  = require("text!./tern/.tern-project");
+    var spromise       = require("libs/js/spromise");
+    var TernDemo       = require("TernDemo"),
+        Settings       = require("Settings"),
+        globalSettings = require("text!./tern/.tern-project");
 
     var projectSettings = Settings();
-    globalSettings = JSON.parse(globalSettings || {});
+    globalSettings = JSON.parse(globalSettings || "{}");
 
 
     function getWorker( provider ) {
@@ -34,10 +34,10 @@ define(function(require, exports, module) {
             // tern as an addFile action.
             if (data.type == "getFile") {
                 provider.getFile(data.name)
-                    .done(function(text){
+                    .done(function(file) {
                         worker.send({
                             type: "addFile",
-                            text: text,
+                            text: file.content,
                             id: data.id
                         });
                     })
@@ -156,10 +156,10 @@ define(function(require, exports, module) {
     }
 
 
-    function loadSettings( settings ) {
+    function loadSettings(settings) {
         var worker = getWorker(LocalServer.provider);
         settings = settings || $.extend({}, globalSettings);
-        if ( settings === currentSettings ) {
+        if (settings === currentSettings) {
             return;
         }
 
@@ -183,7 +183,7 @@ define(function(require, exports, module) {
 
 
     var currentSettings;
-    LocalServer.loadSettings = function(cm, fullPath) {
+    LocalServer.loadSettings = function(fullPath) {
         projectSettings
             .load(".tern-project", fullPath)
             .done(loadSettings)

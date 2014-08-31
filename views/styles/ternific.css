@@ -7,12 +7,23 @@
 }
 
 #ternific > .resizable-content {
+    background-color: white;
+    height: 100%;
+}
+
+#ternific .references {
+}
+
+#ternific .references .highlight {
+    background: white;
+}
+
+#ternific .hintContainer {
     overflow: scroll;
     padding-right: 240px;
     position: relative;
-    background-color: white;
+    height: 100%;
 }
-
 
 #ternific .hintList {
     height: inherit;
@@ -88,4 +99,8 @@
 
 .ternific-toolbar-icon:before {
     content: "\f03a";
+}
+
+.replace-references {
+    vertical-align: baseline;
 }

@@ -6,30 +6,52 @@
 
 
 define(function (require, exports, module) {
-    'use strict';
+    "use strict";
 
     var spromise = require("libs/js/spromise");
 
+
+    /**
+     * Provider to tind references of a variable/property
+     *
+     * @param {TernProvider} instance of the tern provider
+     */
     function TernReferences(ternProvider) {
-        var _self = this;
-        _self.ternProvider = ternProvider;
-        _self._cm = null;
-        _self.textMarkers = [];
+        this.ternProvider = ternProvider;
+        this._cm = null;
+        this._token = null;
     }
 
 
-    TernReferences.prototype.query = function( ) {
-        var cm = this._cm;
+    TernReferences.prototype.getReferences = function(cm) {
+        var _self = this;
+        cm = cm || this.cm;
 
-        return this.ternProvider.query( cm, "refs" )
+        this._cm = cm;
+        this._token = null;
+
+        if (!cm) {
+            return spromise.reject("Invalid CodeMirror instance");
+        }
+
+        this._token = cm.getTokenAt(cm.getCursor());
+        if (!this._token.string) {
+            $(TernReferences).triggerHandler("references", [this.ternProvider, {}, this._token.string]);
+            return spromise.resolve();
+        }
+
+        return this.ternProvider.query(cm, "refs")
             .then(function(data) {
-                var perFile = {}, i, use;
+                var perFile = {}, i, ref;
 
-                for (i = 0; i < data.refs.length; ++i) {
-                    use = data.refs[i];
-                    (perFile[use.file] || (perFile[use.file] = [])).push(use);
+                if (data) {
+                    for (i = 0; i < data.refs.length; ++i) {
+                        ref = data.refs[i];
+                        (perFile[ref.file] || (perFile[ref.file] = [])).push(ref);
+                    }
                 }
 
+                $(TernReferences).triggerHandler("references", [_self.ternProvider, perFile, _self._token.string]);
                 return perFile;
             },
             function(error) {
@@ -38,80 +60,5 @@ define(function (require, exports, module) {
     };
 
 
-    /**
-    * Finds and highlights all refenrences of the token the cursor is currently sitting on
-    */
-    TernReferences.prototype.findReferences = function( ) {
-        var _self = this, cm = _self.ternProvider.currentDocument.cm;
-
-        // Clear markers
-        $.each( _self.textMarkers.slice(0), function(index, textMarker) {
-            textMarker.clear();
-        });
-
-        _self.textMarkers = [];
-        _self._cm = cm;
-
-        if ( !cm ) {
-            return spromise.rejected("Invalid codemirror instance.");
-        }
-
-        _self.query(cm).done(function(refsPerFile) {
-            var i = 0;
-
-            for (var file in refsPerFile) {
-                var refs = refsPerFile[file], doc = _self.ternProvider.findDocByName(file).doc;
-                refs.sort(refSort);
-
-                for (i = 0; i < refs.length; ++i) {
-                    var marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
-                    _self.textMarkers.push(marker);
-                }
-            }
-        });
-    };
-
-
-    /**
-    * Finds and highlights all refenrences of the token the cursor is currently sitting on,
-    * then allows to replace all those highlighted references
-    */
-    TernReferences.prototype.replaceReferences = function( ) {
-        var _self = this, cm = _self.ternProvider.currentDocument.cm;
-
-        $.each( _self.textMarkers.slice(0), function(index, textMarker) {
-            textMarker.clear();
-        });
-
-        _self.textMarkers = [];
-        _self._cm = cm;
-
-        if ( !cm ) {
-            return spromise.rejected("Invalid codemirror instance.");
-        }
-
-        _self.query().done(function(refsPerFile) {
-            var i = 0;
-
-            for (var file in refsPerFile) {
-                var refs = refsPerFile[file], doc = _self.ternProvider.findDocByName(file).doc;
-                refs.sort(refSort);
-
-                for (i = 0; i < refs.length; ++i) {
-                    //doc.replaceRange(newName, doc.posFromIndex(refs[i].start), doc.posFromIndex(refs[i].end));
-                    var marker = cm.markText(refs[i].start, refs[i].end, {className: "Tern-reference-highlight"});
-                    _self.textMarkers.push(marker);
-                }
-            }
-        });
-    };
-
-
-    function refSort(a, b) {
-        return b.start - a.start;
-    }
-
-
     return TernReferences;
-
 });

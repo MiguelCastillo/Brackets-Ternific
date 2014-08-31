@@ -1,0 +1,20 @@
+<table class="bottom-panel-table table table-striped table-condensed row-highlight">
+    <tbody>
+        {{#references}}
+        <tr class="file-section">
+            <td class="checkbox-column"><input type="checkbox" class="check-one-file" {{#isChecked}}checked="true"{{/isChecked}} /></td>
+            <td colspan="2">
+                <span class="disclosure-triangle expanded"></span>
+                {{{fileName}}}
+            </td>
+        </tr>
+        {{#items}}
+        <tr>
+            <td class="checkbox-column"><input type="checkbox" class="check-one" {{#isChecked}}checked="true"{{/isChecked}} /></td>
+            <td class="line-number">{{lineNumber}}</td>
+            <td class="line-text">{{pre}}<span class="highlight">{{match}}</span>{{post}}</td>
+        </tr>
+        {{/items}}
+        {{/references}}
+    </tbody>
+</table>

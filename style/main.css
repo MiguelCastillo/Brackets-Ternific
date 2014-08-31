@@ -61,5 +61,6 @@
 
 
 .Tern-reference-highlight {
-    background-color: yellow;
+    background-color: rgba(255, 235, 0, 0.8);
+    color: black !important;
 }

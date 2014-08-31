@@ -6,7 +6,7 @@
 
 
 define(function (require, exports, module) {
-    'use strict';
+    "use strict";
 
     var FileSystem = brackets.getModule("filesystem/FileSystem");
 
@@ -62,7 +62,7 @@ define(function (require, exports, module) {
                 //_self.ternReferences.jumpBack
             },
             "Ctrl-R": function() {
-                _self.ternReferences.findReferences(cm);
+                _self.ternReferences.getReferences(cm);
             }
         };
 

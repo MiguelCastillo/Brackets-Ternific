@@ -62,11 +62,6 @@ define(function (require, exports, module) {
     };
 
 
-    TernProvider.prototype.findDocByCM = function (cm) {
-        return this.findDocByProperty("cm", cm);
-    };
-
-
     TernProvider.prototype.registerDocument = function (cm, file) {
         var _self   = this,
             name    = file.name,
@@ -80,7 +75,6 @@ define(function (require, exports, module) {
             docMeta = {
                 file: file,
                 name: name,
-                cm: cm,
                 doc: cm.getDoc(),
                 changed: null
             };
@@ -105,15 +99,15 @@ define(function (require, exports, module) {
         // current instance of brackets.
         //
         else {
-            docMeta.cm      = cm;
             docMeta.doc     = cm.getDoc();
             docMeta.changed = null;
         }
 
+        _self.cm = cm;
         _self.currentDocument = docMeta;
         _self.tern.setCurrentDocument(docMeta);
         _self.tern.setDocs(_self.docs);
-        _self.tern.loadSettings(cm, dir);
+        _self.tern.loadSettings(dir);
 
         docMeta._trackChange = function (cm1, change) {
             _self.tern.trackChange(docMeta.doc, change);
@@ -125,12 +119,9 @@ define(function (require, exports, module) {
 
 
     TernProvider.prototype.unregisterDocument = function (cm) {
-        var docMeta = this.findDocByCM(cm);
-        if (docMeta) {
-            delete docMeta.cm;
-            if (docMeta.doc && docMeta._trackChange) {
-                CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
-            }
+        var docMeta = this.findDocByInstance(cm.getDoc());
+        if (docMeta && docMeta.doc && docMeta._trackChange) {
+            CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
         }
     };
 
@@ -141,13 +132,14 @@ define(function (require, exports, module) {
      *
      * This will bypass the list of cached documents.
      */
-    TernProvider.prototype.addFile = function (name, root) {
+    TernProvider.prototype.addFile = function (name) {
         var _self = this;
 
-        return fileLoader.fileMeta(name, root || _self.currentDocument.file.parentPath || "").done(function(data) {
+        return fileLoader.readFile(name, _self.currentDocument.file.parentPath).done(function(data) {
             var docMeta = {
+                file: data.file,
                 name: name, //data.fullPath,
-                doc: new CodeMirror.Doc(data.text, "javascript"),
+                doc: new CodeMirror.Doc(data.content, "javascript"),
                 changed: null
             };
 
@@ -179,24 +171,31 @@ define(function (require, exports, module) {
      * it will get loaded either from local drive or remote via http.  This newly
      * retrieved document will be added to the list of cached documents.
      */
-    LocalProvider.prototype.getFile = function (name, root) {
+    LocalProvider.prototype.getFile = function (name) {
         var _self = this;
         var docMeta = _self.findDocByName(name);
 
-        if ( docMeta ) {
-            return spromise.resolved(docMeta.doc.getValue());
+        if (docMeta) {
+            return spromise.resolved({
+                docMeta: docMeta,
+                content: docMeta.doc.getValue()
+            });
         }
 
-        return fileLoader.fileMeta(name, root || _self.currentDocument.file.parentPath || "")
+        return fileLoader.readFile(name, _self.currentDocument.file.parentPath)
                 .then(function(data) {
                     var docMeta = {
+                        file: data.file,
                         name: name, //data.fullPath,
-                        doc: new CodeMirror.Doc(data.text, "javascript"),
+                        doc: new CodeMirror.Doc(data.content, "javascript"),
                         changed: null
                     };
 
                     _self.docs.push(docMeta);
-                    return data.text;
+                    return {
+                        docMeta: docMeta,
+                        content: data.content
+                    };
                 });
     };
 

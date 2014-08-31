@@ -14,8 +14,7 @@ define(function (require, exports, module) {
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
     var Menu = require('Menu'),
-        HintProvider = require('HintProvider'),
-        TernManager  = require('TernManager'),
+        TernManager = require('TernManager'),
         TernificManager = require("views/controllers/ternific");
 
     // Load up string utils...
@@ -44,7 +43,7 @@ define(function (require, exports, module) {
 
         $(EditorManager).on("activeEditorChange.ternific", handleActiveEditorChange);
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
-        CodeHintManager.registerHintProvider(new HintProvider(_ternManager), ["javascript"], 1);
+        CodeHintManager.registerHintProvider(_ternManager.ternHints, ["javascript"], 1);
     });
 
     AppInit.appReady(function() {
