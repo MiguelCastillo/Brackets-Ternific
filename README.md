@@ -9,6 +9,7 @@ Brackets-Tern
 4. Per folder/project .tern-project.  Ternific will traverse the directory structure looking for the first available  .tern-project file. If no .tern-project is found, then a default .tern-project is loaded.
 5. Live reload of .tern-project.  So, saving changes will automatically take effect without reloading Brackets. [Only for integrated tern and not for servers yet].
 6. Support for Meteor plugin!  Thanks to Slava for https://github.com/Slava/tern-meteor.
+7. ** Refactoring! To activate refactoring, place the editor's cursor on a variable/property and press `ctrl + r`.
 
 
 FAQ
