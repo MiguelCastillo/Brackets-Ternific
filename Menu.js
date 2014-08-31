@@ -13,7 +13,7 @@ define(function(require, exports, module) {
         Menus          = brackets.getModule("command/Menus");
 
     function menuSelected() {
-        $(exports).triggerHandler("manager.ternific");
+        $(exports).triggerHandler("ternific");
     }
 
     function registerMenu() {

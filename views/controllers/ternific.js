@@ -16,11 +16,11 @@ define(function(require, exports, module) {
         SearchResultsView   = brackets.getModule("search/SearchResultsView").SearchResultsView,
         spromise            = require("libs/js/spromise"),
         menu                = require("Menu"),
-        hintProvider        = require("HintProvider"),
+        ternHints           = require("TernHints"),
         ternReferences      = require("TernReferences"),
         referencesTransform = require("ReferencesTransform");
 
-    var $container, $hints, hints, _resultsView, _replaceModel, token;
+    var $container, $hints, hints, _resultsView, _replaceModel;
 
     var tmpls = {
         $ternific: $(require("text!views/tmpls/ternific.html")),
@@ -29,70 +29,46 @@ define(function(require, exports, module) {
     };
 
 
-    $(document).on("click", ".hintList li", function(evt) {
-        $hints.filter(".active").removeClass("active");
-        highlightHint( hints[ $hints.index( $(this).addClass("active") ) ] );
-    });
-
-
-    $(document).on("click", ".ternific-toolbar-icon", function(evt) {
-        toggle(true);
-    });
-
-
-    $(menu).on("manager.ternific", function(evt) {
-        toggle(true);
-    });
-
-
-    $(hintProvider).on("highlight", function(evt, hint) {
-        highlightHint(hint);
-    });
-
-
-    $(hintProvider).on("hints", function(evt, hintsList, hintsHtml) {
-        hints = hintsList;
-        $hints = $(hintsHtml);
-        tmpls.$ternific.find(".hintList").html($("<ul>").append($hints));
-    });
-
-
-    $(ternReferences).on("references", function(evt, ternProvider, references, token) {
-        var promises = [];
-
-        if (!token) {
-            _resultsView.close();
-            return;
-        }
-
-        _replaceModel.setQueryInfo({query: token, caseSensitive: false, isRegexp: false});
-        _replaceModel.isReplace = true;
-        _replaceModel.replaceText = "";
-
-        Object.keys(references).forEach(function(reference) {
-            promises.push(ternProvider.getFile(reference).done(function(file) {
-                var matches = [];
-
-                references[reference].forEach(function(match) {
-                    matches.push(referencesTransform(match, file.content));
-                });
-
-                _replaceModel.setResults(file.docMeta.file._path, {matches: matches, collapsed: false, timestamp: new Date(file.docMeta.file._stat._mtime) });
-            }));
+    $(menu)
+        .on("ternific", function(evt) {
+            toggle(true);
         });
 
-        spromise.all(promises).done(function() {
-            _resultsView.open();
-            var $data = _resultsView._$summary.find(".contracting-col");
-            var $value = $data.eq(1);
-            var $input = $("<input class='replace-references'>").val(token);
-            $value.html($input);
+
+    $(document)
+        .on("click", ".hintList li", function(evt) {
+            $hints.filter(".active").removeClass("active");
+            highlightHint( hints[ $hints.index( $(this).addClass("active") ) ] );
+        })
+        .on("click", ".ternific-toolbar-icon", function(evt) {
+            toggle(true);
         });
-    });
+
+
+    $(ternHints)
+        .on("highlight", function(evt, hint) {
+            highlightHint(hint);
+        })
+        .on("hints", function(evt, hintsList, hintsHtml) {
+            hints = hintsList;
+            $hints = $(hintsHtml);
+            tmpls.$ternific.find(".hintList").html($("<ul>").append($hints));
+        });
+
+
+    $(ternReferences)
+        .on("references", function(evt, fileProvider, references, token) {
+            if (!token) {
+                _resultsView.close();
+                return;
+            }
+
+            processReferences(fileProvider, references, token);
+        });
 
 
     function highlightHint(hint) {
-        tmpls.$ternific.filter(".resizable-content").html($(Mustache.render(tmpls.hintdetails, hint)));
+        tmpls.$ternific.find(".hintDetails").html($(Mustache.render(tmpls.hintdetails, hint)));
     }
 
 
@@ -104,6 +80,43 @@ define(function(require, exports, module) {
         open ?
             ($container.addClass("open") && Resizer.show($container)) :
             ($container.removeClass("open") && Resizer.hide($container));
+    }
+
+
+    function processReferences(fileProvider, references, token) {
+        var promises;
+
+        _replaceModel.setQueryInfo({query: token});
+        _replaceModel.isReplace = true;
+        _replaceModel.replaceText = "";
+
+        promises = Object.keys(references).map(function(reference) {
+            return fileProvider.getFile(reference).done(function(file) {
+                var data = {
+                    matches: [],
+                    timestamp: file.docMeta.file._stat._mtime
+                };
+
+                references[reference].forEach(function(match) {
+                    data.matches.push(referencesTransform(match, file.content));
+                });
+
+                _replaceModel.setResults(file.docMeta.file._path, data);
+            });
+        });
+
+        spromise.all(promises).done(function() {
+            if (promises.length) {
+                _resultsView.open();
+            } else {
+                _resultsView.close();
+            }
+
+            var $data = _resultsView._$summary.find(".contracting-col");
+            var $value = $data.eq(1);
+            var $input = $("<input class='replace-references'>").val(token);
+            $value.html($input);
+        });
     }
 
 

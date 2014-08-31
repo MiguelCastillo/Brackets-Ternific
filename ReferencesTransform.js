@@ -23,19 +23,17 @@ define(function (require, exports, module) {
 
         var lineNumber = reference.start.line,
             lineStart = lineNumber,
-            result, lineOffset;
+            result, matchOffset;
 
         // Calculate where in the buffer the line number is pointing to
         while(lineStart--) {
-            lineOffset = content.indexOf('\n', lineOffset + 1);
+            matchOffset = content.indexOf('\n', matchOffset + 1);
         }
 
+        matchOffset++; // Advance this to make sure the line accounts for the leading \n
         result = $.extend(true, {}, reference);
 
-        // Adjust indexes to the the result summary displays the proper string
-        //result.start.ch++;
-        //result.end.ch++;
-        result.line = content.substr(lineOffset, content.indexOf('\n', lineOffset + 1) - lineOffset),
+        result.line = content.substr(matchOffset, content.indexOf('\n', matchOffset + 1) - matchOffset),
         result.isChecked = true;
         return result;
     }
