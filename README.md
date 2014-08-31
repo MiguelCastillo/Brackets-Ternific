@@ -29,6 +29,9 @@ Screenshots
 Ternific hints panel
 ![Ternific panel](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/ternific.gif)
 
+Ternific refactoring
+![Ternific panel](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/refactoring.gif)
+
 Credit
 =============
 
