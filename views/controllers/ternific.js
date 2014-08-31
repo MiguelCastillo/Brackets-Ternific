@@ -128,7 +128,7 @@ define(function(require, exports, module) {
                 return FindUtils.hasCheckedMatches(resultsClone[path]);
             });
 
-        FindUtils.performReplacements(resultsClone, _replaceModel.replaceText, { forceFilesOpen: false, isRegexp: false });
+        FindUtils.performReplacements(resultsClone, _replaceModel.replaceText, { forceFilesOpen: true, isRegexp: false });
         _resultsView.close();
     }
 
