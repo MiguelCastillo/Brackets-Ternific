@@ -20,6 +20,7 @@ define(function (require, exports, module) {
         this._newSession = false;
         this._transformed = null;
         this._token = null;
+        this._cm = null;
     }
 
 
