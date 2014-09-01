@@ -64,6 +64,11 @@ define(function(require, exports, module) {
             }
 
             processReferences(fileProvider, references, token);
+        })
+        .on("documentChange", function(evt, currentDocument) {
+            if (currentDocument && !_replaceModel.results[currentDocument.file._path]) {
+                _resultsView.close();
+            }
         });
 
 

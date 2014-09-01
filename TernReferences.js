@@ -8,6 +8,8 @@
 define(function (require, exports, module) {
     "use strict";
 
+    var DocumentManager = brackets.getModule("document/DocumentManager"),
+        ProjectManager  = brackets.getModule("project/ProjectManager");
     var spromise = require("libs/js/spromise");
 
 
@@ -17,9 +19,11 @@ define(function (require, exports, module) {
      * @param {TernProvider} instance of the tern provider
      */
     function TernReferences(ternProvider) {
+        var _self = this;
         this.ternProvider = ternProvider;
         this._cm = null;
         this._token = null;
+        this._matches = null;
     }
 
 
@@ -51,6 +55,7 @@ define(function (require, exports, module) {
                     }
                 }
 
+                _self._matches = perFile;
                 $(TernReferences).triggerHandler("references", [_self.ternProvider, perFile, _self._token.string]);
                 return perFile;
             },
@@ -58,6 +63,29 @@ define(function (require, exports, module) {
                 return error;
             });
     };
+
+
+    $(DocumentManager)
+        .on("currentDocumentChange", function(evt, currentDocument) {
+            $(TernReferences).triggerHandler("documentChange", [currentDocument]);
+        })
+        .on("pathDeleted", function(evt) {
+            $(TernReferences).triggerHandler("references");
+        })
+        .on("documentRefreshed", function(evt) {
+            $(TernReferences).triggerHandler("references");
+        })
+        .on("dirtyFlagChange", function(evt, doc) {
+            if (doc.isDirty) {
+                $(TernReferences).triggerHandler("references");
+            }
+        });
+
+
+    $(ProjectManager)
+        .on("beforeProjectClose", function () {
+            $(TernReferences).triggerHandler("references");
+        });
 
 
     return TernReferences;
