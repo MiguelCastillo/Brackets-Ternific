@@ -86,6 +86,7 @@ define(function(require, exports, module) {
     function processReferences(fileProvider, references, token) {
         var promises;
 
+        _replaceModel.clear();
         _replaceModel.setQueryInfo({query: token});
         _replaceModel.isReplace = true;
         _replaceModel.replaceText = "";
