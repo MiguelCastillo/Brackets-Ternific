@@ -49,7 +49,7 @@ define(function(require, exports, module) {
                     text: text
                 });
             },
-            deleleteFile: function(name) {
+            deleteFile: function(name) {
                 instance.send({
                     type: "deleteFile",
                     name: name

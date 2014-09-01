@@ -130,7 +130,7 @@ define(function(require, exports, module) {
                     text: text
                 });
             },
-            deleleteFile: function(name) {
+            deleteFile: function(name) {
                 worker.send({
                     type: "deleteFile",
                     name: name
