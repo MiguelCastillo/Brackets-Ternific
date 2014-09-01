@@ -1,7 +1,7 @@
 Brackets-Tern
 =============
 
-[Tern](http://ternjs.net/) integration with brackets.<br>
+[Tern](http://ternjs.net/) integration in brackets.<br>
 
 1. Integration with brackets' native hint manager system.
 2. By default this extension runs tern in a worker thread (a web worker).
