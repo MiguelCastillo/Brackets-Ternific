@@ -16,7 +16,7 @@ define(function (require, exports, module) {
     /**
      * Provider to tind references of a variable/property
      *
-     * @param {TernProvider} instance of the tern provider
+     * @param {TernProvider} ternProvider instance of the tern provider
      */
     function TernReferences(ternProvider) {
         var _self = this;
@@ -27,6 +27,13 @@ define(function (require, exports, module) {
     }
 
 
+    /**
+     * Gets all references of whatever the editor cursor is located
+     *
+     * @param   {CodeMirror} cm CodeMirror instance to initiate the processing from.  This is where the
+     *  editor cursor is extracted from
+     * @returns {spromise} Promise that will resolved with the references sorted by file
+     */
     TernReferences.prototype.getReferences = function(cm) {
         var _self = this;
         cm = cm || this.cm;
