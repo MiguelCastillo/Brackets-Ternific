@@ -11,9 +11,7 @@
   "loadEagerly": [],
   "async": true,
   "plugins": {
-    "requirejs": {
-      "baseURL": "ternific"
-    },
+    "requirejs": {},
     "doc_comment": {},
     "component": {}
   }
