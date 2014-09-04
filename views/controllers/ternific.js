@@ -42,6 +42,11 @@ define(function(require, exports, module) {
         })
         .on("click", ".ternific-toolbar-icon", function(evt) {
             toggle(true);
+        })
+        .on("submit", ".replace-form", function(evt) {
+            finishReplaceAll();
+            evt.stopPropagation();
+            return false;
         });
 
 
@@ -121,7 +126,11 @@ define(function(require, exports, module) {
             var $data = _resultsView._$summary.find(".contracting-col");
             var $value = $data.eq(1);
             var $input = $("<input class='replace-references'>").val(token);
-            $value.html($input);
+            $value.html($("<form class='replace-form'></form>").append($input));
+
+            setTimeout(function() {
+                $input.focus();
+            }, 0);
         });
     }
 

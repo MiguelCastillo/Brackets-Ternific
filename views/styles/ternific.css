@@ -104,3 +104,7 @@
 .replace-references {
     vertical-align: baseline;
 }
+
+.replace-form {
+    margin: 0;
+}
