@@ -86,7 +86,7 @@ define(function(require, exports, module) {
      * Is the token's class hintable? (A very conservative test.)
      *
      * @param {Object} token - the token to test for hintability
-     * @return {boolean} - could the token be hintable?
+     * @returns {boolean} - could the token be hintable?
      */
     function hintable(token) {
         switch (token.type) {
