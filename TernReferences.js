@@ -77,21 +77,21 @@ define(function (require, exports, module) {
             $(TernReferences).triggerHandler("documentChange", [currentDocument]);
         })
         .on("pathDeleted", function(evt) {
-            $(TernReferences).triggerHandler("references");
+            $(TernReferences).triggerHandler("documentChange");
         })
         .on("documentRefreshed", function(evt) {
-            $(TernReferences).triggerHandler("references");
+            $(TernReferences).triggerHandler("documentChange");
         })
         .on("dirtyFlagChange", function(evt, doc) {
             if (doc.isDirty) {
-                $(TernReferences).triggerHandler("references");
+                $(TernReferences).triggerHandler("documentChange");
             }
         });
 
 
     $(ProjectManager)
         .on("beforeProjectClose", function () {
-            $(TernReferences).triggerHandler("references");
+            $(TernReferences).triggerHandler("documentChange");
         });
 
 

@@ -162,9 +162,6 @@ define(function(require, exports, module) {
         $(_resultsView)
             .on("replaceAll", function () {
                 finishReplaceAll();
-            })
-            .on("close", function () {
-                _replaceModel.clear();
             });
     }
 
