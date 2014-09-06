@@ -113,7 +113,7 @@ define(function (require, exports, module) {
                     fromDirectory(fileName, ProjectFiles.currentProject.fullPath).done(resolve).fail(reject);
                 });
         }).fail(function(err) {
-            console.log("====> error", err, fileName, filePath);
+            //console.log("====> error", err, fileName, filePath);
         });
     }
 
