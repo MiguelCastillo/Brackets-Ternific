@@ -41,7 +41,7 @@ define(function(require, exports, module) {
             highlightHint( hints[ $hints.index( $(this).addClass("active") ) ] );
         })
         .on("click", ".ternific-toolbar-icon", function(evt) {
-            toggle(true);
+            toggle();
         })
         .on("submit", ".replace-form", function(evt) {
             finishReplaceAll();
@@ -86,6 +86,8 @@ define(function(require, exports, module) {
         if (open === undefined) {
             open = !$container.hasClass("open");
         }
+        
+        $(".ternific-toolbar-icon").toggleClass("active", open);
 
         open ?
             ($container.addClass("open") && Resizer.show($container)) :
@@ -150,7 +152,7 @@ define(function(require, exports, module) {
 
     function init() {
         $container = $("<div id='ternific' class='bottom-panel vert-resizable top-resizer'>").append(tmpls.$ternific);
-        $container.on("click", ".close", function (evt) {toggle(false);});
+        $container.on("click", "[panel-action=close]", function (evt) {toggle();});
         PanelManager.createBottomPanel("ternific.manager", $container, 100);
 
         $("#main-toolbar .buttons").append("<a href='#' class='ternific-toolbar-icon' title='Ternific'></a>");
