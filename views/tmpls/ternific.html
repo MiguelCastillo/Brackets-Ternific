@@ -1,11 +1,21 @@
-<div class="toolbar simple-toolbar-layout">
+<div class="ternific-toolbar toolbar simple-toolbar-layout">
     <div class="title">Ternific</div>
-
     <div class="toolbar-buttons">
-<!--        <a href="#" panel-action="sort-hints"><i class="fa fa-sort-alpha-desc"></i></a>-->
-        <a href="#" panel-action="close"><i class="fa fa-times"></i></a>
+        <div class="dropdown">
+            <a href="#" data-action="sort-hints" data-toggle="dropdown" title="Hint sorting"><i class="fa fa-sort-alpha-desc"></i></a>
+            <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="dropdownMenu1">
+                <li role="presentation"><a role="menuitem" tabindex="-1" href="#" data-sort="byPass">None</a></li>
+                <li role="presentation"><a role="menuitem" tabindex="-1" href="#" data-sort="byMatch">Best Match</a></li>
+                <li role="presentation"><a role="menuitem" tabindex="-1" href="#" data-sort="byFunction">Function</a></li>
+                <li role="presentation"><a role="menuitem" tabindex="-1" href="#" data-sort="byObject">Object</a></li>
+                <li role="presentation"><a role="menuitem" tabindex="-1" href="#" data-sort="byString">String</a></li>
+            </ul>
+        </div>
+        
+        <a href="#" data-action="close"><i class="fa fa-times"></i></a>
     </div>
 </div>
+
 <div class="resizable-content">
     <div class='hintContainer'>
         <div class='hintDetails'></div>

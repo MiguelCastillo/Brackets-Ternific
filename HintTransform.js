@@ -94,7 +94,7 @@ define(function (require, exports, module) {
 
 
         function byFunction(tokens, criteria) {
-            return _sort(tokens, matchByType.bind(undefined, "fn", criteria), tokenToHtml.bind(undefined, criteria));
+            return _sort(tokens, matchByType.bind(undefined, "function", criteria), tokenToHtml.bind(undefined, criteria));
         }
 
 

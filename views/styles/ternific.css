@@ -82,6 +82,10 @@
 #ternific .hintDetails .description {
 }
 
+.ternific-toolbar {
+    overflow: visible !important;
+}
+
 .ternific-toolbar-icon {
     display: inline-block;
     font-family: FontAwesome;
@@ -118,13 +122,17 @@
     right: 10px;
 }
 
-.toolbar-buttons > a {
+.toolbar-buttons > * {
+    display: inline-block;
+}
+
+.toolbar-buttons .fa {
     font-weight: 500;
     color: #333333;
     padding-left: 5px;
     opacity: 0.7;
 }
 
-.toolbar-buttons > a:hover {
+.toolbar-buttons .fa:hover {
     color: #000000;
 }

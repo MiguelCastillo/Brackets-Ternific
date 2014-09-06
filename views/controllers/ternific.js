@@ -16,92 +16,132 @@ define(function(require, exports, module) {
         SearchResultsView   = brackets.getModule("search/SearchResultsView").SearchResultsView,
         spromise            = require("libs/js/spromise"),
         menu                = require("Menu"),
-        ternHints           = require("TernHints"),
-        ternReferences      = require("TernReferences"),
         referencesTransform = require("ReferencesTransform");
 
-    var $container, $hints, hints, _resultsView, _replaceModel;
 
     var tmpls = {
-        $ternific: $(require("text!views/tmpls/ternific.html")),
+        ternific: require("text!views/tmpls/ternific.html"),
         hintdetails: require("text!views/tmpls/hintdetails.html"),
         references: require("text!views/tmpls/references.html")
     };
+    
+    
+    function Ternific(ternManager) {
+        var _self = this;
+
+        this.$ternific = $(tmpls.ternific);
+        this.$container = null;
+        this.$hints = null;
+        this.$toolbarIcon = $("<a href='#' class='ternific-toolbar-icon' title='Ternific'></a>");
+        this.hints = null;
+        this.ternManager = ternManager;
+        this._resultsView = null;
+        this._replaceModel = null;
 
 
-    $(menu)
-        .on("ternific", function(evt) {
-            toggle(true);
-        });
+        //
+        // Initialize controller
+        //
+
+        this.$toolbarIcon.appendTo($("#main-toolbar .buttons"));
+
+        this.$container = $("<div id='ternific' class='bottom-panel vert-resizable top-resizer'>").append(this.$ternific);
+        this.$container.on("click", "[data-action=close]", function (evt) {_self.toggle();});
+        this.$container.on("click", "[data-sort]", function (evt) {_self.sort($(evt.target).attr("data-sort"));});
+        PanelManager.createBottomPanel("ternific.manager", _self.$container, 100);
+
+        // Initialize view for showing items to be replaced
+        this._replaceModel = new SearchModel();
+        this._resultsView = new SearchResultsView(this._replaceModel, "replace-instances", "replace-instances.results");
+
+        $(this._resultsView)
+            .on("replaceAll", function () {
+                _self.finishReplaceAll();
+            });
+
+        $(menu)
+            .on("ternific", function(evt) {
+                _self.toggle(true);
+            });
 
 
-    $(document)
-        .on("click", ".hintList li", function(evt) {
-            $hints.filter(".active").removeClass("active");
-            highlightHint( hints[ $hints.index( $(this).addClass("active") ) ] );
-        })
-        .on("click", ".ternific-toolbar-icon", function(evt) {
-            toggle();
-        })
-        .on("submit", ".replace-form", function(evt) {
-            finishReplaceAll();
-            evt.stopPropagation();
-            return false;
-        });
+        $(document)
+            .on("click", ".hintList li", function(evt) {
+                _self.$hints.filter(".active").removeClass("active");
+                _self.highlightHint( _self.hints[ _self.$hints.index( $(this).addClass("active") ) ] );
+            })
+            .on("click", ".ternific-toolbar-icon", function(evt) {
+                _self.toggle();
+            })
+            .on("submit", ".replace-form", function(evt) {
+                _self.finishReplaceAll();
+                evt.stopPropagation();
+                return false;
+            });
 
 
-    $(ternHints)
-        .on("highlight", function(evt, hint) {
-            highlightHint(hint);
-        })
-        .on("hints", function(evt, hintsList, hintsHtml) {
-            hints = hintsList;
-            $hints = $(hintsHtml);
-            tmpls.$ternific.find(".hintList").html($("<ul>").append($hints));
-        });
+        ternManager.ternHints.eventing
+            .on("highlight", function(evt, hint) {
+                _self.highlightHint(hint);
+            })
+            .on("hints", function(evt, hintsList, hintsHtml) {
+                _self.hints = hintsList;
+                _self.$hints = $(hintsHtml);
+                _self.$ternific.find(".hintList").html($("<ul>").append(_self.$hints));
+            });
 
 
-    $(ternReferences)
-        .on("references", function(evt, fileProvider, references, token) {
-            if (!token) {
-                _resultsView.close();
-                return;
-            }
+        ternManager.ternReferences.eventing
+            .on("references", function(evt, fileProvider, references, token) {
+                if (!token) {
+                    _self._resultsView.close();
+                    return;
+                }
 
-            processReferences(fileProvider, references, token);
-        })
-        .on("documentChange", function(evt, currentDocument) {
-            if (currentDocument && !_replaceModel.results[currentDocument.file._path]) {
-                _resultsView.close();
-            }
-        });
-
-
-    function highlightHint(hint) {
-        tmpls.$ternific.find(".hintDetails").html($(Mustache.render(tmpls.hintdetails, hint)));
+                _self.processReferences(fileProvider, references, token);
+            })
+            .on("documentChange", function(evt, currentDocument) {
+                if (currentDocument && !_self._replaceModel.results[currentDocument.file._path]) {
+                    _self._resultsView.close();
+                }
+            });
     }
 
 
-    function toggle(open) {
+    Ternific.prototype.highlightHint = function(hint) {
+        this.$ternific.find(".hintDetails").html($(Mustache.render(tmpls.hintdetails, hint)));
+    };
+
+
+    Ternific.prototype.toggle = function (open) {
+        var $container = this.$container;
+
         if (open === undefined) {
             open = !$container.hasClass("open");
         }
         
-        $(".ternific-toolbar-icon").toggleClass("active", open);
+        this.$toolbarIcon.toggleClass("active", open);
 
         open ?
             ($container.addClass("open") && Resizer.show($container)) :
             ($container.removeClass("open") && Resizer.hide($container));
-    }
+    };
 
 
-    function processReferences(fileProvider, references, token) {
+    Ternific.prototype.sort = function(byType) {
+        this.ternManager.ternHints.setSort(byType);
+    };
+
+
+    Ternific.prototype.processReferences = function(fileProvider, references, token) {
         var promises;
+        var replaceModel = this._replaceModel,
+            resultsView = this._resultsView;
 
-        _replaceModel.clear();
-        _replaceModel.setQueryInfo({query: token});
-        _replaceModel.isReplace = true;
-        _replaceModel.replaceText = "";
+        replaceModel.clear();
+        replaceModel.setQueryInfo({query: token});
+        replaceModel.isReplace = true;
+        replaceModel.replaceText = "";
 
         promises = Object.keys(references).map(function(reference) {
             return fileProvider.getFile(reference).done(function(file) {
@@ -114,18 +154,18 @@ define(function(require, exports, module) {
                     data.matches.push(referencesTransform(match, file.content));
                 });
 
-                _replaceModel.setResults(file.docMeta.file._path, data);
+                replaceModel.setResults(file.docMeta.file._path, data);
             });
         });
 
         spromise.all(promises).done(function() {
             if (promises.length) {
-                _resultsView.open();
+                resultsView.open();
             } else {
-                _resultsView.close();
+                resultsView.close();
             }
 
-            var $data = _resultsView._$summary.find(".contracting-col");
+            var $data = resultsView._$summary.find(".contracting-col");
             var $value = $data.eq(1);
             var $input = $("<input class='replace-references'>").val(token);
             $value.html($("<form class='replace-form'></form>").append($input));
@@ -137,36 +177,22 @@ define(function(require, exports, module) {
     }
 
 
-    function finishReplaceAll() {
-        _replaceModel.replaceText = _resultsView._$summary.find(".replace-references").val();
+    Ternific.prototype.finishReplaceAll = function() {
+        var replaceModel = this._replaceModel,
+            resultsView = this._resultsView;
 
-        var resultsClone = _.cloneDeep(_replaceModel.results),
+        replaceModel.replaceText = resultsView._$summary.find(".replace-references").val();
+
+        var resultsClone = _.cloneDeep(replaceModel.results),
             replacedFiles = Object.keys(resultsClone).filter(function (path) {
                 return FindUtils.hasCheckedMatches(resultsClone[path]);
             });
 
-        FindUtils.performReplacements(resultsClone, _replaceModel.replaceText, { forceFilesOpen: true, isRegexp: false });
-        _resultsView.close();
+        FindUtils.performReplacements(resultsClone, replaceModel.replaceText, { forceFilesOpen: true, isRegexp: false });
+        resultsView.close();
     }
 
 
-    function init() {
-        $container = $("<div id='ternific' class='bottom-panel vert-resizable top-resizer'>").append(tmpls.$ternific);
-        $container.on("click", "[panel-action=close]", function (evt) {toggle();});
-        PanelManager.createBottomPanel("ternific.manager", $container, 100);
 
-        $("#main-toolbar .buttons").append("<a href='#' class='ternific-toolbar-icon' title='Ternific'></a>");
-
-        // Initialize view for showing items to be replaced
-        _replaceModel = new SearchModel();
-        _resultsView = new SearchResultsView(_replaceModel, "replace-instances", "replace-instances.results");
-
-        $(_resultsView)
-            .on("replaceAll", function () {
-                finishReplaceAll();
-            });
-    }
-
-
-    exports.init = init;
+    return Ternific;
 });

@@ -21,7 +21,23 @@ define(function (require, exports, module) {
         this._transformed = null;
         this._token = null;
         this._cm = null;
+        this._sortBy = HintTransform.sort.byMatch;
+        this.eventing = $("<span>");
     }
+    
+    
+    TernHints.prototype.setSort = function(sortType) {
+        if (!HintTransform.sort.hasOwnProperty(sortType)) {
+            return;
+        }
+
+        this._sortBy = sortType;
+        
+        if (this.hints) {
+            this._transformed = HintTransform(this.hints, this._sortBy);
+            this.eventing.triggerHandler("hints", [this._transformed.tokens, this._transformed.html]);
+        }
+    };
 
 
     /**
@@ -63,7 +79,7 @@ define(function (require, exports, module) {
                 },
                 set: function(newValue) {
                     _self._selectedIndex = newValue;
-                    $(TernHints).triggerHandler("highlight", [_self._transformed.tokens[newValue]]);
+                    _self.eventing.triggerHandler("highlight", [_self._transformed.tokens[newValue]]);
                 }
             });
         }
@@ -106,8 +122,8 @@ define(function (require, exports, module) {
             };
 
             _self.hints = hints;
-            _self._transformed = HintTransform(hints, HintTransform.sort.byMatch);
-            $(TernHints).triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
+            _self._transformed = HintTransform(hints, _self._sortBy);
+            _self.eventing.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
 
             return {
                 hints: _self._transformed.hints,

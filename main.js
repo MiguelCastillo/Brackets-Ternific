@@ -15,7 +15,7 @@ define(function (require, exports, module) {
 
     var Menu = require('Menu'),
         TernManager = require('TernManager'),
-        TernificManager = require("views/controllers/ternific");
+        TernificController = require("views/controllers/ternific");
 
     // Load up string utils...
     require("string");
@@ -24,8 +24,8 @@ define(function (require, exports, module) {
     ExtensionUtils.loadStyleSheet(module, "views/styles/ternific.css");
     ExtensionUtils.loadStyleSheet(module, "libs/font-awesome/css/font-awesome.css");
 
-    var _ternManager = new TernManager();
-    _ternManager.onReady(function () {
+    var ternManager = new TernManager();
+    ternManager.onReady(function () {
         /*
          * Handle the activeEditorChange event fired by EditorManager.
          * Uninstalls the change listener on the previous editor
@@ -37,13 +37,13 @@ define(function (require, exports, module) {
          */
         function handleActiveEditorChange(event, current, previous) {
             if (current) {
-                _ternManager.registerDocument(current._codeMirror, current.document.file);
+                ternManager.registerDocument(current._codeMirror, current.document.file);
             }
         }
 
         $(EditorManager).on("activeEditorChange.ternific", handleActiveEditorChange);
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
-        CodeHintManager.registerHintProvider(_ternManager.ternHints, ["javascript"], 1);
+        CodeHintManager.registerHintProvider(ternManager.ternHints, ["javascript"], 1);
     });
 
     AppInit.appReady(function() {
@@ -51,6 +51,6 @@ define(function (require, exports, module) {
     });
 
     AppInit.htmlReady(function () {
-        TernificManager.init();
+        new TernificController(ternManager);
     });
 });

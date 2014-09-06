@@ -24,6 +24,29 @@ define(function (require, exports, module) {
         this._cm = null;
         this._token = null;
         this._matches = null;
+        this.eventing = $("<span>");
+        
+        $(DocumentManager)
+            .on("currentDocumentChange", function(evt, currentDocument) {
+                _self.eventing.triggerHandler("documentChange", [currentDocument]);
+            })
+            .on("pathDeleted", function(evt) {
+                _self.eventing.triggerHandler("documentChange");
+            })
+            .on("documentRefreshed", function(evt) {
+                _self.eventing.triggerHandler("documentChange");
+            })
+            .on("dirtyFlagChange", function(evt, doc) {
+                if (doc.isDirty) {
+                    _self.eventing.triggerHandler("documentChange");
+                }
+            });
+
+
+        $(ProjectManager)
+            .on("beforeProjectClose", function () {
+                _self.eventing.triggerHandler("documentChange");
+            });
     }
 
 
@@ -35,9 +58,7 @@ define(function (require, exports, module) {
      * @returns {spromise} Promise that will resolved with the references sorted by file
      */
     TernReferences.prototype.getReferences = function(cm) {
-        var _self = this;
         cm = cm || this.cm;
-
         this._cm = cm;
         this._token = null;
 
@@ -47,7 +68,7 @@ define(function (require, exports, module) {
 
         this._token = cm.getTokenAt(cm.getCursor());
         if (!this._token.string) {
-            $(TernReferences).triggerHandler("references", [this.ternProvider, {}, this._token.string]);
+            this.eventing.triggerHandler("references", [this.ternProvider, {}, this._token.string]);
             return spromise.resolve();
         }
 
@@ -62,38 +83,15 @@ define(function (require, exports, module) {
                     }
                 }
 
-                _self._matches = perFile;
-                $(TernReferences).triggerHandler("references", [_self.ternProvider, perFile, _self._token.string]);
+                this._matches = perFile;
+                this.eventing.triggerHandler("references", [this.ternProvider, perFile, this._token.string]);
                 return perFile;
-            },
+            }.bind(this),
             function(error) {
                 return error;
             });
     };
 
-
-    $(DocumentManager)
-        .on("currentDocumentChange", function(evt, currentDocument) {
-            $(TernReferences).triggerHandler("documentChange", [currentDocument]);
-        })
-        .on("pathDeleted", function(evt) {
-            $(TernReferences).triggerHandler("documentChange");
-        })
-        .on("documentRefreshed", function(evt) {
-            $(TernReferences).triggerHandler("documentChange");
-        })
-        .on("dirtyFlagChange", function(evt, doc) {
-            if (doc.isDirty) {
-                $(TernReferences).triggerHandler("documentChange");
-            }
-        });
-
-
-    $(ProjectManager)
-        .on("beforeProjectClose", function () {
-            $(TernReferences).triggerHandler("documentChange");
-        });
-
-
+    
     return TernReferences;
 });
