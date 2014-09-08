@@ -22,7 +22,7 @@ define(function (require, exports, module) {
         this._token = null;
         this._cm = null;
         this._sortBy = HintTransform.sort.byMatch;
-        this.eventing = $("<span>");
+        this.events = $("<span>");
     }
     
     
@@ -35,7 +35,7 @@ define(function (require, exports, module) {
         
         if (this.hints) {
             this._transformed = HintTransform(this.hints, this._sortBy);
-            this.eventing.triggerHandler("hints", [this._transformed.tokens, this._transformed.html]);
+            this.events.triggerHandler("hints", [this._transformed.tokens, this._transformed.html]);
         }
     };
 
@@ -79,7 +79,7 @@ define(function (require, exports, module) {
                 },
                 set: function(newValue) {
                     _self._selectedIndex = newValue;
-                    _self.eventing.triggerHandler("highlight", [_self._transformed.tokens[newValue]]);
+                    _self.events.triggerHandler("highlight", [_self._transformed.tokens[newValue]]);
                 }
             });
         }
@@ -123,7 +123,7 @@ define(function (require, exports, module) {
 
             _self.hints = hints;
             _self._transformed = HintTransform(hints, _self._sortBy);
-            _self.eventing.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
+            _self.events.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
 
             return {
                 hints: _self._transformed.hints,

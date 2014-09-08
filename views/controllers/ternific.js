@@ -25,7 +25,12 @@ define(function(require, exports, module) {
         references: require("text!views/tmpls/references.html")
     };
     
-    
+
+    /**
+     * Controller for ternific's main UI
+     *
+     * @param {TernManager} ternManager is the access to the different part exposed for tern functionality
+     */
     function Ternific(ternManager) {
         var _self = this;
 
@@ -80,7 +85,7 @@ define(function(require, exports, module) {
             });
 
 
-        ternManager.ternHints.eventing
+        ternManager.ternHints.events
             .on("highlight", function(evt, hint) {
                 _self.highlightHint(hint);
             })
@@ -91,7 +96,7 @@ define(function(require, exports, module) {
             });
 
 
-        ternManager.ternReferences.eventing
+        ternManager.ternReferences.events
             .on("references", function(evt, fileProvider, references, token) {
                 if (!token) {
                     _self._resultsView.close();

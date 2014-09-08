@@ -24,28 +24,28 @@ define(function (require, exports, module) {
         this._cm = null;
         this._token = null;
         this._matches = null;
-        this.eventing = $("<span>");
+        this.events = $("<span>");
         
         $(DocumentManager)
             .on("currentDocumentChange", function(evt, currentDocument) {
-                _self.eventing.triggerHandler("documentChange", [currentDocument]);
+                _self.events.triggerHandler("documentChange", [currentDocument]);
             })
             .on("pathDeleted", function(evt) {
-                _self.eventing.triggerHandler("documentChange");
+                _self.events.triggerHandler("documentChange");
             })
             .on("documentRefreshed", function(evt) {
-                _self.eventing.triggerHandler("documentChange");
+                _self.events.triggerHandler("documentChange");
             })
             .on("dirtyFlagChange", function(evt, doc) {
                 if (doc.isDirty) {
-                    _self.eventing.triggerHandler("documentChange");
+                    _self.events.triggerHandler("documentChange");
                 }
             });
 
 
         $(ProjectManager)
             .on("beforeProjectClose", function () {
-                _self.eventing.triggerHandler("documentChange");
+                _self.events.triggerHandler("documentChange");
             });
     }
 
@@ -68,7 +68,7 @@ define(function (require, exports, module) {
 
         this._token = cm.getTokenAt(cm.getCursor());
         if (!this._token.string) {
-            this.eventing.triggerHandler("references", [this.ternProvider, {}, this._token.string]);
+            this.events.triggerHandler("references", [this.ternProvider, {}, this._token.string]);
             return spromise.resolve();
         }
 
@@ -84,7 +84,7 @@ define(function (require, exports, module) {
                 }
 
                 this._matches = perFile;
-                this.eventing.triggerHandler("references", [this.ternProvider, perFile, this._token.string]);
+                this.events.triggerHandler("references", [this.ternProvider, perFile, this._token.string]);
                 return perFile;
             }.bind(this),
             function(error) {
