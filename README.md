@@ -32,6 +32,9 @@ Ternific hints panel
 Ternific refactoring
 ![Ternific panel](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/refactoring.gif)
 
+Ternific Dark Theme
+![Ternific panel](https://raw.github.com/wiki/MiguelCastillo/Brackets-Ternific/images/darktheme.png)
+
 Credit
 =============
 
