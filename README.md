@@ -11,6 +11,7 @@ Brackets-Tern
 6. Support for Meteor plugin!  Thanks to Slava for https://github.com/Slava/tern-meteor.
 7. ** Refactoring! To activate refactoring, place the editor's cursor on a variable/property and press `ctrl + r`.
 8. Refactoring is supported accross multiple files. EXPERIMENTAL
+9. Set the sorting order of your hints!
 
 
 FAQ
