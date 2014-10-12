@@ -9,9 +9,9 @@
 define(function (require, exports, module) {
     "use strict";
 
-    var _               = brackets.getModule("thirdparty/lodash"),
-        CodeHintManager = brackets.getModule("editor/CodeHintManager"),
-        HintHelper      = require("HintHelper");
+
+    var _          = brackets.getModule("thirdparty/lodash"),
+        HintHelper = require("HintHelper");
 
 
     var MAX_DISPLAYED_HINTS = 400,
