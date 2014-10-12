@@ -9,7 +9,7 @@ define(function(require, exports, module) {
     "use strict";
 
     var _                   = brackets.getModule("thirdparty/lodash"),
-        PanelManager        = brackets.getModule("view/PanelManager"),
+        WorkspaceManager    = brackets.getModule("view/WorkspaceManager"),
         Resizer             = brackets.getModule("utils/Resizer"),
         FindUtils           = brackets.getModule("search/FindUtils"),
         SearchModel         = brackets.getModule("search/SearchModel").SearchModel,
@@ -53,7 +53,7 @@ define(function(require, exports, module) {
         this.$container = $("<div id='ternific' class='bottom-panel vert-resizable top-resizer'>").append(this.$ternific);
         this.$container.on("click", "[data-action=close]", function (evt) {_self.toggle();});
         this.$container.on("click", "[data-sort]", function (evt) {_self.sort($(evt.target).attr("data-sort"));});
-        PanelManager.createBottomPanel("ternific.manager", _self.$container, 100);
+        WorkspaceManager.createBottomPanel("ternific.manager", _self.$container, 100);
 
         // Initialize view for showing items to be replaced
         this._replaceModel = new SearchModel();
