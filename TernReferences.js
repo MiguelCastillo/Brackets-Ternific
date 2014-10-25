@@ -5,7 +5,7 @@
  */
 
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
 
     var DocumentManager = brackets.getModule("document/DocumentManager"),
@@ -30,10 +30,10 @@ define(function (require, exports, module) {
             .on("currentDocumentChange", function(evt, currentDocument) {
                 _self.events.triggerHandler("documentChange", [currentDocument]);
             })
-            .on("pathDeleted", function(evt) {
+            .on("pathDeleted", function(/*evt*/) {
                 _self.events.triggerHandler("documentChange");
             })
-            .on("documentRefreshed", function(evt) {
+            .on("documentRefreshed", function(/*evt*/) {
                 _self.events.triggerHandler("documentChange");
             })
             .on("dirtyFlagChange", function(evt, doc) {

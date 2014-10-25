@@ -63,7 +63,6 @@ define(function (require, exports, module) {
         function _sort(tokens, clasify, toHtml) {
             var groups = {},
                 result = {tokens: [], hints: [], html: ""},
-                html   = "",
                 hint,
                 index,
                 length,
@@ -83,7 +82,7 @@ define(function (require, exports, module) {
                 group.tokens.push(token);
             }
 
-            _.each(groups, function(group, groupId) {
+            _.each(groups, function(group /*, groupId*/) {
                 result.html += group.html;
                 result.hints.push.apply(result.hints, group.hints);
                 result.tokens.push.apply(result.tokens, group.tokens);
@@ -173,8 +172,7 @@ define(function (require, exports, module) {
      * @returns {Object}
      */
     function HintsTransform(hints, sortType) {
-        var hintList;
-        var hintList, trimmedQuery, lastChar;
+        var trimmedQuery, lastChar;
         var query = hints.text;
         var firstChar = query.charAt(0);
 

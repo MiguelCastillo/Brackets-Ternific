@@ -5,7 +5,7 @@
  */
 
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
 
     var spromise       = require("libs/js/spromise"),
@@ -18,13 +18,12 @@ define(function (require, exports, module) {
     }
 
 
-    ProjectFiles.prototype.openFile = function(fileName, forceCreate) {
-        var deferred = spromise.defer();
+    ProjectFiles.prototype.openFile = function(fileName /*, forceCreate*/) {
         var filePath = this.currentProject.fullPath;
         var handle = FileSystem.getFileForPath(filePath + fileName);
 
         return spromise(function(resolve, reject) {
-            handle.exists(function(err, exists) {
+            handle.exists(function(err /*, exists*/) {
                 if (err) {
                     reject(err);
                 }

@@ -5,10 +5,8 @@
  */
 
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
-
-    var FileSystem = brackets.getModule("filesystem/FileSystem");
 
     var spromise       = require("libs/js/spromise");
     var TernProvider   = require("TernProvider"),

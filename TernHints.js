@@ -5,13 +5,12 @@
  */
 
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
 
     var CodeHintManager = brackets.getModule("editor/CodeHintManager");
-    var spromise        = require("libs/js/spromise"),
-        HintTransform   = require("HintTransform"),
-        HintHelper      = require("HintHelper");
+    var hintTransform   = require("HintTransform"),
+        hintHelper      = require("HintHelper");
 
 
     function TernHints(ternProvider) {
@@ -21,20 +20,20 @@ define(function (require, exports, module) {
         this._transformed = null;
         this._token = null;
         this._cm = null;
-        this._sortBy = HintTransform.sort.byMatch;
+        this._sortBy = hintTransform.sort.byMatch;
         this.events = $("<span>");
     }
     
     
     TernHints.prototype.setSort = function(sortType) {
-        if (!HintTransform.sort.hasOwnProperty(sortType)) {
+        if (!hintTransform.sort.hasOwnProperty(sortType)) {
             return;
         }
 
         this._sortBy = sortType;
         
         if (this.hints) {
-            this._transformed = HintTransform(this.hints, this._sortBy);
+            this._transformed = hintTransform(this.hints, this._sortBy);
             this.events.triggerHandler("hints", [this._transformed.tokens, this._transformed.html]);
         }
     };
@@ -48,13 +47,13 @@ define(function (require, exports, module) {
     TernHints.prototype.hasHints = function (editor, implicitChar) {
         var cm = editor._codeMirror;
 
-        if (implicitChar && !HintHelper.maybeIdentifier(implicitChar)) {
+        if (implicitChar && !hintHelper.maybeIdentifier(implicitChar)) {
             delete this._cm;
             return false;
         }
 
         this._token = cm.getTokenAt(cm.getCursor());
-        var hintable = HintHelper.hintable(this._token);
+        var hintable = hintHelper.hintable(this._token);
 
         if (hintable) {
             this._cm = cm;
@@ -85,7 +84,7 @@ define(function (require, exports, module) {
         }
 
         // Condition to make we are providing hints for characters we know are valid
-        if (implicitChar !== null && HintHelper.maybeIdentifier(implicitChar) === false) {
+        if (implicitChar !== null && hintHelper.maybeIdentifier(implicitChar) === false) {
             return null;
         }
 
@@ -122,7 +121,7 @@ define(function (require, exports, module) {
             };
 
             _self.hints = hints;
-            _self._transformed = HintTransform(hints, _self._sortBy);
+            _self._transformed = hintTransform(hints, _self._sortBy);
             _self.events.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
 
             return {
@@ -134,7 +133,7 @@ define(function (require, exports, module) {
     };
 
 
-    TernHints.prototype.insertHint = function ($hintObj) {
+    TernHints.prototype.insertHint = function () {
         var hints = this.hints,
             hint = this._transformed.tokens[this._selectedIndex];
 

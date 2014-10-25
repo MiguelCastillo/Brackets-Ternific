@@ -4,7 +4,7 @@
  * Licensed under MIT
  */
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
 
     var FileSystem   = brackets.getModule("filesystem/FileSystem"),
@@ -85,7 +85,7 @@ define(function (require, exports, module) {
      */
     function readFile (fileName, filePath) {
         if (/^https?:\/\//.test(fileName)) {
-            return fromHTTP(fileName);
+            return fromHttp(fileName);
         }
 
         return spromise(function(resolve, reject) {
@@ -113,7 +113,7 @@ define(function (require, exports, module) {
                     fromDirectory(fileName, ProjectFiles.currentProject.fullPath).done(resolve).fail(reject);
                 });
         }).fail(function(err) {
-            //console.log("====> error", err, fileName, filePath);
+            console.log("====> error", err, fileName, filePath);
         });
     }
 

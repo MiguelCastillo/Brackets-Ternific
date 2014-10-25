@@ -4,7 +4,7 @@
  * Licensed under MIT
  */
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
 
 

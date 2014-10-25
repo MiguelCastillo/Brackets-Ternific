@@ -35,7 +35,7 @@ define(function (require, exports, module) {
          * @param {Editor} current - the new current editor context
          * @param {Editor} previous - the previous editor context
          */
-        function handleActiveEditorChange(event, current, previous) {
+        function handleActiveEditorChange(event, current /*, previous*/) {
             if (current) {
                 ternManager.registerDocument(current._codeMirror, current.document.file);
             }

@@ -5,7 +5,7 @@
  */
 
 
-define(function (require, exports, module) {
+define(function (require /*, exports, module*/) {
     "use strict";
 
     var CodeMirror   = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");

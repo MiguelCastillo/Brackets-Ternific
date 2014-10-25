@@ -5,12 +5,10 @@
  */
 
 
-define(function (require, exports, module) {
+define(function (/*require, exports, module*/) {
     "use strict";
 
-    var _ = brackets.getModule("thirdparty/lodash");
-
-    function ReferenceTransform(reference, content, file) {
+    function ReferenceTransform(reference, content /*, file*/) {
         //{Object.<fullPath: string, {
         //    matches: Array.<{
         //        start: {line:number, ch:number},
@@ -33,7 +31,7 @@ define(function (require, exports, module) {
         matchOffset++; // Advance this to make sure the line accounts for the leading \n
         result = $.extend(true, {}, reference);
 
-        result.line = content.substr(matchOffset, content.indexOf('\n', matchOffset + 1) - matchOffset),
+        result.line = content.substr(matchOffset, content.indexOf('\n', matchOffset + 1) - matchOffset);
         result.isChecked = true;
         return result;
     }
