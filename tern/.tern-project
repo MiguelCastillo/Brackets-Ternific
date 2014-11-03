@@ -5,6 +5,7 @@
     "chai",
     "ecma5",
     "browser",
+    "jasmine",
     "jquery",
     "underscore"
   ],

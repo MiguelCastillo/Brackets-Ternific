@@ -1,0 +1,134 @@
+{
+    "!name": "jasmine",
+    "spyOn": {
+        "!type": "fn(object: mixed, method: string) -> spyOn.fn",
+        "!url": "http://jasmine.github.io/2.0/introduction.html",
+        "fn": {
+            "and": {
+                "callThrough": {
+                    "!type": "fn()"
+                },
+                "returnValue": {
+                    "!type": "fn(value: mixed)"
+                },
+                "callFake": {
+                    "!type": "fn(function: function)"
+                },
+                "throwError": {
+                    "!type": "fn(error: string)"
+                },
+                "stub": {
+                    "!type": "fn()"
+                }
+            }
+        }
+    },
+    "describe": {
+      "!type": "fn(description: string, callback: function)",
+      "!url": "http://jasmine.github.io/2.0/introduction.html"
+    },
+    "ddescribe": {
+      "!type": "fn(description: string, callback: function)",
+      "!url": "http://jasmine.github.io/2.0/introduction.html"
+    },
+    "it": {
+      "!type": "fn(description: string, callback: function)",
+      "!url": "http://jasmine.github.io/2.0/introduction.html"
+    },
+    "iit": {
+      "!type": "fn(description: string, callback: function)",
+      "!url": "http://jasmine.github.io/2.0/introduction.html"
+    },
+    "jasmine": {
+        "!url": "http://jasmine.github.io/2.0/introduction.html",
+        "objectContaining": {
+            "!type": "fn(selector: mixed)"
+        },
+        "createSpy": {
+            "!type": "fn(name: string)"
+        },
+        "createSpyObj": {
+            "!type": "fn(name: string, array: mixed)"
+        },
+        "any": {
+            "!type": "fn(type: mixed)"
+        },
+        "clock": {
+            "!type": "fn(type: mixed) -> jasmine.clock.fn",
+            "fn": {
+                "install": {
+                    "!type": "fn()"
+                },
+                "uninstall": {
+                    "!type": "fn()"
+                },
+                "tick" : {
+                    "!type": "fn(Number)"
+                }
+            }
+        },
+        "DEFAULT_TIMEOUT_INTERVAL": {
+            "!type": "Number"
+        }
+    },
+    "expect": {
+        "!type": "fn(selector: string) -> expect.fn",
+        "!url": "http://jasmine.github.io/2.0/introduction.html",
+        "fn": {
+            "not": {
+                "!type": "expect.fn"
+            },
+            "toBe": {
+                "!type": "fn(expectedValue: mixed)"
+            },
+            "toBeCloseTo": {
+                "!type": "fn(expectedValue: number, precision: number)"
+            },
+            "toBeDefined": {
+                "!type": "fn()"
+            },
+            "toBeFalsy": {
+                "!type": "fn()"
+            },
+            "toBeGreaterThan": {
+                "!type": "fn(expectedValue: number)"
+            },
+            "toBeLessThan": {
+                "!type": "fn(expectedValue: number)"
+            },
+            "toBeNaN": {
+                "!type": "fn()"
+            },
+            "toBeNull": {
+                "!type": "fn()"
+            },
+            "toBeTruthy": {
+                "!type": "fn()"
+            },
+            "toBeUndefined": {
+                "!type": "fn()"
+            },
+            "toContain": {
+                "!type": "fn(expectedValue: mixed)"
+            },
+            "toEqual": {
+                "!type": "fn(expectedValue: mixed)"
+            },
+            "toHaveBeenCalled": {
+                "!type": "fn()"
+            },
+            "toHaveBeenCalledWith": {
+                "!type": "fn(parameter: mixed, anotherParameter: [mixed])"
+            },
+            "toMatch": {
+                "!type": "fn(expectedValue: mixed)"
+            },
+            "toThrow": {
+                "!type": "fn()"
+            },
+            "toThrowError": {
+                "!type": "fn(expectedValue: mixed)"
+            }
+        }
+    }
+}
