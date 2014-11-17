@@ -2,7 +2,7 @@
     "title": "Ternific",
     "name": "ternific",
     "description": "JavaScript hinting and refactoring powered by Tern",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "author": "Miguel Castillo <manchagnu@gmail.com>",
     "homepage": "https://github.com/MiguelCastillo/Brackets-Ternific",
     "repository": {
