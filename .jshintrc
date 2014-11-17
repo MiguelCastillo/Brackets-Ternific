@@ -5,13 +5,14 @@
   "indent":4,
   "devel":true,
   "laxcasebreak":true,
+  "browser": true,
   "globals":{
     "require": true,
     "define": true,
     "$": true,
-    "window": true,
     "_": true,
     "brackets": true,
-    "CodeMirror": true
+    "CodeMirror": true,
+    "Mustache": true
   }
 }

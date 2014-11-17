@@ -10,7 +10,6 @@ define(function(require /*, exports, module*/) {
 
     var _                   = brackets.getModule("thirdparty/lodash"),
         WorkspaceManager    = brackets.getModule("view/WorkspaceManager"),
-        Resizer             = brackets.getModule("utils/Resizer"),
         FindUtils           = brackets.getModule("search/FindUtils"),
         SearchModel         = brackets.getModule("search/SearchModel").SearchModel,
         SearchResultsView   = brackets.getModule("search/SearchResultsView").SearchResultsView,
@@ -24,7 +23,7 @@ define(function(require /*, exports, module*/) {
         hintdetails: require("text!views/tmpls/hintdetails.html"),
         references: require("text!views/tmpls/references.html")
     };
-    
+
 
     /**
      * Controller for ternific's main UI
@@ -50,10 +49,8 @@ define(function(require /*, exports, module*/) {
 
         this.$toolbarIcon.appendTo($("#main-toolbar .buttons"));
 
-        this.$container = $("<div id='ternific' class='bottom-panel vert-resizable top-resizer'>").append(this.$ternific);
-        this.$container.on("click", "[data-action=close]", function (/*evt*/) {_self.toggle();});
-        this.$container.on("click", "[data-sort]", function (evt) {_self.sort($(evt.target).attr("data-sort"));});
-        WorkspaceManager.createBottomPanel("ternific.manager", _self.$container, 100);
+        this.$container = $("<div id='ternific' class='bottom-panel'>").append(this.$ternific);
+        this.bottomPanel = WorkspaceManager.createBottomPanel("ternific.manager", _self.$container, 100);
 
         // Initialize view for showing items to be replaced
         this._replaceModel = new SearchModel();
@@ -69,11 +66,16 @@ define(function(require /*, exports, module*/) {
                 _self.toggle(true);
             });
 
-
         $(document)
             .on("click", ".hintList li", function(/*evt*/) {
                 _self.$hints.filter(".active").removeClass("active");
                 _self.highlightHint( _self.hints[ _self.$hints.index( $(this).addClass("active") ) ] );
+            })
+            .on("click", "#ternific [data-action=close]", function (/*evt*/) {
+                _self.toggle();
+            })
+            .on("click", "#ternific [data-sort]", function (evt) {
+                _self.sort($(evt.target).attr("data-sort"));
             })
             .on("click", ".ternific-toolbar-icon", function(/*evt*/) {
                 _self.toggle();
@@ -119,21 +121,12 @@ define(function(require /*, exports, module*/) {
 
 
     Ternific.prototype.toggle = function (open) {
-        var $container = this.$container;
-
         if (open === undefined) {
-            open = !$container.hasClass("open");
+            open = !this.bottomPanel.isVisible();
         }
 
         this.$toolbarIcon.toggleClass("active", open);
-        $container.toggleClass("open", !open);
-
-        if (open) {
-            Resizer.show($container);
-        }
-        else {
-            Resizer.hide($container);
-        }
+        this.bottomPanel.setVisible(open);
     };
 
 
