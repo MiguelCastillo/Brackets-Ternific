@@ -5,14 +5,14 @@
  */
 
 
-importScripts("tern/node_modules/acorn/acorn.js",
-              "tern/node_modules/acorn/acorn_loose.js",
-              "tern/node_modules/acorn/util/walk.js",
-              "tern/lib/signal.js",
-              "tern/lib/tern.js",
-              "tern/lib/def.js",
-              "tern/lib/infer.js",
-              "tern/lib/comment.js");
+importScripts("libs/tern/node_modules/acorn/acorn.js",
+              "libs/tern/node_modules/acorn/acorn_loose.js",
+              "libs/tern/node_modules/acorn/util/walk.js",
+              "libs/tern/lib/signal.js",
+              "libs/tern/lib/tern.js",
+              "libs/tern/lib/def.js",
+              "libs/tern/lib/infer.js",
+              "libs/tern/lib/comment.js");
 
 
 function Extender(/*target, [source]+ */) {
@@ -35,7 +35,7 @@ function Extender(/*target, [source]+ */) {
 function LoadPlugins(settings) {
     var plugins = [];
     for ( var i in settings.plugins ) {
-        plugins.push("tern/plugin/" + i + ".js");
+        plugins.push("libs/tern/plugin/" + i + ".js");
     }
 
     // Import plugins

@@ -8,10 +8,14 @@
 define(function(require, exports, module) {
     "use strict";
 
+
+    var TERN_ROOT = "./libs/tern/",
+        TERN_DEFINITIONS = TERN_ROOT + "defs/";
+
     var spromise       = require("libs/js/spromise");
     var TernDemo       = require("TernDemo"),
         Settings       = require("Settings"),
-        globalSettings = require("text!./tern/.tern-project");
+        globalSettings = require("text!./libs/tern/.tern-project");
 
     var projectSettings = Settings();
     globalSettings = JSON.parse(globalSettings || "{}");
@@ -165,7 +169,7 @@ define(function(require, exports, module) {
 
         currentSettings = settings;
         settings.libs = $.map(settings.libs || [], function(item) {
-            return "text!./tern/defs/" + item + ".json";
+            return "text!" + TERN_DEFINITIONS + item + ".json";
         });
 
         require(settings.libs, function() {
