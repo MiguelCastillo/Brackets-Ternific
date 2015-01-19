@@ -78,7 +78,7 @@ define(function(require, exports, module) {
     };
 
 
-    LocalServer.prototype._getFile = function(data) {
+    LocalServer.prototype.getFile = function(data) {
         logger.log(data.type, data.name, data);
         var server = this;
         this.documenProvider.getFile(data.name)
@@ -166,8 +166,8 @@ define(function(require, exports, module) {
 
     getWorker.factory = function(server, workerScript) {
         // Create worker thread to process tern requests.
-        var worker  = new Worker(workerScript);
-        var current = null,
+        var worker  = new Worker(workerScript),
+            current = null,
             pending = null;
 
         worker.onmessage = function(evt) {
@@ -176,13 +176,18 @@ define(function(require, exports, module) {
             // If tern requests a file, then we will load it and then send it back to
             // tern as an addFile action.
             if (data.type == "getFile") {
-                server._getFile(data);
+                server.getFile(data);
             }
             else if (data.type == "debug") {
                 console.log(data.message);
             }
             else if (current) {
-                current.deferred.resolve(data.body);
+                if (data.err) {
+                    current.deferred.reject(data.err);
+                }
+                else {
+                    current.deferred.resolve(data.body);
+                }
             }
         };
 
