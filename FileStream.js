@@ -8,7 +8,7 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
 
-    var spromise = require("libs/js/spromise");
+    var Promise = require("libs/js/spromise");
 
 
     /**
@@ -29,8 +29,8 @@ define(function (require /*, exports, module*/) {
     FileStream.prototype.read = function() {
         var _self = this;
 
-        return spromise(function(resolve, reject) {
-            _self._file.read(function( err, content /*, stat*/ ) {
+        return new Promise(function(resolve, reject) {
+            _self._file.read(function(err, content /*, stat*/) {
                 if (err) {
                     reject(err);
                 }
@@ -56,8 +56,8 @@ define(function (require /*, exports, module*/) {
     FileStream.prototype.write = function(content, options) {
         var _self = this;
 
-        return spromise(function(resolve, reject) {
-            _self._file.write(content, options, function( err /*, stat*/ ) {
+        return new Promise(function(resolve, reject) {
+            _self._file.write(content, options, function(err /*, stat*/) {
                 if (err) {
                     reject(err);
                 }

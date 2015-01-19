@@ -5,15 +5,11 @@
  */
 
 
-define(function(require, exports, module) {
+define(function(/*require, exports, module*/) {
     "use strict";
 
-    var spromise   = require("libs/js/spromise");
-    var Timer      = require("Timer");
     var CodeMirror = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
-
     var Pos = CodeMirror.Pos, bigDoc = 250, curDoc = null, docs = [], server = null;
-
 
     function trackChange(doc, change) {
       for (var i = 0; i < docs.length; ++i) {var data = docs[i]; if (data.doc == doc) break;}
@@ -112,42 +108,29 @@ define(function(require, exports, module) {
     }
 
 
-    function ternApi(_server) {
-        server = _server;
-
-        return {
-            trackChange: trackChange,
-            buildRequest: buildRequest,
-            query: function(cm, query, allowFragments){
-                if (!curDoc) {
-                    return "";
-                }
-
-                var ternRequest = buildRequest.apply(ternApi, arguments);
-                ternRequest.query = $.extend({
-                    filter: true, // Results will be pretty large if we don't filter stuff out
-                    sort: true,
-                    depths: true,
-                    guess: true,
-                    origins: false,
-                    docs: false,
-                    expandWordForward: false
-                }, ternRequest.query);
-
-                return server.request(ternRequest);
-            },
-            setCurrentDocument: function(_curDoc){
-                curDoc = _curDoc;
-            },
-            setServer: function(_server){
-                server = _server;
-            },
-            setDocs: function(_docs){
-                docs = _docs;
-            }
-        };
+    function getCurDoc() {
+        return !!curDoc;
     }
 
-    return ternApi;
+    function setCurDoc(_curDoc) {
+        curDoc = _curDoc;
+    }
+
+    function setDocs(_docs) {
+        docs = _docs;
+    }
+
+    function setServer(_server) {
+        server = _server;
+    }
+
+    return {
+        setDocs: setDocs,
+        setCurDoc: setCurDoc,
+        getCurDoc: getCurDoc,
+        setServer: setServer,
+        buildRequest: buildRequest,
+        trackChange: trackChange
+    };
 });
 

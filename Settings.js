@@ -11,34 +11,43 @@ define(function (require /*, exports, module*/) {
     var Dialogs         = brackets.getModule("widgets/Dialogs"),
         ProjectManager  = brackets.getModule("project/ProjectManager"),
         FileSystem      = brackets.getModule("filesystem/FileSystem"),
-        spromise        = require("libs/js/spromise"),
+        Promise         = require("libs/js/spromise"),
         currentProject  = {};
 
 
-    function Settings( ) {
+    function Settings() {
+    }
+
+
+    Settings.factory = function() {
         var instance        = {},
             currentSettings = {};
 
         // Monitor file changes
-        FileSystem.on("change", function(evt, file) {
-            if ( currentSettings.file && currentSettings.fileObject && file && file.fullPath === currentSettings.fileObject.fullPath ) {
-                loadFile().always(function() {
-                    $(instance).trigger("change", [currentSettings.settings]);
-                });
+        FileSystem.on("change", fileChanged);
+        function fileChanged(evt, file) {
+            if (currentSettings.file && currentSettings.fileObject &&
+                file && file.fullPath === currentSettings.fileObject.fullPath) {
+                loadFile().always(fileLoaded);
             }
-        });
+        }
 
 
-        function setSettings( settings ) {
-            var deferred = spromise.defer();
+        function fileLoaded() {
+            $(instance).trigger("change", [currentSettings.settings]);
+        }
+
+
+        function parseSettings(settings) {
+            var deferred = Promise.defer();
             settings = stripComments(settings);
 
             try {
                 settings = JSON.parse(settings);
                 deferred.resolve(settings);
             }
-            catch( ex ) {
-                if ( !settings ) {
+            catch(ex) {
+                if (!settings) {
                     deferred.resolve();
                     return;
                 }
@@ -47,7 +56,8 @@ define(function (require /*, exports, module*/) {
                     "TernificErr",
                     "Ternific Error",
                     "Error processing ternific settings<br>" +
-                    ex.toString());
+                    ex.toString()
+                );
 
                 deferred.reject("Error processing ternific settings");
             }
@@ -56,28 +66,35 @@ define(function (require /*, exports, module*/) {
         }
 
 
-        function loadFile( ) {
+        function setSettings(settings) {
+            return (currentSettings.settings = settings);
+        }
+
+
+        function setFileObject(file) {
+            currentSettings.fileObject = file;
+        }
+
+
+        function loadFile() {
             var traverse = currentSettings.path.indexOf(currentProject.fullPath) !== -1;
+
             return findFile(currentSettings.file, currentSettings.path, traverse)
-                .always(function(file) {
-                    currentSettings.fileObject = file;
-                })
+                .always(setFileObject)
                 .then(readFile, $.noop)
-                .then(setSettings, $.noop)
-                .then(function(settings) {
-                    return (currentSettings.settings = settings);
-                });
+                .then(parseSettings, $.noop)
+                .then(setSettings, $.noop);
         }
 
 
         function loadSettings(file, path) {
-            if ( !file ) {
-                return spromise.resolved();
+            if (!file) {
+                return Promise.resolve();
             }
 
             // Cache so that we are not loading up the same file when navigating in the same directory...
-            if ( path === currentSettings.path && currentSettings.path) {
-                return spromise.resolved(currentSettings.settings);
+            if (path === currentSettings.path && currentSettings.path) {
+                return Promise.resolve(currentSettings.settings);
             }
 
             currentSettings.path = normalizePath(path || currentProject.fullPath);
@@ -88,34 +105,34 @@ define(function (require /*, exports, module*/) {
 
         instance.load = loadSettings;
         return instance;
-    }
+    };
 
 
-    function getParentPath( path ) {
-        var result = stripTrailingSlashes( path );
+    function getParentPath(path) {
+        var result = stripTrailingSlashes(path);
         return result.substr(0, result.lastIndexOf("/") + 1);
     }
 
 
-    function findFile( fileName, filePath, traverse ) {
-        var deferred = spromise.defer();
+    function findFile(fileName, filePath, traverse) {
+        var deferred = Promise.defer();
 
-        function find( filePath ) {
-            if ( !filePath ) {
+        function find(filePath) {
+            if (!filePath) {
                 return deferred.reject(false);
             }
 
             try {
                 var file = FileSystem.getFileForPath (filePath + "/" + fileName);
-                file.exists(function( err, exists ) {
-                    if ( exists ) {
+                file.exists(function(err, exists) {
+                    if (exists) {
                         deferred.resolve(file);
                     }
-                    else if ( err || !traverse || filePath.indexOf( currentProject.fullPath ) === -1 ) {
+                    else if (err || !traverse || filePath.indexOf( currentProject.fullPath ) === -1) {
                         deferred.reject(false);
                     }
                     else {
-                        find( getParentPath(filePath) );
+                        find(getParentPath(filePath));
                     }
                 });
             }
@@ -124,16 +141,16 @@ define(function (require /*, exports, module*/) {
             }
         }
 
-        find( filePath );
+        find(filePath);
         return deferred.promise;
     }
 
 
-    function readFile( file ) {
-        var deferred = spromise.defer();
+    function readFile(file) {
+        var deferred = Promise.defer();
 
-        file.read(function( err, content /*, stat*/ ) {
-            if ( err ) {
+        file.read(function(err, content /*, stat*/) {
+            if (err) {
                 deferred.reject(err);
                 return;
             }
@@ -147,16 +164,16 @@ define(function (require /*, exports, module*/) {
 
 
     /**
-    * Make sure we only have forward slashes and we dont have any duplicate slashes
-    */
-    function normalizePath( path ) {
+     * Make sure we only have forward slashes and we dont have any duplicate slashes
+     */
+    function normalizePath(path) {
         return path.replace(/\/+|\\+/g, "/");
     }
 
 
     /**
-    * Lets get rid of the trailing slash
-    */
+     * Lets get rid of the trailing slash
+     */
     function stripTrailingSlashes(path) {
         return path.replace(/\/$/, "");
     }
@@ -165,7 +182,7 @@ define(function (require /*, exports, module*/) {
     /**
      * Strips all commments from a json string.
      */
-    function stripComments( text ) {
+    function stripComments(text) {
         var string = text || '';
         string = string.replace(/\/\*(?:[^\*\/])*\*\//g, '');
         string = string.replace(/\/\/.*/g, '');

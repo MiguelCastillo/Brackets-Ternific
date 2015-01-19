@@ -19,7 +19,7 @@ function Extender(/*target, [source]+ */) {
     var sources = Array.prototype.slice.call(arguments),
         target  = sources.shift();
 
-    for ( var source in sources ) {
+    for (var source in sources) {
         source = sources[source];
 
         // Copy properties
@@ -34,7 +34,7 @@ function Extender(/*target, [source]+ */) {
 
 function LoadPlugins(settings) {
     var plugins = [];
-    for ( var i in settings.plugins ) {
+    for (var i in settings.plugins) {
         plugins.push("libs/tern/plugin/" + i + ".js");
     }
 
@@ -44,43 +44,45 @@ function LoadPlugins(settings) {
 
 
 function Server(settings) {
-    var _self = this, nextId = 1;
-    _self.pending = {};
+    var _self = this,
+        nextId = 1;
 
+    this.pending = {};
     LoadPlugins(settings);
     Extender(settings, {
-        getFile: function(file, c) {
-            _self.pending[nextId] = c;
-
-            postMessage({
-                type: "getFile",
-                name: file,
-                id: nextId
-            });
-
-            ++nextId;
-        }
+        getFile: getFile
     });
 
+
     // Instantiate tern server.
-    _self.server = new tern.Server(settings);
+    this.settings = settings;
+    this.server   = new tern.Server(settings);
 
     postMessage({
         type:"ready"
     });
+
+    function getFile(file, c) {
+        _self.pending[nextId] = c;
+        postMessage({
+            type: "getFile",
+            name: file,
+            id: nextId
+        });
+        ++nextId;
+    }
 }
 
 
 Server.prototype.clear = function() {
-    this.server.reset();
-    this.server.files = [];
+    this.server = new tern.Server(this.settings || {});
 };
 
 
 Server.prototype.addFile = function(data) {
     var _self = this;
 
-    if (data.id && _self.pending[data.id]){
+    if (data.id && _self.pending[data.id]) {
         var c = _self.pending[data.id];
         delete _self.pending[data.id];
         c(data.err, data.text);
@@ -97,13 +99,20 @@ Server.prototype.deleteFile = function(data) {
 
 
 Server.prototype.request = function(data) {
-    this.server.request(data.body, function(err, reqData) {
+    function done(err, reqData) {
         postMessage({
             id: data.id,
             body: reqData,
             err: err && String(err)
         });
-    });
+    }
+
+    try {
+        this.server.request(data.body, done);
+    }
+    catch(ex) {
+        done(ex);
+    }
 };
 
 
@@ -111,24 +120,21 @@ onmessage = function(e) {
     var data = e.data;
     var method = Server.instance && Server.instance[data.type];
 
-    if ( data.type === "init" ) {
+    if (data.type === "init") {
         Server.instance = new Server(data.body || {});
         return;
     }
 
-    if ( typeof method === 'function' ) {
+    if (typeof method === 'function') {
         return method.apply(Server.instance, [data || {}]);
     }
 
-    switch (data.type) {
-        default:
-            throw new Error("Unknown message type: " + data.type);
-    }
+    throw new TypeError("Unknown message type: " + data.type);
 };
 
 
-var console = {
-    log: function(v) {
+var logger = {
+    log: function() {
         postMessage({
             type: "debug",
             message: arguments

@@ -8,7 +8,8 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
     var FileSystem   = brackets.getModule("filesystem/FileSystem"),
-        spromise     = require("libs/js/spromise"),
+        Promise      = require("libs/js/spromise"),
+        Utils        = require("Utils"),
         FileStream   = require("FileStream"),
         ProjectFiles = require("ProjectFiles");
 
@@ -22,7 +23,7 @@ define(function (require /*, exports, module*/) {
      * @param {string} fileName is the name of the file to load
      * @returns {spromise}
      */
-    function fromHttp (fileName) {
+    function fromHttp(fileName) {
         if (inProgress[fileName]) {
             return inProgress[fileName];
         }
@@ -31,7 +32,7 @@ define(function (require /*, exports, module*/) {
             return httpCache[fileName];
         }
 
-        inProgress[fileName] = spromise.thenable($.ajax(fileName, {"contentType": "text"}))
+        inProgress[fileName] = Promise.resolve($.ajax(fileName, {"contentType": "text"}))
             .always(function() {
                 delete inProgress[fileName];
             })
@@ -41,7 +42,7 @@ define(function (require /*, exports, module*/) {
                     fullPath: fileName,
                     content: content
                 };
-            });
+            }, Utils.forwardError);
 
         return inProgress[fileName];
     }
@@ -55,12 +56,13 @@ define(function (require /*, exports, module*/) {
      * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
      *   is provided.
      */
-    function fromDirectory (fileName, filePath) {
+    function fromDirectory(fileName, filePath) {
         var handle = FileSystem.getFileForPath(filePath + fileName);
 
-        return spromise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             handle.exists(function(err, exists) {
                 if (err || !exists) {
+                    err = err ? err : (exists ? "Unknown file error" : fileName + " was not found");
                     reject(err);
                 }
                 else {
@@ -83,12 +85,12 @@ define(function (require /*, exports, module*/) {
      * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
      *   is provided.
      */
-    function readFile (fileName, filePath) {
+    function readFile(fileName, filePath) {
         if (/^https?:\/\//.test(fileName)) {
             return fromHttp(fileName);
         }
 
-        return spromise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             openFile(fileName, filePath)
                 .done(function(file) {
                     file.read().done(resolve);
@@ -106,14 +108,17 @@ define(function (require /*, exports, module*/) {
      * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
      *   is provided.
      */
-    function openFile (fileName, filePath) {
-        return spromise(function(resolve, reject) {
-            fromDirectory(fileName, filePath).done(resolve)
-                .fail(function() {
-                    fromDirectory(fileName, ProjectFiles.currentProject.fullPath).done(resolve).fail(reject);
-                });
-        }).fail(function(err) {
-            console.log("====> error", err, fileName, filePath);
+    function openFile(fileName, filePath) {
+        return new Promise(function(resolve, reject) {
+            function loadFromProject() {
+                fromDirectory(fileName, ProjectFiles.currentProject.fullPath)
+                    .done(resolve)
+                    .fail(reject);
+            }
+
+            fromDirectory(fileName, filePath)
+                .done(resolve)
+                .fail(loadFromProject);
         });
     }
 
