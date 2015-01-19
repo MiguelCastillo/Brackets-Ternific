@@ -72,7 +72,7 @@ define(function (require /*, exports, module*/) {
             return Promise.resolve();
         }
 
-        return this.ternProvider.query(cm, "refs")
+        return this.ternProvider.query(cm, "refs", false)
             .then(function(data) {
                 var perFile = {}, i, ref;
 
