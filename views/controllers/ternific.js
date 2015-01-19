@@ -13,7 +13,7 @@ define(function(require /*, exports, module*/) {
         FindUtils           = brackets.getModule("search/FindUtils"),
         SearchModel         = brackets.getModule("search/SearchModel").SearchModel,
         SearchResultsView   = brackets.getModule("search/SearchResultsView").SearchResultsView,
-        Promise            = require("libs/js/spromise"),
+        Promise             = require("libs/js/spromise"),
         menu                = require("Menu"),
         referencesTransform = require("ReferencesTransform");
 

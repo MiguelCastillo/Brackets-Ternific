@@ -130,16 +130,16 @@ define(function(require, exports, module) {
     }
 
 
-    function getWorker(provider, workerScript) {
-        if (!provider.worker) {
-            provider.worker = getWorker.factory(provider, workerScript);
+    function getWorker(server, workerScript) {
+        if (!server.worker) {
+            server.worker = getWorker.factory(server, workerScript);
         }
 
-        return provider.worker;
+        return server.worker;
     }
 
 
-    getWorker.factory = function(provider, workerScript) {
+    getWorker.factory = function(server, workerScript) {
         // Create worker thread to process tern requests.
         var worker  = new Worker(workerScript);
         var current = null,
@@ -151,7 +151,7 @@ define(function(require, exports, module) {
             // If tern requests a file, then we will load it and then send it back to
             // tern as an addFile action.
             if (data.type == "getFile") {
-                provider.documenProvider
+                server.documenProvider
                     .getFile(data.name)
                     .done(function(file) {
                         worker.send({

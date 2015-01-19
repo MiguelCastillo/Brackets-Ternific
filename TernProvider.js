@@ -27,9 +27,6 @@ define(function (require /*, exports, module*/) {
 
     TernProvider.prototype.clear = function() {
         this.documents = [];
-        if (this.tern) {
-            this.tern.clear();
-        }
     };
 
 
@@ -42,7 +39,7 @@ define(function (require /*, exports, module*/) {
         var _self   = this,
             name    = file.name,
             dir     = file.parentPath,
-            docMeta = this.findDocumentByName(name);
+            docMeta = this.getDocumentByName(name);
 
         //
         // If the document has not been registered, then we set one up
@@ -81,11 +78,12 @@ define(function (require /*, exports, module*/) {
 
         this.cm = cm;
         this.currentDocument = docMeta;
+        this.tern.clear();
         this.tern.setDocuments(this.documents);
         this.tern.setCurrentDocument(docMeta);
         this.tern.loadSettings(dir);
 
-        docMeta._trackChange = function(cm1, change) {
+        docMeta._trackChange = function(cm, change) {
             _self.tern.trackChange(docMeta.doc, change);
         };
 
@@ -95,19 +93,20 @@ define(function (require /*, exports, module*/) {
 
 
     TernProvider.prototype.unregisterDocument = function(cm) {
-        var docMeta = this.findDocumentByInstance(cm.getDoc());
+        var docMeta = this.getDocumentByInstance(cm.getDoc());
         if (docMeta && docMeta.doc && docMeta._trackChange) {
             CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+            docMeta._trackChange = null;
         }
     };
 
 
-    TernProvider.prototype.findDocumentByName = function(name) {
+    TernProvider.prototype.getDocumentByName = function(name) {
         return _.find(this.documents, {"name": name});
     };
 
 
-    TernProvider.prototype.findDocumentByInstance = function(doc) {
+    TernProvider.prototype.getDocumentByInstance = function(doc) {
         return _.find(this.documents, {"doc": doc});
     };
 
@@ -143,7 +142,7 @@ define(function (require /*, exports, module*/) {
      */
     TernProvider.prototype.getFile = function(name) {
         var _self = this;
-        var docMeta = this.findDocumentByName(name);
+        var docMeta = this.getDocumentByName(name);
 
         if (docMeta) {
             return Promise.resolve({
