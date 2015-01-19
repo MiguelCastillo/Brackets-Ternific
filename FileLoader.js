@@ -8,7 +8,7 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
     var FileSystem   = brackets.getModule("filesystem/FileSystem"),
-        spromise     = require("libs/js/spromise"),
+        Promise      = require("libs/js/spromise"),
         FileStream   = require("FileStream"),
         ProjectFiles = require("ProjectFiles");
 
@@ -31,7 +31,7 @@ define(function (require /*, exports, module*/) {
             return httpCache[fileName];
         }
 
-        inProgress[fileName] = spromise.thenable($.ajax(fileName, {"contentType": "text"}))
+        inProgress[fileName] = Promise.resolve($.ajax(fileName, {"contentType": "text"}))
             .always(function() {
                 delete inProgress[fileName];
             })
@@ -58,7 +58,7 @@ define(function (require /*, exports, module*/) {
     function fromDirectory (fileName, filePath) {
         var handle = FileSystem.getFileForPath(filePath + fileName);
 
-        return spromise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             handle.exists(function(err, exists) {
                 if (err || !exists) {
                     reject(err);
@@ -88,7 +88,7 @@ define(function (require /*, exports, module*/) {
             return fromHttp(fileName);
         }
 
-        return spromise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             openFile(fileName, filePath)
                 .done(function(file) {
                     file.read().done(resolve);
@@ -107,13 +107,13 @@ define(function (require /*, exports, module*/) {
      *   is provided.
      */
     function openFile (fileName, filePath) {
-        return spromise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             fromDirectory(fileName, filePath).done(resolve)
                 .fail(function() {
                     fromDirectory(fileName, ProjectFiles.currentProject.fullPath).done(resolve).fail(reject);
                 });
-        }).fail(function(err) {
-            console.log("====> error", err, fileName, filePath);
+        }).fail(function(/*err*/) {
+            //console.log("====> error", err, fileName, filePath);
         });
     }
 

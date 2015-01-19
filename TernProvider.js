@@ -8,65 +8,41 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var CodeMirror   = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
-    var spromise     = require("libs/js/spromise");
-    var localServer  = require("LocalServer"),
-        remoteServer = require("RemoteServer"),
+    var _ = brackets.getModule("thirdparty/lodash");
+    var CodeMirror   = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror"),
+        Promise      = require("libs/js/spromise"),
+        localServer  = require("LocalServer"),
         fileLoader   = require("FileLoader");
+
 
     /**
      * @constructor
      *
-     * TernProvider is a set of interfaces that facilitate the interaction
-     * with tern.
      */
     function TernProvider() {
-        var _self = this;
-        _self.docs = [];
-        _self.currentDocument = null;
+        this.documents = [];
+        this.currentDocument = null;
     }
 
 
     TernProvider.prototype.clear = function() {
-        var _self = this;
-        _self.docs = [];
-
-        if (_self.tern) {
-            _self.tern.clear();
+        this.documents = [];
+        if (this.tern) {
+            this.tern.clear();
         }
     };
 
 
-    TernProvider.prototype.query = function (cm, settings, allowFragments) {
+    TernProvider.prototype.query = function(cm, settings, allowFragments) {
         return this.tern.query(cm, settings, allowFragments);
     };
 
 
-    TernProvider.prototype.findDocByProperty = function (propName, data) {
-        var index = 0, length = this.docs.length;
-        for (index = 0; index < length; index++) {
-            if (this.docs[index][propName] === data) {
-                return this.docs[index];
-            }
-        }
-    };
-
-
-    TernProvider.prototype.findDocByName = function (name) {
-        return this.findDocByProperty("name", name);
-    };
-
-
-    TernProvider.prototype.findDocByInstance = function (doc) {
-        return this.findDocByProperty("doc", doc);
-    };
-
-
-    TernProvider.prototype.registerDocument = function (cm, file) {
+    TernProvider.prototype.registerDocument = function(cm, file) {
         var _self   = this,
             name    = file.name,
             dir     = file.parentPath,
-            docMeta = _self.findDocByName(name);
+            docMeta = this.findDocumentByName(name);
 
         //
         // If the document has not been registered, then we set one up
@@ -79,8 +55,8 @@ define(function (require /*, exports, module*/) {
                 changed: null
             };
 
-            _self.docs.push(docMeta);
-            _self.tern.addFile(docMeta.name, docMeta.doc.getValue());
+            this.documents.push(docMeta);
+            this.tern.addFile(docMeta.name, docMeta.doc.getValue());
         }
         //
         // If the document exists but has not been registered, then we
@@ -103,13 +79,13 @@ define(function (require /*, exports, module*/) {
             docMeta.changed = null;
         }
 
-        _self.cm = cm;
-        _self.currentDocument = docMeta;
-        _self.tern.setCurrentDocument(docMeta);
-        _self.tern.setDocs(_self.docs);
-        _self.tern.loadSettings(dir);
+        this.cm = cm;
+        this.currentDocument = docMeta;
+        this.tern.setDocuments(this.documents);
+        this.tern.setCurrentDocument(docMeta);
+        this.tern.loadSettings(dir);
 
-        docMeta._trackChange = function (cm1, change) {
+        docMeta._trackChange = function(cm1, change) {
             _self.tern.trackChange(docMeta.doc, change);
         };
 
@@ -118,11 +94,21 @@ define(function (require /*, exports, module*/) {
     };
 
 
-    TernProvider.prototype.unregisterDocument = function (cm) {
-        var docMeta = this.findDocByInstance(cm.getDoc());
+    TernProvider.prototype.unregisterDocument = function(cm) {
+        var docMeta = this.findDocumentByInstance(cm.getDoc());
         if (docMeta && docMeta.doc && docMeta._trackChange) {
             CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
         }
+    };
+
+
+    TernProvider.prototype.findDocumentByName = function(name) {
+        return _.find(this.documents, {"name": name});
+    };
+
+
+    TernProvider.prototype.findDocumentByInstance = function(doc) {
+        return _.find(this.documents, {"doc": doc});
     };
 
 
@@ -132,20 +118,55 @@ define(function (require /*, exports, module*/) {
      *
      * This will bypass the list of cached documents.
      */
-    TernProvider.prototype.addFile = function (name) {
+    TernProvider.prototype.addFile = function(name) {
         var _self = this;
 
-        return fileLoader.readFile(name, _self.currentDocument.file.parentPath).done(function(data) {
-            var docMeta = {
-                file: data.file,
-                name: name, //data.fullPath,
-                doc: new CodeMirror.Doc(data.content, "javascript"),
-                changed: null
-            };
+        return fileLoader.readFile(name, this.currentDocument.file.parentPath)
+            .done(function fileRead(data) {
+                var docMeta = {
+                    file: data.file,
+                    name: name, //data.fullPath,
+                    doc: new CodeMirror.Doc(data.content, "javascript"),
+                    changed: null
+                };
 
-            _self.docs.push(docMeta);
-            _self.tern.addFile(docMeta.name, docMeta.doc.getValue());
-        });
+                _self.documents.push(docMeta);
+                _self.tern.addFile(docMeta.name, docMeta.doc.getValue());
+            });
+    };
+
+
+    /**
+     * Gets a file from the list of cached documents. If the document isn't cached,
+     * it will get loaded either from local drive or remote via http.  This newly
+     * retrieved document will be added to the list of cached documents.
+     */
+    TernProvider.prototype.getFile = function(name) {
+        var _self = this;
+        var docMeta = this.findDocumentByName(name);
+
+        if (docMeta) {
+            return Promise.resolve({
+                docMeta: docMeta,
+                content: docMeta.doc.getValue()
+            });
+        }
+
+        return fileLoader.readFile(name, this.currentDocument.file.parentPath)
+            .then(function fileRead(data) {
+                var docMeta = {
+                    file: data.file,
+                    name: name, //data.fullPath,
+                    doc: new CodeMirror.Doc(data.content, "javascript"),
+                    changed: null
+                };
+
+                _self.documents.push(docMeta);
+                return {
+                    docMeta: docMeta,
+                    content: data.content
+                };
+            });
     };
 
 
@@ -154,11 +175,15 @@ define(function (require /*, exports, module*/) {
      */
     function LocalProvider() {
         TernProvider.apply(this, arguments);
+
         var _self = this;
-        _self.onReady = localServer(this).then(function(tern) {
-            _self.tern = tern;
-            return _self;
-        }).done;
+        var deferred = localServer.factory(this)
+            .then(function localProviderReady(tern) {
+                _self.tern = tern;
+                return _self;
+            });
+
+        this.onReady = deferred.promise.done.bind(deferred);
     }
 
 
@@ -167,60 +192,15 @@ define(function (require /*, exports, module*/) {
 
 
     /**
-     * Gets a file from the list of cached documents. If the document isn't cached,
-     * it will get loaded either from local drive or remote via http.  This newly
-     * retrieved document will be added to the list of cached documents.
+     * Convenience method to create providers
      */
-    LocalProvider.prototype.getFile = function (name) {
-        var _self = this;
-        var docMeta = _self.findDocByName(name);
-
-        if (docMeta) {
-            return spromise.resolved({
-                docMeta: docMeta,
-                content: docMeta.doc.getValue()
-            });
-        }
-
-        return fileLoader.readFile(name, _self.currentDocument.file.parentPath)
-                .then(function(data) {
-                    var docMeta = {
-                        file: data.file,
-                        name: name, //data.fullPath,
-                        doc: new CodeMirror.Doc(data.content, "javascript"),
-                        changed: null
-                    };
-
-                    _self.docs.push(docMeta);
-                    return {
-                        docMeta: docMeta,
-                        content: data.content
-                    };
-                });
-    };
-
-
-    /**
-     *  Interface to operate against a remote tern server
-     */
-    function RemoteProvider() {
-        TernProvider.apply(this, arguments);
-        var _self = this;
-        _self.onReady = remoteServer(this).then(function(tern) {
-            _self.tern = tern;
-            return _self;
-        }).done;
+    function factory() {
+        return (new LocalProvider());
     }
 
 
-    RemoteProvider.prototype = new TernProvider();
-    RemoteProvider.prototype.constructor = RemoteProvider;
-
-
     return {
-        Remote: RemoteProvider,
-        Local: LocalProvider
+        factory: factory
     };
-
 });
 

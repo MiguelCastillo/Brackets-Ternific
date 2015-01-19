@@ -8,7 +8,7 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var spromise       = require("libs/js/spromise"),
+    var Promise        = require("libs/js/spromise"),
         FileStream     = require("FileStream"),
         ProjectManager = brackets.getModule("project/ProjectManager"),
         FileSystem     = brackets.getModule("filesystem/FileSystem");
@@ -22,7 +22,7 @@ define(function (require /*, exports, module*/) {
         var filePath = this.currentProject.fullPath;
         var handle = FileSystem.getFileForPath(filePath + fileName);
 
-        return spromise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
             handle.exists(function(err /*, exists*/) {
                 if (err) {
                     reject(err);

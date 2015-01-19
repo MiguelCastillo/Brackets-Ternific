@@ -9,8 +9,8 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
     var DocumentManager = brackets.getModule("document/DocumentManager"),
-        ProjectManager  = brackets.getModule("project/ProjectManager");
-    var spromise = require("libs/js/spromise");
+        ProjectManager  = brackets.getModule("project/ProjectManager"),
+        Promise         = require("libs/js/spromise");
 
 
     /**
@@ -25,7 +25,7 @@ define(function (require /*, exports, module*/) {
         this._token = null;
         this._matches = null;
         this.events = $("<span>");
-        
+
         $(DocumentManager)
             .on("currentDocumentChange", function(evt, currentDocument) {
                 _self.events.triggerHandler("documentChange", [currentDocument]);
@@ -55,7 +55,7 @@ define(function (require /*, exports, module*/) {
      *
      * @param   {CodeMirror} cm CodeMirror instance to initiate the processing from.  This is where the
      *  editor cursor is extracted from
-     * @returns {spromise} Promise that will resolved with the references sorted by file
+     * @returns {Promise} Promise that will resolved with the references sorted by file
      */
     TernReferences.prototype.getReferences = function(cm) {
         cm = cm || this.cm;
@@ -63,13 +63,13 @@ define(function (require /*, exports, module*/) {
         this._token = null;
 
         if (!cm) {
-            return spromise.reject("Invalid CodeMirror instance");
+            return Promise.reject("Invalid CodeMirror instance");
         }
 
         this._token = cm.getTokenAt(cm.getCursor());
         if (!this._token.string) {
             this.events.triggerHandler("references", [this.ternProvider, {}, this._token.string]);
-            return spromise.resolve();
+            return Promise.resolve();
         }
 
         return this.ternProvider.query(cm, "refs")
@@ -92,6 +92,6 @@ define(function (require /*, exports, module*/) {
             });
     };
 
-    
+
     return TernReferences;
 });

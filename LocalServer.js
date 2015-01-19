@@ -8,36 +8,151 @@
 define(function(require, exports, module) {
     "use strict";
 
+    var TERN_ROOT        = "./libs/tern/",
+        TERN_DEFINITIONS = TERN_ROOT + "defs/",
+        WORKER_SCRIPT    = module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js";
 
-    var TERN_ROOT = "./libs/tern/",
-        TERN_DEFINITIONS = TERN_ROOT + "defs/";
-
-    var spromise       = require("libs/js/spromise");
-    var TernDemo       = require("TernDemo"),
-        Settings       = require("Settings"),
-        globalSettings = require("text!./libs/tern/.tern-project");
-
-    var projectSettings = Settings();
-    globalSettings = JSON.parse(globalSettings || "{}");
+    var Promise         = require("libs/js/spromise"),
+        TernApi         = require("TernApi"),
+        Settings        = require("Settings"),
+        globalSettings  = require("text!./libs/tern/.tern-project"),
+        projectSettings = Settings.factory();
 
 
-    function getWorker( provider ) {
-        if ( getWorker.worker ) {
-            return getWorker.worker;
+
+    try {
+        globalSettings = JSON.parse(globalSettings);
+    }
+    catch(ex) {
+        globalSettings = {};
+    }
+
+
+    /**
+     * Bridge to communicate into tern worker thread.
+     */
+    function LocalServer(documenProvider) {
+        this.settings        = {};
+        this.documenProvider = documenProvider;
+        this.worker          = getWorker(this, WORKER_SCRIPT);
+
+        // Call tern api to set the rest of the stuff up.
+        TernApi.call(this);
+    }
+
+
+    LocalServer.prototype = new TernApi();
+    LocalServer.prototype.constructor = LocalServer;
+
+
+    LocalServer.prototype.clear = function() {
+        return this.worker.send({
+            type: "clear"
+        });
+    };
+
+
+    LocalServer.prototype.request = function(body) {
+        return this.worker.send({
+            type: "request",
+            body: body
+        }, true);
+    };
+
+
+    LocalServer.prototype.addFile = function(name, text) {
+        return this.worker.send({
+            type: "addFile",
+            name: name,
+            text: text
+        });
+    };
+
+
+    LocalServer.prototype.deleteFile = function(name) {
+        return this.worker.send({
+            type: "deleteFile",
+            name: name
+        });
+    };
+
+
+    LocalServer.prototype.loadSettings = function(fullPath) {
+        var _self = this;
+        function done(settings) {
+            loadSettings(_self, settings);
         }
 
+        projectSettings.load(".tern-project", fullPath).always(done);
+    };
+
+
+    LocalServer.factory = function(provider) {
+        return new Promise(function(resolve) {
+            var localServer = new LocalServer(provider);
+            initialize(localServer, provider.settings);
+            resolve(localServer);
+        });
+    };
+
+
+    function initialize(localServer) {
+        // Init with empty settings. Until a document is open that can give us
+        // some context...
+        localServer.worker.send({
+            type: "init",
+            body: localServer.settings
+        });
+    }
+
+
+    function loadSettings(localServer, settings) {
+        settings = settings || $.extend({}, globalSettings);
+
+        if (localServer.settings === settings) {
+            return;
+        }
+
+        localServer.settings = settings;
+        settings.libs = $.map(settings.libs || [], function(item) {
+            return "text!" + TERN_DEFINITIONS + item + ".json";
+        });
+
+        require(settings.libs, function() {
+            settings.defs = $.map(arguments, function(item) {
+                var result;
+                try {result = JSON.parse(item);} catch(ex) {}
+                return result || {};
+            });
+
+            initialize(localServer);
+        });
+    }
+
+
+    function getWorker(provider, workerScript) {
+        if (!provider.worker) {
+            provider.worker = getWorker.factory(provider, workerScript);
+        }
+
+        return provider.worker;
+    }
+
+
+    getWorker.factory = function(provider, workerScript) {
         // Create worker thread to process tern requests.
-        var worker  = getWorker.worker = new Worker( module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js" );
+        var worker  = new Worker(workerScript);
         var current = null,
             pending = null;
 
-        worker.onmessage = function(e) {
-            var data = e.data;
+        worker.onmessage = function(evt) {
+            var data = evt.data;
 
             // If tern requests a file, then we will load it and then send it back to
             // tern as an addFile action.
             if (data.type == "getFile") {
-                provider.getFile(data.name)
+                provider.documenProvider
+                    .getFile(data.name)
                     .done(function(file) {
                         worker.send({
                             type: "addFile",
@@ -63,13 +178,13 @@ define(function(require, exports, module) {
 
 
         worker.onerror = function(e) {
-            if ( current ) {
+            if (current) {
                 current.deferred.reject(e);
             }
         };
 
 
-        worker.send = function send(data, callback) {
+        worker.send = function(data, callback) {
             // Some requests to tern dont need to be waited on...  So, just send tern
             // the message and exit out.
             if (!callback) {
@@ -80,7 +195,7 @@ define(function(require, exports, module) {
             // New request
             var request = {
                 data: data,
-                deferred: spromise.defer()
+                deferred: Promise.defer()
             };
 
 
@@ -114,97 +229,7 @@ define(function(require, exports, module) {
 
 
         return worker;
-    }
-
-
-    function init(provider) {
-        var worker   = getWorker(provider);
-        var instance = {
-            send: worker.send,
-            loadSettings: LocalServer.loadSettings,
-            clear: function() {
-                worker.send({
-                    type: "clear"
-                });
-            },
-            addFile: function(name, text) {
-                worker.send({
-                    type: "addFile",
-                    name: name,
-                    text: text
-                });
-            },
-            deleteFile: function(name) {
-                worker.send({
-                    type: "deleteFile",
-                    name: name
-                });
-            },
-            request: function(body) {
-                return worker.send({
-                    type: "request",
-                    body: body
-                }, true);
-            },
-        };
-
-        // Init with empty settings. Until a document is open that can give us
-        // some context...
-        worker.send({
-            type: "init",
-            body: {}
-        });
-
-        // Call TernDemo and extend the instance.
-        return $.extend(instance, TernDemo(instance));
-    }
-
-
-    function loadSettings(settings) {
-        var worker = getWorker(LocalServer.provider);
-        settings = settings || $.extend({}, globalSettings);
-        if (settings === currentSettings) {
-            return;
-        }
-
-        currentSettings = settings;
-        settings.libs = $.map(settings.libs || [], function(item) {
-            return "text!" + TERN_DEFINITIONS + item + ".json";
-        });
-
-        require(settings.libs, function() {
-            settings.defs = $.map(arguments, function(item) {
-                return JSON.parse(item);
-            });
-
-            // Post an init message to load settings
-            worker.send({
-                type: "init",
-                body: settings
-            });
-        });
-    }
-
-
-    var currentSettings;
-    LocalServer.loadSettings = function(fullPath) {
-        projectSettings
-            .load(".tern-project", fullPath)
-            .done(loadSettings)
-            .fail(function() {loadSettings();});
     };
-
-
-    /**
-    * Bridge to communicate into tern worker thread.
-    */
-    function LocalServer(provider) {
-        LocalServer.provider = provider;
-
-        return spromise(function(resolve) {
-            resolve(init(provider));
-        });
-    }
 
 
     return LocalServer;

@@ -11,34 +11,40 @@ define(function (require /*, exports, module*/) {
     var Dialogs         = brackets.getModule("widgets/Dialogs"),
         ProjectManager  = brackets.getModule("project/ProjectManager"),
         FileSystem      = brackets.getModule("filesystem/FileSystem"),
-        spromise        = require("libs/js/spromise"),
+        Promise         = require("libs/js/spromise"),
         currentProject  = {};
 
 
-    function Settings( ) {
+    function Settings() {
+        return Settings.factory();
+    }
+
+
+    Settings.factory = function() {
         var instance        = {},
             currentSettings = {};
 
         // Monitor file changes
-        FileSystem.on("change", function(evt, file) {
-            if ( currentSettings.file && currentSettings.fileObject && file && file.fullPath === currentSettings.fileObject.fullPath ) {
-                loadFile().always(function() {
+        FileSystem.on("change", fileChanged);
+        function fileChanged(evt, file) {
+            if (currentSettings.file && currentSettings.fileObject && file && file.fullPath === currentSettings.fileObject.fullPath) {
+                loadFile().always(function fileLoaded() {
                     $(instance).trigger("change", [currentSettings.settings]);
                 });
             }
-        });
+        }
 
 
-        function setSettings( settings ) {
-            var deferred = spromise.defer();
+        function parseSettings(settings) {
+            var deferred = Promise.defer();
             settings = stripComments(settings);
 
             try {
                 settings = JSON.parse(settings);
                 deferred.resolve(settings);
             }
-            catch( ex ) {
-                if ( !settings ) {
+            catch(ex) {
+                if (!settings) {
                     deferred.resolve();
                     return;
                 }
@@ -47,7 +53,8 @@ define(function (require /*, exports, module*/) {
                     "TernificErr",
                     "Ternific Error",
                     "Error processing ternific settings<br>" +
-                    ex.toString());
+                    ex.toString()
+                );
 
                 deferred.reject("Error processing ternific settings");
             }
@@ -56,28 +63,19 @@ define(function (require /*, exports, module*/) {
         }
 
 
-        function loadFile( ) {
-            var traverse = currentSettings.path.indexOf(currentProject.fullPath) !== -1;
-            return findFile(currentSettings.file, currentSettings.path, traverse)
-                .always(function(file) {
-                    currentSettings.fileObject = file;
-                })
-                .then(readFile, $.noop)
-                .then(setSettings, $.noop)
-                .then(function(settings) {
-                    return (currentSettings.settings = settings);
-                });
+        function setSettings(settings) {
+            return (currentSettings.settings = settings);
         }
 
 
         function loadSettings(file, path) {
             if ( !file ) {
-                return spromise.resolved();
+                return Promise.resolve();
             }
 
             // Cache so that we are not loading up the same file when navigating in the same directory...
             if ( path === currentSettings.path && currentSettings.path) {
-                return spromise.resolved(currentSettings.settings);
+                return Promise.resolve(currentSettings.settings);
             }
 
             currentSettings.path = normalizePath(path || currentProject.fullPath);
@@ -86,9 +84,22 @@ define(function (require /*, exports, module*/) {
         }
 
 
+        function loadFile() {
+            var traverse = currentSettings.path.indexOf(currentProject.fullPath) !== -1;
+
+            return findFile(currentSettings.file, currentSettings.path, traverse)
+                .always(function(file) {
+                    currentSettings.fileObject = file;
+                })
+                .then(readFile, $.noop)
+                .then(parseSettings, $.noop)
+                .then(setSettings, $.noop);
+        }
+
+
         instance.load = loadSettings;
         return instance;
-    }
+    };
 
 
     function getParentPath( path ) {
@@ -98,7 +109,7 @@ define(function (require /*, exports, module*/) {
 
 
     function findFile( fileName, filePath, traverse ) {
-        var deferred = spromise.defer();
+        var deferred = Promise.defer();
 
         function find( filePath ) {
             if ( !filePath ) {
@@ -130,7 +141,7 @@ define(function (require /*, exports, module*/) {
 
 
     function readFile( file ) {
-        var deferred = spromise.defer();
+        var deferred = Promise.defer();
 
         file.read(function( err, content /*, stat*/ ) {
             if ( err ) {

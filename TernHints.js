@@ -23,15 +23,15 @@ define(function (require /*, exports, module*/) {
         this._sortBy = hintTransform.sort.byMatch;
         this.events = $("<span>");
     }
-    
-    
+
+
     TernHints.prototype.setSort = function(sortType) {
         if (!hintTransform.sort.hasOwnProperty(sortType)) {
             return;
         }
 
         this._sortBy = sortType;
-        
+
         if (this.hints) {
             this._transformed = hintTransform(this.hints, this._sortBy);
             this.events.triggerHandler("hints", [this._transformed.tokens, this._transformed.html]);
@@ -94,42 +94,42 @@ define(function (require /*, exports, module*/) {
         this._newSession = false;
 
         return this.ternProvider.query(this._cm, {
-            caseInsensitive: true,
-            type: "completions",
-            types: true,
-            docs: true,
-            urls: true,
-            filter: !newSession
-        }).then(function (result) {
-            // Result will be null when tern queries are being cancelled because there
-            // are too many requests coming in and the ones that can be ignored, will
-            // be cancelled.  What will be ignored are those that should never get processed by
-            // tern. For example, a user types one character and then type 2 other characters
-            // really fast...  The one character in the middle will not need to be processed
-            // because the user has already typed another character that will generate a fresh
-            // list of hints.  So, that request will get cancelled to avoid extra processing of
-            // something that's already stale.
-            if (result === null) {
-                return {
-                    hints: []
+                caseInsensitive: true,
+                type: "completions",
+                types: true,
+                docs: true,
+                urls: true,
+                filter: !newSession
+            }).then(function (result) {
+                // Result will be null when tern queries are being cancelled because there
+                // are too many requests coming in and the ones that can be ignored, will
+                // be cancelled.  What will be ignored are those that should never get processed by
+                // tern. For example, a user types one character and then type 2 other characters
+                // really fast...  The one character in the middle will not need to be processed
+                // because the user has already typed another character that will generate a fresh
+                // list of hints.  So, that request will get cancelled to avoid extra processing of
+                // something that's already stale.
+                if (result === null) {
+                    return {
+                        hints: []
+                    };
+                }
+
+                var hints = {
+                    text: _self._cm.getDoc().getRange(result.start, result.end),
+                    result: result
                 };
-            }
 
-            var hints = {
-                text: _self._cm.getDoc().getRange(result.start, result.end),
-                result: result
-            };
+                _self.hints = hints;
+                _self._transformed = hintTransform(hints, _self._sortBy);
+                _self.events.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
 
-            _self.hints = hints;
-            _self._transformed = hintTransform(hints, _self._sortBy);
-            _self.events.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
-
-            return {
-                hints: _self._transformed.hints,
-                match: null, // Prevent CodeHintManager from formatting results
-                selectInitial: true
-            };
-        });
+                return {
+                    hints: _self._transformed.hints,
+                    match: null, // Prevent CodeHintManager from formatting results
+                    selectInitial: true
+                };
+            });
     };
 
 

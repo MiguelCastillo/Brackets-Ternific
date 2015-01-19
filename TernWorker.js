@@ -80,7 +80,7 @@ Server.prototype.clear = function() {
 Server.prototype.addFile = function(data) {
     var _self = this;
 
-    if (data.id && _self.pending[data.id]){
+    if (data.id && _self.pending[data.id]) {
         var c = _self.pending[data.id];
         delete _self.pending[data.id];
         c(data.err, data.text);
@@ -97,13 +97,20 @@ Server.prototype.deleteFile = function(data) {
 
 
 Server.prototype.request = function(data) {
-    this.server.request(data.body, function(err, reqData) {
+    function done(err, reqData) {
         postMessage({
             id: data.id,
             body: reqData,
             err: err && String(err)
         });
-    });
+    }
+
+    try {
+        this.server.request(data.body, done);
+    }
+    catch(ex) {
+        done(ex);
+    }
 };
 
 

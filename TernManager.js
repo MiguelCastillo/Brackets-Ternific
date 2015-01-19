@@ -8,8 +8,9 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var spromise       = require("libs/js/spromise");
-    var TernProvider   = require("TernProvider"),
+    var CodeMirror     = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror"),
+        Promise        = require("libs/js/spromise"),
+        TernProvider   = require("TernProvider"),
         TernHints      = require("TernHints"),
         TernReferences = require("TernReferences"),
         TernTypes      = require("TernTypes");
@@ -18,38 +19,30 @@ define(function (require /*, exports, module*/) {
     /**
      *  Controls the interaction between codemirror and tern
      */
-    function TernManager (ternProvider) {
-        var deferred = spromise.defer();
+    function TernManager() {
+        var deferred = Promise.defer();
 
-        if (ternProvider === "server") {
-            ternProvider = new TernProvider.Remote();
-        }
-        else {
-            ternProvider = new TernProvider.Local();
-        }
+        this.ternProvider = TernProvider.factory();
+        this.ternProvider.onReady(deferred.resolve);
 
-        ternProvider.onReady(deferred.resolve);
-
-        this.ternHints      = new TernHints(ternProvider);
-        this.ternReferences = new TernReferences(ternProvider);
-        this.ternTypes      = new TernTypes(ternProvider);
-        this.ternProvider   = ternProvider;
-        this.onReady        = deferred.promise.done;
+        this.ternHints      = new TernHints(this.ternProvider);
+        this.ternReferences = new TernReferences(this.ternProvider);
+        this.ternTypes      = new TernTypes(this.ternProvider);
+        this.onReady        = deferred.promise.done.bind(deferred);
         this.currentPath    = "";
     }
 
 
-    TernManager.prototype.clear = function () {
-        var _self = this;
-        _self.ternProvider.clear();
+    TernManager.prototype.clear = function() {
+        this.ternProvider.clear();
     };
 
 
-    TernManager.prototype.registerKeyBindings = function (cm) {
+    TernManager.prototype.registerKeyBindings = function(cm) {
         var _self = this;
 
         var keyMap = {
-            "name": "ternBindings",
+            "name": "ternificBindings",
             "Ctrl-I": function(){
                 _self.ternTypes.findType(cm);
             },
@@ -64,7 +57,7 @@ define(function (require /*, exports, module*/) {
             }
         };
 
-        cm._ternBindings = _self;
+        cm._ternificBindings = this;
         cm.addKeyMap(keyMap);
     };
 
@@ -81,24 +74,22 @@ define(function (require /*, exports, module*/) {
      * map the code mirror instance to that file name.
      *
      */
-    TernManager.prototype.registerDocument = function (cm, file) {
-        if (!cm) {
-            throw new TypeError("CodeMirror instance must be valid");
+    TernManager.prototype.registerDocument = function(cm, file) {
+        if ((cm instanceof(CodeMirror)) === false) {
+            throw new TypeError("Must provide an instance of CodeMirror");
         }
 
-        if (!file) {
-            throw new TypeError("File object must be valid");
+        if ((typeof(file) === "object") === false) {
+            throw new TypeError("Must provide a File object");
         }
-
-        var _self = this;
 
         // Unregister keybindings and current document
-        if (_self._cm) {
-            if (_self._cm._ternBindings === _self) {
-                _self._cm.removeKeyMap("ternBindings");
+        if (this._cm) {
+            if (this._cm._ternificBindings === this) {
+                this._cm.removeKeyMap("ternificBindings");
             }
 
-            _self.ternProvider.unregisterDocument(_self._cm);
+            this.ternProvider.unregisterDocument(this._cm);
         }
 
 
@@ -107,14 +98,14 @@ define(function (require /*, exports, module*/) {
         // is not a subfolder of the currentPath, then we will clear all tern
         // stuff because we are most likely working in a different context.
         //
-        if (_self.currentPath !== file.parentPath && _self.currentPath.indexOf(file.parentPath) !== 0) {
-            _self.currentPath = file.parentPath;
-            _self.ternProvider.clear();
+        if (this.currentPath !== file.parentPath && this.currentPath.indexOf(file.parentPath) !== 0) {
+            this.currentPath = file.parentPath;
+            this.ternProvider.clear();
         }
 
-        _self.registerKeyBindings(cm);
-        _self.ternProvider.registerDocument(cm, file);
-        _self._cm = cm;
+        this.registerKeyBindings(cm);
+        this.ternProvider.registerDocument(cm, file);
+        this._cm = cm;
     };
 
 
