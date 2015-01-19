@@ -72,6 +72,8 @@ define(function (require /*, exports, module*/) {
             return Promise.resolve();
         }
 
+        // Set fragments processing to false because references can only be
+        // searched in full documents.
         return this.ternProvider.query(cm, "refs", false)
             .then(function(data) {
                 var perFile = {}, i, ref;
