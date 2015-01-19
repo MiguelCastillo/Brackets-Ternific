@@ -15,9 +15,10 @@ define(function(require, exports, module) {
     var Promise         = require("libs/js/spromise"),
         TernApi         = require("TernApi"),
         Settings        = require("Settings"),
+        Logger          = require("Logger"),
         globalSettings  = require("text!./libs/tern/.tern-project"),
-        projectSettings = Settings.factory();
-
+        projectSettings = Settings.factory(),
+        logger          = Logger.factory("LocalServer");
 
 
     try {
@@ -77,13 +78,37 @@ define(function(require, exports, module) {
     };
 
 
+    LocalServer.prototype._getFile = function(data) {
+        logger.log(data.type, data.name, data);
+        var server = this;
+        this.documenProvider.getFile(data.name)
+            .done(function(file) {
+                server.worker.send({
+                    type: "addFile",
+                    text: file.content,
+                    id: data.id
+                });
+            })
+            .fail(function(error) {
+                logger.error(error);
+                server.worker.send({
+                    type: "addFile",
+                    err: String(error),
+                    id: data.id
+                });
+            });
+    };
+
+
     LocalServer.prototype.loadSettings = function(fullPath) {
         var _self = this;
         function done(settings) {
             loadSettings(_self, settings);
         }
 
-        projectSettings.load(".tern-project", fullPath).always(done);
+        projectSettings
+            .load(".tern-project", fullPath)
+            .always(done);
     };
 
 
@@ -151,22 +176,7 @@ define(function(require, exports, module) {
             // If tern requests a file, then we will load it and then send it back to
             // tern as an addFile action.
             if (data.type == "getFile") {
-                server.documenProvider
-                    .getFile(data.name)
-                    .done(function(file) {
-                        worker.send({
-                            type: "addFile",
-                            text: file.content,
-                            id: data.id
-                        });
-                    })
-                    .fail(function(error) {
-                        worker.send({
-                            type: "addFile",
-                            err: String(error),
-                            id: data.id
-                        });
-                    });
+                server._getFile(data);
             }
             else if (data.type == "debug") {
                 console.log(data.message);
@@ -184,15 +194,13 @@ define(function(require, exports, module) {
         };
 
 
-        worker.send = function(data, callback) {
-            // Some requests to tern dont need to be waited on...  So, just send tern
-            // the message and exit out.
-            if (!callback) {
-                worker.postMessage(data);
-                return;
-            }
+        worker.send = function(data, defer) {
+            logger.log(data.type, data);
+            return defer ? deferredRequest(data) : worker.postMessage(data);
+        };
 
-            // New request
+
+        function deferredRequest(data) {
             var request = {
                 data: data,
                 deferred: Promise.defer()
@@ -213,8 +221,16 @@ define(function(require, exports, module) {
                 pending = request;
             }
 
-            return request.deferred.done(processResponse);
-        };
+            return request.deferred
+                .done(function(response) {
+                    logger.log(response);
+                    processResponse(response);
+                })
+                .fail(function(error) {
+                    logger.error(error);
+                    processResponse();
+                });
+        }
 
 
         function processResponse(response) {

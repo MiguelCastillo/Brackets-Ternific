@@ -13,8 +13,8 @@ define(function (require, exports, module) {
         ExtensionUtils  = brackets.getModule("utils/ExtensionUtils"),
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
-    var Menu = require('Menu'),
-        TernManager = require('TernManager'),
+    var Menu               = require('Menu'),
+        TernManager        = require('TernManager'),
         TernificController = require("views/controllers/ternific");
 
     // Load up string utils...

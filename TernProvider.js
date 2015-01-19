@@ -11,6 +11,7 @@ define(function (require /*, exports, module*/) {
     var _ = brackets.getModule("thirdparty/lodash");
     var CodeMirror   = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror"),
         Promise      = require("libs/js/spromise"),
+        Utils        = require("Utils"),
         localServer  = require("LocalServer"),
         fileLoader   = require("FileLoader");
 
@@ -165,7 +166,7 @@ define(function (require /*, exports, module*/) {
                     docMeta: docMeta,
                     content: data.content
                 };
-            });
+            }, Utils.forwardError);
     };
 
 

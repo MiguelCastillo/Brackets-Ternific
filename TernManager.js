@@ -100,7 +100,6 @@ define(function (require /*, exports, module*/) {
         //
         if (this.currentPath !== file.parentPath && this.currentPath.indexOf(file.parentPath) !== 0) {
             this.currentPath = file.parentPath;
-            this.ternProvider.clear();
         }
 
         this.registerKeyBindings(cm);
