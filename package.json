@@ -5,6 +5,7 @@
     "version": "0.7.0",
     "author": "Miguel Castillo <manchagnu@gmail.com>",
     "homepage": "https://github.com/MiguelCastillo/Brackets-Ternific",
+    "keywords": ["hints", "js hints", "tern"],
     "repository": {
         "type": "git",
         "url": "git://github.com/MiguelCastillo/Brackets-Ternific.git"
