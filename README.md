@@ -22,6 +22,8 @@ FAQ
   Node and meteor are loaded as plugins.  You need to add the correspoding entries to the plugins section in .tern-project.  You can use https://github.com/MiguelCastillo/Brackets-Ternific/blob/master/.tern-project as a template or just use the default .tern-project in tern's directory.
 3. Why isn't the default .tern-project file not live reloading.<br>
   Live reload is only supported for project specific .tern-project.
+4. Is there a way to enable logging for debug details?<br>
+  Yes, you need to bring up Chrome Developer Tools and from the console, type `ternificLogger.enableAll()`.  And to disable it, use `ternificLogger.disableAll()`.
 
 
 Screenshots
