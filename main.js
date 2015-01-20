@@ -14,8 +14,11 @@ define(function (require, exports, module) {
         CodeHintManager = brackets.getModule("editor/CodeHintManager");
 
     var Menu               = require('Menu'),
+        Logger             = require('Logger'),
         TernManager        = require('TernManager'),
         TernificController = require("views/controllers/ternific");
+
+    window.ternificLogger = Logger;
 
     // Load up string utils...
     require("string");
