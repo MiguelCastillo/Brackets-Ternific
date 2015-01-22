@@ -16,7 +16,7 @@ define(function(require, exports, module) {
         TernApi         = require("TernApi"),
         Settings        = require("Settings"),
         Logger          = require("Logger"),
-        globalSettings  = require("text!./libs/tern/.tern-project"),
+        globalSettings  = require("text!./.tern-project"),
         projectSettings = Settings.factory(),
         logger          = Logger.factory("LocalServer");
 
