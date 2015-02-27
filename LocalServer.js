@@ -140,6 +140,11 @@ define(function(require, exports, module) {
 
         localServer.settings = settings;
         settings.libs = $.map(settings.libs || [], function(item) {
+            //We'll assume pathed values indicate a project file, this is pretty safe
+            //as the libs in the extensions folder are never pathed
+            if(item.indexOf("/") != -1 || item.indexOf("\\") != -1){
+                return "text!" + item + ".json";                                           
+            }
             return "text!" + TERN_DEFINITIONS + item + ".json";
         });
 

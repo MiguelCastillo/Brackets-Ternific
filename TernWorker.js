@@ -35,7 +35,13 @@ function Extender(/*target, [source]+ */) {
 function LoadPlugins(settings) {
     var plugins = [];
     for (var i in settings.plugins) {
-        plugins.push("libs/tern/plugin/" + i + ".js");
+        //We'll use the baseURL property from .tern-project, this is the standard tern approach
+        var setting = settings.plugins[i];
+        
+        if(!setting.baseURL){
+            setting.baseURL = "libs/tern/plugin/";
+        }
+        plugins.push(setting.baseURL + i + ".js");
     }
 
     // Import plugins
