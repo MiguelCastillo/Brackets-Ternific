@@ -41,8 +41,7 @@ define(function (require /*, exports, module*/) {
         function parseSettings(settings) {
             var deferred = Promise.defer();
             
-            //First things first, lets replace "${project}" with the current project path
-            settings = settings.replace(/\${project}/g,  currentProject.fullPath);
+            settings = Mustache.render(settings, {project: currentProject.fullPath});
             
             settings = stripComments(settings);
 
