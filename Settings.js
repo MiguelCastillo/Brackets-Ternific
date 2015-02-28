@@ -40,6 +40,9 @@ define(function (require /*, exports, module*/) {
 
         function parseSettings(settings) {
             var deferred = Promise.defer();
+            
+            settings = Mustache.render(settings, {project: currentProject.fullPath});
+            
             settings = stripComments(settings);
 
             try {
