@@ -8,27 +8,21 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var _ = brackets.getModule("thirdparty/lodash");
-    var CodeMirror   = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror"),
-        Promise      = require("libs/js/spromise"),
-        Utils        = require("Utils"),
-        localServer  = require("LocalServer"),
-        fileLoader   = require("FileLoader");
+    var _           = brackets.getModule("thirdparty/lodash");
+    var CodeMirror  = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
+    var Promise     = require("libs/js/spromise");
+    var Utils       = require("Utils");
+    var localServer = require("LocalServer");
+    var fileLoader  = require("FileLoader");
 
 
     /**
      * @constructor
-     *
      */
     function TernProvider() {
         this.documents = [];
         this.currentDocument = null;
     }
-
-
-    TernProvider.prototype.clear = function() {
-        this.documents = [];
-    };
 
 
     TernProvider.prototype.query = function(cm, settings, allowFragments) {

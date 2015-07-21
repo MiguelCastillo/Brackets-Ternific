@@ -29,13 +29,7 @@ define(function (require /*, exports, module*/) {
         this.ternReferences = new TernReferences(this.ternProvider);
         this.ternTypes      = new TernTypes(this.ternProvider);
         this.onReady        = deferred.promise.done.bind(deferred);
-        this.currentPath    = "";
     }
-
-
-    TernManager.prototype.clear = function() {
-        this.ternProvider.clear();
-    };
 
 
     TernManager.prototype.registerKeyBindings = function(cm) {
@@ -92,16 +86,6 @@ define(function (require /*, exports, module*/) {
             this.ternProvider.unregisterDocument(this._cm);
         }
 
-
-        //
-        // If we are working on an entirely different path or the new path
-        // is not a subfolder of the currentPath, then we will clear all tern
-        // stuff because we are most likely working in a different context.
-        //
-        if (this.currentPath !== file.parentPath && this.currentPath.indexOf(file.parentPath) !== 0) {
-            this.currentPath = file.parentPath;
-        }
-
         this.registerKeyBindings(cm);
         this.ternProvider.registerDocument(cm, file);
         this._cm = cm;
@@ -109,6 +93,4 @@ define(function (require /*, exports, module*/) {
 
 
     return TernManager;
-
 });
-

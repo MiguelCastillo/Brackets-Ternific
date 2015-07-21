@@ -8,18 +8,19 @@
 define(function(require, exports, module) {
     "use strict";
 
-    var TERN_ROOT        = "./libs/tern/",
-        TERN_DEFINITIONS = TERN_ROOT + "defs/",
-        WORKER_SCRIPT    = module.uri.substr(0, module.uri.lastIndexOf("/")) + "/TernWorker.js";
+    var _               = brackets.getModule("thirdparty/lodash");
+    var extensionUtils  = brackets.getModule("utils/ExtensionUtils");
+    var Promise         = require("libs/js/spromise");
+    var TernApi         = require("TernApi");
+    var Settings        = require("Settings");
+    var Logger          = require("Logger");
+    var globalSettings  = require("text!./.tern-project");
+    var projectSettings = Settings.create(".tern-project");
+    var logger          = Logger.factory("LocalServer");
 
-    var Promise         = require("libs/js/spromise"),
-        TernApi         = require("TernApi"),
-        Settings        = require("Settings"),
-        Logger          = require("Logger"),
-        globalSettings  = require("text!./.tern-project"),
-        projectSettings = Settings.factory(),
-        logger          = Logger.factory("LocalServer");
-
+    var TERN_ROOT        = "./libs/tern/";
+    var TERN_DEFINITIONS = TERN_ROOT + "defs/";
+    var WORKER_SCRIPT    = extensionUtils.getModulePath(module, "/TernWorker.js");
 
     try {
         globalSettings = JSON.parse(globalSettings);
@@ -103,11 +104,13 @@ define(function(require, exports, module) {
     LocalServer.prototype.loadSettings = function(fullPath) {
         var _self = this;
         function done(settings) {
-            loadSettings(_self, settings);
+            if (settings.changed) {
+                loadSettings(_self, settings.data);
+            }
         }
 
         projectSettings
-            .load(".tern-project", fullPath)
+            .load(fullPath)
             .always(done);
     };
 
@@ -132,24 +135,21 @@ define(function(require, exports, module) {
 
 
     function loadSettings(localServer, settings) {
-        settings = settings || $.extend({}, globalSettings);
-
-        if (localServer.settings === settings) {
-            return;
-        }
-
+        settings = _.extend({}, globalSettings, settings);
         localServer.settings = settings;
-        settings.libs = $.map(settings.libs || [], function(item) {
+
+        // Process definitions
+        settings.libs = _.map(settings.libs || [], function(item) {
             //We'll assume pathed values indicate a project file, this is pretty safe
             //as the libs in the extensions folder are never pathed
-            if(item.indexOf("/") != -1 || item.indexOf("\\") != -1){
-                return "text!" + item + ".json";                                           
+            if(item.indexOf("/") !== -1 || item.indexOf("\\") !== -1){
+                return "text!" + item + ".json";
             }
             return "text!" + TERN_DEFINITIONS + item + ".json";
         });
 
         require(settings.libs, function() {
-            settings.defs = $.map(arguments, function(item) {
+            settings.defs = _.map(arguments, function(item) {
                 var result;
                 try {result = JSON.parse(item);} catch(ex) {}
                 return result || {};
