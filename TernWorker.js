@@ -37,7 +37,7 @@ function LoadPlugins(settings) {
     for (var i in settings.plugins) {
         //We'll use the baseURL property from .tern-project, this is the standard tern approach
         var setting = settings.plugins[i];
-        
+
         if(!setting.baseURL){
             setting.baseURL = "libs/tern/plugin/";
         }
