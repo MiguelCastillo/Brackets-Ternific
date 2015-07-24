@@ -92,6 +92,10 @@ define(function (require /*, exports, module*/) {
         if (docMeta && docMeta.doc && docMeta._trackChange) {
             CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
             docMeta._trackChange = null;
+
+            // Remove unregistered document
+            var i = this.documents.indexOf(docMeta);
+            this.documents.splice(i, 1);
         }
     };
 
