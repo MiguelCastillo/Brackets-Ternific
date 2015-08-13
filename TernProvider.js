@@ -76,7 +76,7 @@ define(function (require /*, exports, module*/) {
      * Will read file from storage and then pushes the content to the tern server.
      */
     TernProvider.prototype.loadDocument = function(filePath) {
-        // Get the extension and make
+        // Get the extension and make sure we have an extension before loading the file.
         var extension = fileUtils.getFileExtension(filePath);
 
         if (!extension) {
@@ -99,6 +99,21 @@ define(function (require /*, exports, module*/) {
             .then(documentMetaFactory(filePath).create, reportError)
             .then(providerExtensions(this).addDocument, reportError)
             .then(serverExtensions(this).addDocument, reportError);
+    };
+
+
+    /**
+     * Get a document.  It will first look in the repository, otherwise it loads it
+     * from storage.
+     */
+    TernProvider.prototype.getDocument = function(name) {
+        var docMeta = this.documentRepository.getByName(name);
+
+        if (docMeta) {
+            return Promise.resolve(docMeta);
+        }
+
+        return this.loadDocument(name);
     };
 
 
@@ -142,13 +157,7 @@ define(function (require /*, exports, module*/) {
          * Function that reads a document from storage
          */
         function getDocument(name) {
-            var docMeta = provider.documentRepository.getByName(name);
-
-            if (docMeta) {
-                return Promise.resolve(docMeta);
-            }
-
-            return provider.loadDocument(name);
+            return provider.getDocument(name);
         }
 
         return {

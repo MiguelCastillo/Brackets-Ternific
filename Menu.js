@@ -8,12 +8,13 @@
 define(function(require, exports /*, module*/) {
     "use strict";
 
-    var CommandManager = brackets.getModule("command/CommandManager"),
-        Commands       = brackets.getModule("command/Commands"),
-        Menus          = brackets.getModule("command/Menus");
+    var CommandManager  = brackets.getModule("command/CommandManager");
+    var EventDispatcher = brackets.getModule("utils/EventDispatcher");
+    var Commands        = brackets.getModule("command/Commands");
+    var Menus           = brackets.getModule("command/Menus");
 
     function menuSelected() {
-        $(exports).triggerHandler("ternific");
+        exports.events.trigger("ternific");
     }
 
     function registerMenu() {
@@ -22,5 +23,8 @@ define(function(require, exports /*, module*/) {
         Menus.getMenu(Menus.AppMenuBar.FILE_MENU).addMenuItem(MANAGER_COMMAND_ID, "", Menus.AFTER, Commands.FILE_PROJECT_SETTINGS);
     }
 
-    exports.init = registerMenu;
+    exports.events = {};
+    exports.init   = registerMenu;
+
+    EventDispatcher.makeEventDispatcher(exports.events);
 });

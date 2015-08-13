@@ -9,8 +9,9 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
     var CodeHintManager = brackets.getModule("editor/CodeHintManager");
-    var hintTransform   = require("HintTransform"),
-        hintHelper      = require("HintHelper");
+    var EventDispatcher = brackets.getModule("utils/EventDispatcher");
+    var hintTransform   = require("HintTransform");
+    var hintHelper      = require("HintHelper");
 
 
     function TernHints(ternProvider) {
@@ -21,7 +22,9 @@ define(function (require /*, exports, module*/) {
         this._token = null;
         this._cm = null;
         this._sortBy = hintTransform.sort.byMatch;
-        this.events = $("<span>");
+        this.events = {};
+
+        EventDispatcher.makeEventDispatcher(this.events);
     }
 
 
@@ -34,7 +37,7 @@ define(function (require /*, exports, module*/) {
 
         if (this.hints) {
             this._transformed = hintTransform(this.hints, this._sortBy);
-            this.events.triggerHandler("hints", [this._transformed.tokens, this._transformed.html]);
+            this.events.trigger("hints", this._transformed.tokens, this._transformed.html);
         }
     };
 
@@ -78,7 +81,7 @@ define(function (require /*, exports, module*/) {
                 },
                 set: function(newValue) {
                     _self._selectedIndex = newValue;
-                    _self.events.triggerHandler("highlight", [_self._transformed.tokens[newValue]]);
+                    _self.events.trigger("highlight", _self._transformed.tokens[newValue]);
                 }
             });
         }
@@ -122,7 +125,7 @@ define(function (require /*, exports, module*/) {
 
                 _self.hints = hints;
                 _self._transformed = hintTransform(hints, _self._sortBy);
-                _self.events.triggerHandler("hints", [_self._transformed.tokens, _self._transformed.html]);
+                _self.events.trigger("hints", _self._transformed.tokens, _self._transformed.html);
 
                 return {
                     hints: _self._transformed.hints,
