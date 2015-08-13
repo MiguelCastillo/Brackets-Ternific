@@ -8,14 +8,19 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var Promise        = require("node_modules/spromise/dist/spromise.min");
-    var FileStream     = require("FileStream");
-    var ProjectManager = brackets.getModule("project/ProjectManager");
-    var FileSystem     = brackets.getModule("filesystem/FileSystem");
+    var Promise         = require("node_modules/spromise/dist/spromise.min");
+    var FileStream      = require("FileStream");
+    var ProjectManager  = brackets.getModule("project/ProjectManager");
+    var FileSystem      = brackets.getModule("filesystem/FileSystem");
+    var EventDispatcher = brackets.getModule("utils/EventDispatcher");
+
 
 
     function ProjectFiles() {
     }
+
+
+    EventDispatcher.makeEventDispatcher(ProjectFiles.prototype);
 
 
     ProjectFiles.prototype.openFile = function(fileName /*, forceCreate*/) {
@@ -44,12 +49,13 @@ define(function (require /*, exports, module*/) {
     };
 
 
-    var _projectFiles = new ProjectFiles();
-    $(ProjectManager).on("projectOpen", function(e, project){
-        _projectFiles.currentProject = project;
-        $(_projectFiles).trigger('projectOpen', [project]);
+    var projectFiles = new ProjectFiles();
+
+    ProjectManager.on("projectOpen", function(e, project) {
+        projectFiles.currentProject = project;
+        projectFiles.trigger("projectOpen", project);
     });
 
 
-    return _projectFiles;
+    return projectFiles;
 });

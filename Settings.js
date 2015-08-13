@@ -8,11 +8,12 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var Dialogs        = brackets.getModule("widgets/Dialogs");
-    var ProjectManager = brackets.getModule("project/ProjectManager");
-    var FileSystem     = brackets.getModule("filesystem/FileSystem");
-    var FileUtils      = brackets.getModule("file/FileUtils");
-    var Promise        = require("node_modules/spromise/dist/spromise.min");
+    var Dialogs         = brackets.getModule("widgets/Dialogs");
+    var ProjectManager  = brackets.getModule("project/ProjectManager");
+    var FileSystem      = brackets.getModule("filesystem/FileSystem");
+    var FileUtils       = brackets.getModule("file/FileUtils");
+    var EventDispatcher = brackets.getModule("utils/EventDispatcher");
+    var Promise         = require("node_modules/spromise/dist/spromise.min");
 
 
     function Settings(filePath) {
@@ -23,6 +24,9 @@ define(function (require /*, exports, module*/) {
         this.baseUrl = null;
         watchChanges(this);
     }
+
+
+    EventDispatcher.makeEventDispatcher(Settings.prototype);
 
 
     Settings.create = function(filePath) {
@@ -153,7 +157,7 @@ define(function (require /*, exports, module*/) {
         function fileChanged(evt, file) {
             if (file && settings.fileObject && file.fullPath === settings.fileObject.fullPath) {
                 settings.load().always(function fileLoaded() {
-                    $(settings).trigger("change", [settings]);
+                    settings.trigger("change", settings);
                 });
             }
         }

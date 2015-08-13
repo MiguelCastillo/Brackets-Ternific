@@ -44,7 +44,7 @@ define(function (require, exports, module) {
             }
         }
 
-        $(EditorManager).on("activeEditorChange.ternific", handleActiveEditorChange);
+        EditorManager.on("activeEditorChange.ternific", handleActiveEditorChange);
         handleActiveEditorChange(null, EditorManager.getActiveEditor(), null);
         CodeHintManager.registerHintProvider(ternManager.ternHints, ["javascript"], 1);
     });

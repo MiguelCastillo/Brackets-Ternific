@@ -9,7 +9,9 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
     var DocumentManager = brackets.getModule("document/DocumentManager");
+    var MainViewManager = brackets.getModule("view/MainViewManager");
     var ProjectManager  = brackets.getModule("project/ProjectManager");
+    var EventDispatcher = brackets.getModule("utils/EventDispatcher");
     var Promise         = require("node_modules/spromise/dist/spromise.min");
 
 
@@ -24,28 +26,31 @@ define(function (require /*, exports, module*/) {
         this._cm = null;
         this._token = null;
         this._matches = null;
-        this.events = $("<span>");
+        this.events = {};
 
-        $(DocumentManager)
+        EventDispatcher.makeEventDispatcher(this.events);
+
+        MainViewManager
             .on("currentDocumentChange", function(evt, currentDocument) {
-                _self.events.triggerHandler("documentChange", [currentDocument]);
-            })
+                _self.events.trigger("documentChange", currentDocument);
+            });
+
+        DocumentManager
             .on("pathDeleted", function(/*evt*/) {
-                _self.events.triggerHandler("documentChange");
+                _self.events.trigger("documentChange");
             })
             .on("documentRefreshed", function(/*evt*/) {
-                _self.events.triggerHandler("documentChange");
+                _self.events.trigger("documentChange");
             })
             .on("dirtyFlagChange", function(evt, doc) {
                 if (doc.isDirty) {
-                    _self.events.triggerHandler("documentChange");
+                    _self.events.trigger("documentChange");
                 }
             });
 
-
-        $(ProjectManager)
+        ProjectManager
             .on("beforeProjectClose", function () {
-                _self.events.triggerHandler("documentChange");
+                _self.events.trigger("documentChange");
             });
     }
 
@@ -68,7 +73,7 @@ define(function (require /*, exports, module*/) {
 
         this._token = cm.getTokenAt(cm.getCursor());
         if (!this._token.string) {
-            this.events.triggerHandler("references", [this.ternProvider, {}, this._token.string]);
+            this.events.trigger("references", this.ternProvider, {}, this._token.string);
             return Promise.resolve();
         }
 
@@ -86,7 +91,7 @@ define(function (require /*, exports, module*/) {
                 }
 
                 this._matches = perFile;
-                this.events.triggerHandler("references", [this.ternProvider, perFile, this._token.string]);
+                this.events.trigger("references", this.ternProvider, perFile, this._token.string);
                 return perFile;
             }.bind(this),
             function(error) {

@@ -56,15 +56,11 @@ define(function(require /*, exports, module*/) {
         this._replaceModel = new SearchModel();
         this._resultsView = new SearchResultsView(this._replaceModel, "replace-instances", "replace-instances.results");
 
-        $(this._resultsView)
+        this._resultsView
             .on("replaceAll", function () {
                 _self.finishReplaceAll();
             });
 
-        $(menu)
-            .on("ternific", function(/*evt*/) {
-                _self.toggle(true);
-            });
 
         $(document)
             .on("click", ".hintList li", function(/*evt*/) {
@@ -87,6 +83,12 @@ define(function(require /*, exports, module*/) {
             });
 
 
+        menu.events
+            .on("ternific", function(/*evt*/) {
+                _self.toggle(true);
+            });
+
+
         ternManager.ternHints.events
             .on("highlight", function(evt, hint) {
                 _self.highlightHint(hint);
@@ -99,13 +101,13 @@ define(function(require /*, exports, module*/) {
 
 
         ternManager.ternReferences.events
-            .on("references", function(evt, fileProvider, references, token) {
+            .on("references", function(evt, ternManager, references, token) {
                 if (!token) {
                     _self._resultsView.close();
                     return;
                 }
 
-                _self.processReferences(fileProvider, references, token);
+                _self.processReferences(ternManager, references, token);
             })
             .on("documentChange", function(evt, currentDocument) {
                 if (currentDocument && !_self._replaceModel.results[currentDocument.file._path]) {
@@ -135,10 +137,10 @@ define(function(require /*, exports, module*/) {
     };
 
 
-    Ternific.prototype.processReferences = function(fileProvider, references, token) {
+    Ternific.prototype.processReferences = function(ternManager, references, token) {
         var promises;
-        var replaceModel = this._replaceModel,
-            resultsView = this._resultsView;
+        var replaceModel = this._replaceModel;
+        var resultsView = this._resultsView;
 
         replaceModel.clear();
         replaceModel.setQueryInfo({query: token});
@@ -146,17 +148,18 @@ define(function(require /*, exports, module*/) {
         replaceModel.replaceText = "";
 
         promises = Object.keys(references).map(function(reference) {
-            return fileProvider.getFile(reference).done(function(file) {
+            return ternManager.getDocument(reference).done(function(docMeta) {
                 var data = {
                     matches: [],
-                    timestamp: file.docMeta.file._stat._mtime
+                    timestamp: docMeta.file._stat._mtime
                 };
 
+                var content = docMeta.doc.getValue();
                 references[reference].forEach(function(match) {
-                    data.matches.push(referencesTransform(match, file.content));
+                    data.matches.push(referencesTransform(match, content));
                 });
 
-                replaceModel.setResults(file.docMeta.file._path, data);
+                replaceModel.setResults(docMeta.file.fullPath, data);
             });
         });
 
