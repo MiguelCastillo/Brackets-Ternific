@@ -17,14 +17,12 @@ define(function (require /*, exports, module*/) {
      */
     function FileStream(file) {
         this._file = file.handle;
-        this._filePath = file.filePath;
-        this._fileName = file.fileName;
     }
 
 
     /**
      * Reads the file content
-     * @returns {spromise};
+     * @returns {Promise};
      */
     FileStream.prototype.read = function() {
         var _self = this;
@@ -37,8 +35,6 @@ define(function (require /*, exports, module*/) {
                 else {
                     resolve({
                         file: _self._file,
-                        fileName: _self._fileName,
-                        fullPath: _self._filePath + _self._fileName,
                         content: content
                     });
                 }
@@ -51,7 +47,7 @@ define(function (require /*, exports, module*/) {
      * Writes content to file
      * @param {string} content String to be written to file
      * @param {Object} options
-     * @returns {spromise};
+     * @returns {Promise};
      */
     FileStream.prototype.write = function(content, options) {
         var _self = this;
@@ -64,8 +60,6 @@ define(function (require /*, exports, module*/) {
                 else {
                     resolve({
                         file: _self._file,
-                        fileName: _self._fileName,
-                        fullPath: _self._filePath + _self._fileName,
                         content: content
                     });
                 }
