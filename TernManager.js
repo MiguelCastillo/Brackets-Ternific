@@ -8,12 +8,14 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var CodeMirror     = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror"),
-        Promise        = require("libs/js/spromise"),
-        TernProvider   = require("TernProvider"),
-        TernHints      = require("TernHints"),
-        TernReferences = require("TernReferences"),
-        TernTypes      = require("TernTypes");
+    var CodeMirror     = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
+    var Promise        = require("node_modules/spromise/dist/spromise.min");
+    var TernProvider   = require("TernProvider");
+    var TernHints      = require("TernHints");
+    var TernReferences = require("TernReferences");
+    var TernTypes      = require("TernTypes");
+
+    var TERNIFIC_BINDINGS_NAME = "ternificBindings";
 
 
     /**
@@ -22,7 +24,7 @@ define(function (require /*, exports, module*/) {
     function TernManager() {
         var deferred = Promise.defer();
 
-        this.ternProvider = TernProvider.factory();
+        this.ternProvider = TernProvider.create();
         this.ternProvider.onReady(deferred.resolve);
 
         this.ternHints      = new TernHints(this.ternProvider);
@@ -36,7 +38,7 @@ define(function (require /*, exports, module*/) {
         var _self = this;
 
         var keyMap = {
-            "name": "ternificBindings",
+            "name": TERNIFIC_BINDINGS_NAME,
             "Ctrl-I": function(){
                 _self.ternTypes.findType(cm);
             },
@@ -69,18 +71,18 @@ define(function (require /*, exports, module*/) {
      *
      */
     TernManager.prototype.registerDocument = function(cm, file) {
-        if ((cm instanceof(CodeMirror)) === false) {
+        if (!(cm instanceof(CodeMirror))) {
             throw new TypeError("Must provide an instance of CodeMirror");
         }
 
-        if ((typeof(file) === "object") === false) {
+        if (typeof(file) !== "object") {
             throw new TypeError("Must provide a File object");
         }
 
         // Unregister keybindings and current document
         if (this._cm) {
             if (this._cm._ternificBindings === this) {
-                this._cm.removeKeyMap("ternificBindings");
+                this._cm.removeKeyMap(TERNIFIC_BINDINGS_NAME);
             }
 
             this.ternProvider.unregisterDocument(this._cm);

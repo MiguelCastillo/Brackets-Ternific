@@ -8,9 +8,9 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var DocumentManager = brackets.getModule("document/DocumentManager"),
-        ProjectManager  = brackets.getModule("project/ProjectManager"),
-        Promise         = require("libs/js/spromise");
+    var DocumentManager = brackets.getModule("document/DocumentManager");
+    var ProjectManager  = brackets.getModule("project/ProjectManager");
+    var Promise         = require("node_modules/spromise/dist/spromise.min");
 
 
     /**

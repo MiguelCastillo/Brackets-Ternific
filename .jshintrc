@@ -5,6 +5,7 @@
   "indent":4,
   "devel":true,
   "browser": true,
+  "esnext": true,
   "globals":{
     "require": true,
     "define": true,

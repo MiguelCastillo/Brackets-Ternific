@@ -1,4 +1,4 @@
 .DS_Store
-libs/tern/node_modules/typescript/bin/tsc
-libs/tern/node_modules/acorn/bin/acorn
-libs/tern/node_modules/typescript/bin/tsc
+node_modules/tern/node_modules/typescript/bin/tsc
+node_modules/tern/node_modules/acorn/bin/acorn
+node_modules/tern/node_modules/typescript/bin/tsc
