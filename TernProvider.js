@@ -9,6 +9,7 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
     var CodeMirror  = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
+    var fileUtils   = brackets.getModule("file/FileUtils");
     var Promise     = require("node_modules/spromise/dist/spromise.min");
     var reportError = require("reportError");
     var fileReader  = require("fileReader");
@@ -75,6 +76,12 @@ define(function (require /*, exports, module*/) {
      * Will read file from storage and then pushes the content to the tern server.
      */
     TernProvider.prototype.loadDocument = function(filePath) {
+        // Get the extension and make
+        var extension = fileUtils.getFileExtension(filePath);
+
+        if (!extension) {
+            filePath += ".js";
+        }
 
         //
         // TODO: Figure out a way to pass in full paths.  This would work
