@@ -8,7 +8,7 @@ define(function (require /*, exports, module*/) {
     "use strict";
 
 
-    var Promise = require("libs/js/spromise");
+    var Promise = require("node_modules/spromise/dist/spromise.min");
 
 
     /**

@@ -8,7 +8,7 @@
 define(function(require /*, exports, module*/) {
     "use strict";
 
-    var ternDemo = require("TernDemo");
+    var ternDemo = require("./TernDemo");
 
     var defaults = {
         filter  : true, // Results will be pretty large if we don't filter stuff out

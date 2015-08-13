@@ -8,14 +8,14 @@
 define(function(require /*, exports, module*/) {
     "use strict";
 
-    var _                   = brackets.getModule("thirdparty/lodash"),
-        WorkspaceManager    = brackets.getModule("view/WorkspaceManager"),
-        FindUtils           = brackets.getModule("search/FindUtils"),
-        SearchModel         = brackets.getModule("search/SearchModel").SearchModel,
-        SearchResultsView   = brackets.getModule("search/SearchResultsView").SearchResultsView,
-        Promise             = require("libs/js/spromise"),
-        menu                = require("Menu"),
-        referencesTransform = require("ReferencesTransform");
+    var _                   = brackets.getModule("thirdparty/lodash");
+    var WorkspaceManager    = brackets.getModule("view/WorkspaceManager");
+    var FindUtils           = brackets.getModule("search/FindUtils");
+    var SearchModel         = brackets.getModule("search/SearchModel").SearchModel;
+    var SearchResultsView   = brackets.getModule("search/SearchResultsView").SearchResultsView;
+    var Promise             = require("node_modules/spromise/dist/spromise.min");
+    var menu                = require("Menu");
+    var referencesTransform = require("ReferencesTransform");
 
 
     var tmpls = {

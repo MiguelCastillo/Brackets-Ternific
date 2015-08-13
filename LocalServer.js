@@ -10,7 +10,7 @@ define(function(require, exports, module) {
 
     var _               = brackets.getModule("thirdparty/lodash");
     var extensionUtils  = brackets.getModule("utils/ExtensionUtils");
-    var Promise         = require("libs/js/spromise");
+    var Promise         = require("node_modules/spromise/dist/spromise.min");
     var TernApi         = require("TernApi");
     var Settings        = require("Settings");
     var Logger          = require("Logger");
@@ -18,15 +18,20 @@ define(function(require, exports, module) {
     var projectSettings = Settings.create(".tern-project");
     var logger          = Logger.factory("LocalServer");
 
-    var TERN_ROOT        = "./libs/tern/";
+    var TERN_ROOT        = "node_modules/tern/";
     var TERN_DEFINITIONS = TERN_ROOT + "defs/";
     var WORKER_SCRIPT    = extensionUtils.getModulePath(module, "/TernWorker.js");
 
-    try {
-        globalSettings = JSON.parse(globalSettings);
-    }
-    catch(ex) {
-        globalSettings = {};
+    globalSettings = parseJSON(globalSettings);
+
+
+    function parseJSON(data) {
+        try {
+            return JSON.parse(data);
+        }
+        catch(ex) {
+        }
+        return {};
     }
 
 
@@ -82,15 +87,14 @@ define(function(require, exports, module) {
     LocalServer.prototype.getFile = function(data) {
         logger.log(data.type, data.name, data);
         var server = this;
-        this.documenProvider.getFile(data.name)
-            .done(function(file) {
+        this.documenProvider.getDocument(data.name)
+            .then(function(docMeta) {
                 server.worker.send({
                     type: "addFile",
-                    text: file.content,
+                    text: docMeta.doc.getValue(),
                     id: data.id
                 });
-            })
-            .fail(function(error) {
+            }, function(error) {
                 logger.error(error);
                 server.worker.send({
                     type: "addFile",
@@ -115,7 +119,7 @@ define(function(require, exports, module) {
     };
 
 
-    LocalServer.factory = function(provider) {
+    LocalServer.create = function(provider) {
         return new Promise(function(resolve) {
             var localServer = new LocalServer(provider);
             initialize(localServer, provider.settings);
@@ -138,23 +142,16 @@ define(function(require, exports, module) {
         settings = _.extend({}, globalSettings, settings);
         localServer.settings = settings;
 
-        // Process definitions
         settings.libs = _.map(settings.libs || [], function(item) {
-            //We'll assume pathed values indicate a project file, this is pretty safe
-            //as the libs in the extensions folder are never pathed
-            if(item.indexOf("/") !== -1 || item.indexOf("\\") !== -1){
+            if (item.indexOf("/") !== -1 || item.indexOf("\\") !== -1) {
                 return "text!" + item + ".json";
             }
+
             return "text!" + TERN_DEFINITIONS + item + ".json";
         });
 
         require(settings.libs, function() {
-            settings.defs = _.map(arguments, function(item) {
-                var result;
-                try {result = JSON.parse(item);} catch(ex) {}
-                return result || {};
-            });
-
+            settings.defs = _.map(arguments, parseJSON);
             initialize(localServer);
         });
     }
@@ -162,14 +159,14 @@ define(function(require, exports, module) {
 
     function getWorker(server, workerScript) {
         if (!server.worker) {
-            server.worker = getWorker.factory(server, workerScript);
+            server.worker = getWorker.create(server, workerScript);
         }
 
         return server.worker;
     }
 
 
-    getWorker.factory = function(server, workerScript) {
+    getWorker.create = function(server, workerScript) {
         // Create worker thread to process tern requests.
         var worker  = new Worker(workerScript),
             current = null,

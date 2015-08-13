@@ -8,10 +8,10 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var Promise        = require("libs/js/spromise"),
-        FileStream     = require("FileStream"),
-        ProjectManager = brackets.getModule("project/ProjectManager"),
-        FileSystem     = brackets.getModule("filesystem/FileSystem");
+    var Promise        = require("node_modules/spromise/dist/spromise.min");
+    var FileStream     = require("FileStream");
+    var ProjectManager = brackets.getModule("project/ProjectManager");
+    var FileSystem     = brackets.getModule("filesystem/FileSystem");
 
 
     function ProjectFiles() {

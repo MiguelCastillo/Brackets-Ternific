@@ -8,19 +8,19 @@
 define(function (require /*, exports, module*/) {
     "use strict";
 
-    var _           = brackets.getModule("thirdparty/lodash");
     var CodeMirror  = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
-    var Promise     = require("libs/js/spromise");
-    var Utils       = require("Utils");
+    var Promise     = require("node_modules/spromise/dist/spromise.min");
+    var reportError = require("reportError");
+    var fileReader  = require("fileReader");
     var localServer = require("LocalServer");
-    var fileLoader  = require("FileLoader");
+    var Repository  = require("Repository");
 
 
     /**
      * @constructor
      */
     function TernProvider() {
-        this.documents = [];
+        this.documentRepository = new Repository();
         this.currentDocument = null;
     }
 
@@ -31,141 +31,143 @@ define(function (require /*, exports, module*/) {
 
 
     TernProvider.prototype.registerDocument = function(cm, file) {
-        var _self   = this,
-            name    = file.name,
-            dir     = file.parentPath,
-            docMeta = this.getDocumentByName(name);
+        var _self   = this;
+        var docMeta = documentMetaFactory(file.name, cm.getDoc()).create({file: file});
 
-        //
-        // If the document has not been registered, then we set one up
-        //
-        if (!docMeta) {
-            docMeta = {
-                file: file,
-                name: name,
-                doc: cm.getDoc(),
-                changed: null
-            };
+        providerExtensions(this).addDocument(docMeta);
+        serverExtensions(this).addDocument(docMeta);
 
-            this.documents.push(docMeta);
-            this.tern.addFile(docMeta.name, docMeta.doc.getValue());
-        }
-        //
-        // If the document exists but has not been registered, then we
-        // update the properties that need updating and setup up a change
-        // tracking callback.
-        // This particular case happens when a document is loaded as a
-        // dependency when resolved by tern, and later that document is
-        // opened in brackets, which will need registration for tracking
-        // changes.
-        //
-        // Only documents that are open in brackets and currently in focus
-        // are the ones that should be tracked for changes.  Currently,
-        // if a document isn't open in brackets then we are going to assume
-        // that it is not being changed. I'm not worried about external
-        // editors opening documents and modifying them outside of the
-        // current instance of brackets.
-        //
-        else {
-            docMeta.doc     = cm.getDoc();
-            docMeta.changed = null;
-        }
-
-        this.cm = cm;
         this.currentDocument = docMeta;
+
         this.tern.clear();
-        this.tern.setDocuments(this.documents);
+        this.tern.setDocuments(this.documentRepository.items());
         this.tern.setCurrentDocument(docMeta);
-        this.tern.loadSettings(dir);
+        this.tern.loadSettings(file.parentPath);
 
         docMeta._trackChange = function(cm, change) {
             _self.tern.trackChange(docMeta.doc, change);
         };
 
         CodeMirror.on(docMeta.doc, "change", docMeta._trackChange);
-        return docMeta;
     };
 
 
     TernProvider.prototype.unregisterDocument = function(cm) {
-        var docMeta = this.getDocumentByInstance(cm.getDoc());
-        if (docMeta && docMeta.doc && docMeta._trackChange) {
-            CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
-            docMeta._trackChange = null;
-
-            // Remove unregistered document
-            var i = this.documents.indexOf(docMeta);
-            this.documents.splice(i, 1);
-        }
-    };
-
-
-    TernProvider.prototype.getDocumentByName = function(name) {
-        return _.find(this.documents, {"name": name});
-    };
-
-
-    TernProvider.prototype.getDocumentByInstance = function(doc) {
-        return _.find(this.documents, {"doc": doc});
-    };
-
-
-    /**
-     * Will read file from disk or remote http file, then will load the content
-     * into tern's server.
-     *
-     * This will bypass the list of cached documents.
-     */
-    TernProvider.prototype.addFile = function(name) {
-        var _self = this;
-
-        return fileLoader.readFile(name, this.currentDocument.file.parentPath)
-            .done(function fileRead(data) {
-                var docMeta = {
-                    file: data.file,
-                    name: name, //data.fullPath,
-                    doc: new CodeMirror.Doc(data.content, "javascript"),
-                    changed: null
-                };
-
-                _self.documents.push(docMeta);
-                _self.tern.addFile(docMeta.name, docMeta.doc.getValue());
-            });
-    };
-
-
-    /**
-     * Gets a file from the list of cached documents. If the document isn't cached,
-     * it will get loaded either from local drive or remote via http.  This newly
-     * retrieved document will be added to the list of cached documents.
-     */
-    TernProvider.prototype.getFile = function(name) {
-        var _self = this;
-        var docMeta = this.getDocumentByName(name);
+        var docMeta = this.documentRepository.find({"doc": cm.getDoc()});
 
         if (docMeta) {
-            return Promise.resolve({
-                docMeta: docMeta,
-                content: docMeta.doc.getValue()
-            });
+            if (docMeta.doc && docMeta._trackChange) {
+              CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+              docMeta._trackChange = null;
+            }
+
+            this.documentRepository.remove(docMeta);
         }
 
-        return fileLoader.readFile(name, this.currentDocument.file.parentPath)
-            .then(function fileRead(data) {
-                var docMeta = {
-                    file: data.file,
-                    name: name, //data.fullPath,
-                    doc: new CodeMirror.Doc(data.content, "javascript"),
-                    changed: null
-                };
-
-                _self.documents.push(docMeta);
-                return {
-                    docMeta: docMeta,
-                    content: data.content
-                };
-            }, Utils.forwardError);
+        //
+        // TODO: Provide a way to clear all loaded documents. Useful when
+        // switching projects.
+        //
     };
+
+
+    /**
+     * Will read file from storage and then pushes the content to the tern server.
+     */
+    TernProvider.prototype.loadDocument = function(fileName) {
+
+        //
+        // TODO: Figure out a way to pass in full paths.  This would work
+        // well only if name resolution of modules was poperly done with
+        // something like browser-resolve or amd-resolve.
+        //
+        // For now we will just do a simple heuristic based on whether the
+        // file is relative or absolute.
+        //
+        var reader = fileReader.isAbsolute(fileName) ?
+            fileReader.fromDirectory(fileName) :
+            fileReader.fromDirectory(this.currentDocument.file.parentPath + '/' + fileName);
+
+        return reader
+            .then(_read, reportError)
+            .then(documentMetaFactory(name).create, reportError)
+            .then(providerExtensions(this).addDocument, reportError)
+            .then(serverExtensions(this).addDocument, reportError);
+    };
+
+
+    function _read(stream) {
+        return stream.read();
+    }
+
+
+    function documentMetaFactory(name, doc) {
+        function create(data) {
+            return {
+                file: data.file,
+                name: name, //data.fullPath,
+                doc: doc || (new CodeMirror.Doc(data.content, "javascript")),
+                changed: null
+            };
+        }
+
+        return {
+            create: create
+        };
+    }
+
+
+    function providerExtensions(provider) {
+        /**
+         * Function that adds a document to the document repository
+         *
+         * @param {object} docMeta - Document meta object with information about
+         *  the document.
+         */
+        function addDocument(docMeta) {
+            if (!provider.documentRepository.getByName(docMeta.name)) {
+                provider.documentRepository.add(docMeta);
+            }
+
+            return docMeta;
+        }
+
+        /**
+         * Function that reads a document from storage
+         */
+        function getDocument(name) {
+            var docMeta = provider.documentRepository.getByName(name);
+
+            if (docMeta) {
+                return Promise.resolve(docMeta);
+            }
+
+            return provider.loadDocument(name);
+        }
+
+        return {
+            addDocument: addDocument,
+            getDocument: getDocument
+        };
+    }
+
+
+    function serverExtensions(provider) {
+        /**
+         * Function that adds a document to the tern server.
+         *
+         * @param {object} docMeta - Document meta object with information about
+         *  the document.
+         */
+        function addDocument(docMeta) {
+            provider.tern.addFile(docMeta.name, docMeta.doc.getValue());
+            return docMeta;
+        }
+
+        return {
+            addDocument: addDocument
+        };
+    }
 
 
     /**
@@ -175,11 +177,15 @@ define(function (require /*, exports, module*/) {
         TernProvider.apply(this, arguments);
 
         var _self = this;
-        var deferred = localServer.factory(this)
-            .then(function localProviderReady(tern) {
-                _self.tern = tern;
-                return _self;
-            });
+
+        function setServer(tern) {
+            _self.tern = tern;
+            return _self;
+        }
+
+        var deferred = localServer
+          .create(providerExtensions(this))
+          .then(setServer);
 
         this.onReady = deferred.promise.done.bind(deferred);
     }
@@ -190,15 +196,14 @@ define(function (require /*, exports, module*/) {
 
 
     /**
-     * Convenience method to create providers
+     * Factory method to create providers
      */
-    function factory() {
+    function createProvider() {
         return (new LocalProvider());
     }
 
 
     return {
-        factory: factory
+        create: createProvider
     };
 });
-

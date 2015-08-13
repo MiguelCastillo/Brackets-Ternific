@@ -5,43 +5,53 @@
  */
 
 
-importScripts("libs/tern/node_modules/acorn/acorn.js",
-              "libs/tern/node_modules/acorn/acorn_loose.js",
-              "libs/tern/node_modules/acorn/util/walk.js",
-              "libs/tern/lib/signal.js",
-              "libs/tern/lib/tern.js",
-              "libs/tern/lib/def.js",
-              "libs/tern/lib/infer.js",
-              "libs/tern/lib/comment.js");
+importScripts(
+    "node_modules/tern/node_modules/acorn/dist/acorn.js",
+    "node_modules/tern/node_modules/acorn/dist/acorn_loose.js",
+    "node_modules/tern/node_modules/acorn/dist/walk.js",
+    "node_modules/tern/lib/signal.js",
+    "node_modules/tern/lib/tern.js",
+    "node_modules/tern/lib/def.js",
+    "node_modules/tern/lib/infer.js",
+    "node_modules/tern/lib/comment.js"
+);
 
 
-function Extender(/*target, [source]+ */) {
-    var sources = Array.prototype.slice.call(arguments),
-        target  = sources.shift();
+var TERN_ROOT    = "node_modules/tern/";
+var TERN_PLUGINS = TERN_ROOT + "plugin/";
 
-    for (var source in sources) {
-        source = sources[source];
 
-        // Copy properties
-        for (var property in source) {
-            target[property] = source[property];
-        }
+
+function Extender(target /*, [source]+ */) {
+  var source, length, i;
+  target = target || {};
+
+  // Allow n params to be passed in to extend this object
+  for (i = 1, length  = arguments.length; i < length; i++) {
+    source = arguments[i];
+    for (var property in source) {
+      if (source.hasOwnProperty(property)) {
+        target[property] = source[property];
+      }
     }
+  }
 
-    return target;
+  return target;
 }
 
 
 function LoadPlugins(settings) {
-    var plugins = [];
-    for (var i in settings.plugins) {
-        //We'll use the baseURL property from .tern-project, this is the standard tern approach
-        var setting = settings.plugins[i];
+    var plugins = [], plugin;
 
-        if(!setting.baseURL){
-            setting.baseURL = "libs/tern/plugin/";
+    for (var pluginName in settings.plugins) {
+        plugin = settings.plugins[pluginName];
+
+        if (pluginName.indexOf("/") !== -1 || pluginName.indexOf("\\") !== -1) {
+            plugins.push(pluginName + ".js");
         }
-        plugins.push(setting.baseURL + i + ".js");
+        else {
+            plugins.push(TERN_PLUGINS + pluginName + ".js");
+        }
     }
 
     // Import plugins

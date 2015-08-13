@@ -12,7 +12,7 @@ define(function (require /*, exports, module*/) {
     var ProjectManager = brackets.getModule("project/ProjectManager");
     var FileSystem     = brackets.getModule("filesystem/FileSystem");
     var FileUtils      = brackets.getModule("file/FileUtils");
-    var Promise        = require("libs/js/spromise");
+    var Promise        = require("node_modules/spromise/dist/spromise.min");
 
 
     function Settings(filePath) {

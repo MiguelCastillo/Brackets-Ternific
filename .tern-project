@@ -1,12 +1,13 @@
 {
   "libs": [
-    "reserved",
+    "./libs/tern/defs/reserved",
+    "./libs/tern/defs/lodash",
     "browser",
     "chai",
     "ecma5",
+    "ecma6",
     "browser",
-    "jquery",
-    "lodash"
+    "jquery"
   ],
   "loadEagerly": [],
   "async": true,

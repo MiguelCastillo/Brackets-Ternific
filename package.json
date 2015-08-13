@@ -1,16 +1,24 @@
 {
-    "title": "Ternific",
-    "name": "ternific",
-    "description": "JavaScript hinting and refactoring powered by Tern",
-    "version": "0.7.3",
-    "author": "Miguel Castillo <manchagnu@gmail.com>",
-    "homepage": "https://github.com/MiguelCastillo/Brackets-Ternific",
-    "keywords": ["hints", "js hints", "tern"],
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/MiguelCastillo/Brackets-Ternific.git"
-    },
-    "engines": {
-        "brackets": ">=0.42.0"
-    }
+  "title": "Ternific",
+  "name": "ternific",
+  "description": "JavaScript hinting and refactoring powered by Tern",
+  "version": "0.7.3",
+  "author": "Miguel Castillo <manchagnu@gmail.com>",
+  "homepage": "https://github.com/MiguelCastillo/Brackets-Ternific",
+  "keywords": [
+    "hints",
+    "js hints",
+    "tern"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/MiguelCastillo/Brackets-Ternific.git"
+  },
+  "engines": {
+    "brackets": ">=0.42.0"
+  },
+  "dependencies": {
+    "spromise": "^0.9.3",
+    "tern": "^0.13.0"
+  }
 }
