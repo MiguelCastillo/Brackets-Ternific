@@ -66,7 +66,7 @@ define(function (require /*, exports, module*/) {
 
         this.baseUrl = baseUrl;
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve) {
             function processFileObject(fileObject) {
                 var currentFileObject = _self.fileObject;
                 _self.fileObject = fileObject;
@@ -181,17 +181,18 @@ define(function (require /*, exports, module*/) {
         var deferred = Promise.defer();
 
         function find(baseUrl) {
-            if (!baseUrl) {
+            if (!baseUrl || baseUrl.indexOf(settings.projectPath()) === -1) {
                 return deferred.reject(false);
             }
 
             try {
                 var file = FileSystem.getFileForPath(baseUrl + filePath);
+
                 file.exists(function(err, exists) {
                     if (exists) {
                         deferred.resolve(file);
                     }
-                    else if (err || !traverse || baseUrl.indexOf(settings.projectPath()) === -1) {
+                    else if (err || !traverse) {
                         deferred.reject(false);
                     }
                     else {
@@ -236,14 +237,6 @@ define(function (require /*, exports, module*/) {
      */
     function normalizePath(path) {
         return path.replace(/[\/\\]+/g, "/");
-    }
-
-
-    /**
-     * Lets get rid of the trailing slash
-     */
-    function stripTrailingSlashes(path) {
-        return path.replace(/\/$/, "");
     }
 
 
