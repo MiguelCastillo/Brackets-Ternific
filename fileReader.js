@@ -17,25 +17,21 @@ define(function (require /*, exports, module*/) {
     /**
      * Load file from local filesystem
      *
-     * @param {string} fileName is the name of the file to open
-     * @param {string} filePath is a fully resolved file path to search fileName in
+     * @param {string} filePath - is the file path to read
      * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
      *   is provided.
      */
-    function fromDirectory(fileName) {
+    function fromDirectory(filePath) {
         return new Promise(function(resolve, reject) {
-            var handle = FileSystem.getFileForPath(fileName);
+            var handle = FileSystem.getFileForPath(filePath);
 
             handle.exists(function(err, exists) {
                 if (err || !exists) {
-                    err = err ? err : (exists ? "Unknown file error" : fileName + " was not found");
+                    err = err ? err : (exists ? "Unknown file error" : filePath + " was not found");
                     reject(err);
                 }
                 else {
-                    resolve(new FileStream({
-                        handle: handle,
-                        fileName: fileName
-                    }));
+                    resolve(new FileStream({handle: handle}));
                 }
             });
         });
@@ -53,7 +49,7 @@ define(function (require /*, exports, module*/) {
     /**
      * Interface to load a file
      *
-     * @param {string} fileName is the name of the file to open
+     * @param {string} filePath is the name of the file to open
      * @returns {spromise} if successful, the file meta data is provider. If failed, the reason
      *   is provided.
      */
