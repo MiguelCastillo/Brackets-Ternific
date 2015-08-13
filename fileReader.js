@@ -66,7 +66,7 @@ define(function (require /*, exports, module*/) {
      * Tests if the path is absolute or relative.
      */
     function isAbsolute(path) {
-        return path[0] === '/' || /[a-zA-Z]:[\/\\]+/.test(path);
+        return path[0] === '/' || /^[a-zA-Z]:[\/\\]+/.test(path);
     }
 
 
