@@ -57,8 +57,8 @@ define(function (require /*, exports, module*/) {
 
         if (docMeta) {
             if (docMeta.doc && docMeta._trackChange) {
-              CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
-              docMeta._trackChange = null;
+                CodeMirror.off(docMeta.doc, "change", docMeta._trackChange);
+                docMeta._trackChange = null;
             }
 
             this.documentRepository.remove(docMeta);
@@ -74,7 +74,7 @@ define(function (require /*, exports, module*/) {
     /**
      * Will read file from storage and then pushes the content to the tern server.
      */
-    TernProvider.prototype.loadDocument = function(fileName) {
+    TernProvider.prototype.loadDocument = function(filePath) {
 
         //
         // TODO: Figure out a way to pass in full paths.  This would work
@@ -84,13 +84,12 @@ define(function (require /*, exports, module*/) {
         // For now we will just do a simple heuristic based on whether the
         // file is relative or absolute.
         //
-        var reader = fileReader.isAbsolute(fileName) ?
-            fileReader.fromDirectory(fileName) :
-            fileReader.fromDirectory(this.currentDocument.file.parentPath + '/' + fileName);
+        filePath = fileReader.isAbsolute(filePath) ? filePath : (this.currentDocument.file.parentPath + '/' + filePath);
 
-        return reader
+        return fileReader
+            .fromDirectory(filePath)
             .then(_read, reportError)
-            .then(documentMetaFactory(name).create, reportError)
+            .then(documentMetaFactory(filePath).create, reportError)
             .then(providerExtensions(this).addDocument, reportError)
             .then(serverExtensions(this).addDocument, reportError);
     };
