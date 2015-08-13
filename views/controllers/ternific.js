@@ -101,13 +101,13 @@ define(function(require /*, exports, module*/) {
 
 
         ternManager.ternReferences.events
-            .on("references", function(evt, fileProvider, references, token) {
+            .on("references", function(evt, ternManager, references, token) {
                 if (!token) {
                     _self._resultsView.close();
                     return;
                 }
 
-                _self.processReferences(fileProvider, references, token);
+                _self.processReferences(ternManager, references, token);
             })
             .on("documentChange", function(evt, currentDocument) {
                 if (currentDocument && !_self._replaceModel.results[currentDocument.file._path]) {
@@ -137,7 +137,7 @@ define(function(require /*, exports, module*/) {
     };
 
 
-    Ternific.prototype.processReferences = function(fileProvider, references, token) {
+    Ternific.prototype.processReferences = function(ternManager, references, token) {
         var promises;
         var replaceModel = this._replaceModel;
         var resultsView = this._resultsView;
@@ -148,7 +148,7 @@ define(function(require /*, exports, module*/) {
         replaceModel.replaceText = "";
 
         promises = Object.keys(references).map(function(reference) {
-            return fileProvider.getDocument(reference).done(function(docMeta) {
+            return ternManager.getDocument(reference).done(function(docMeta) {
                 var data = {
                     matches: [],
                     timestamp: docMeta.file._stat._mtime
