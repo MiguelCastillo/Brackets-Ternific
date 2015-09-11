@@ -12,8 +12,9 @@
   "loadEagerly": [],
   "async": true,
   "plugins": {
+    "modules": {},
     "requirejs": {},
     "doc_comment": {},
-    "component": {}
+    "es_modules": true
   }
 }
