@@ -13,27 +13,26 @@ define(function(require, exports, module) {
     var Promise         = require("node_modules/spromise/dist/spromise.min");
     var TernApi         = require("TernApi");
     var Settings        = require("Settings");
-    var Logger          = require("Logger");
-    var globalSettings  = require("text!./.tern-project");
+
+    var globalSettings  = Settings.create(".tern-project", false);
     var projectSettings = Settings.create(".tern-project");
-    var logger          = Logger.factory("LocalServer");
+    var logger          = require("Logger").factory("LocalServer");
 
     var TERN_ROOT        = "node_modules/tern/";
     var TERN_DEFINITIONS = TERN_ROOT + "defs/";
-    var WORKER_SCRIPT    = extensionUtils.getModulePath(module, "/TernWorker.js");
+    var WORKER_SCRIPT    = extensionUtils.getModulePath(module, "TernWorker.js");
 
-    globalSettings = parseJSON(globalSettings);
-
+    // Initialize global settings
+    globalSettings.load(extensionUtils.getModulePath(module));
 
     function parseJSON(data) {
         try {
             return JSON.parse(data);
         }
         catch(ex) {
+            return undefined;
         }
-        return {};
     }
-
 
     /**
      * Bridge to communicate into tern worker thread.
@@ -45,6 +44,11 @@ define(function(require, exports, module) {
 
         // Call tern api to set the rest of the stuff up.
         TernApi.call(this);
+
+        var processSettings = createSettingsProcessor(this, globalSettings, projectSettings);
+        globalSettings.on("change", processSettings);
+        projectSettings.on("change", processSettings);
+        processSettings();
     }
 
 
@@ -106,16 +110,7 @@ define(function(require, exports, module) {
 
 
     LocalServer.prototype.loadSettings = function(fullPath) {
-        var _self = this;
-        function done(settings) {
-            if (settings.changed) {
-                loadSettings(_self, settings.data);
-            }
-        }
-
-        projectSettings
-            .load(fullPath)
-            .always(done);
+        projectSettings.load(fullPath);
     };
 
 
@@ -128,21 +123,28 @@ define(function(require, exports, module) {
     };
 
 
-    function initialize(localServer) {
-        // Init with empty settings. Until a document is open that can give us
-        // some context...
+    function initialize(localServer, settings) {
         localServer.worker.send({
             type: "init",
-            body: localServer.settings
+            body: settings
         });
     }
 
 
-    function loadSettings(localServer, settings) {
-        settings = _.extend({}, globalSettings, settings);
-        localServer.settings = settings;
+    function createSettingsProcessor(localServer, global, project) {
+        return function() {
+            var settings = _.assign({}, global.data || {}, project.data || {});
 
-        settings.libs = _.map(settings.libs || [], function(item) {
+            getDefinitions(settings.libs).then(function(defs) {
+                settings.defs = defs;
+                initialize(localServer, settings);
+            });
+        };
+    }
+
+
+    function getDefinitions(libs) {
+        libs = _.map(libs || [], function(item) {
             if (item.indexOf("/") !== -1 || item.indexOf("\\") !== -1) {
                 return "text!" + item + ".json";
             }
@@ -150,9 +152,18 @@ define(function(require, exports, module) {
             return "text!" + TERN_DEFINITIONS + item + ".json";
         });
 
-        require(settings.libs, function() {
-            settings.defs = _.map(arguments, parseJSON);
-            initialize(localServer);
+        return new Promise(function(resolve) {
+            require(libs, function() {
+                var defs = _.reduce(arguments, function(result, item) {
+                    item = parseJSON(item);
+                    if (item) {
+                        result.push(item);
+                    }
+                    return result;
+                }, []);
+
+                resolve(defs);
+            });
         });
     }
 
