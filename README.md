@@ -26,6 +26,14 @@ FAQ
   Yes, you need to bring up Chrome Developer Tools and from the console, type `ternificLogger.enableAll()`.  And to disable it, use `ternificLogger.disableAll()`.
 
 
+.tern-project
+=============
+
+`.tern-project` is the configuration file that ternific picks up to configure tern. This file can exist in any directory, and ternific will navigate up the directory hierarchy (up to the project), and use the first it finds.
+
+You can specify all you standard [tern](http://ternjs.net/doc/manual.html#configuration) settings. Additionally, you can specify directory *path* for `libs`, which allows you to specify custom definitions in your project. Take a look at [this](https://github.com/MiguelCastillo/Brackets-Ternific/blob/master/.tern-project#L3) example where ternific itself ships with a couple of custom lib definitions.
+
+
 Screenshots
 =============
 
