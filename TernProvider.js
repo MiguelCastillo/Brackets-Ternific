@@ -10,6 +10,7 @@ define(function (require /*, exports, module*/) {
 
     var CodeMirror  = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
     var fileUtils   = brackets.getModule("file/FileUtils");
+    var logger      = require("Logger").factory("TernProvider");
     var Promise     = require("node_modules/spromise/dist/spromise.min");
     var reportError = require("reportError");
     var fileReader  = require("fileReader");
@@ -35,12 +36,12 @@ define(function (require /*, exports, module*/) {
         var _self   = this;
         var docMeta = documentMetaFactory(file.name, cm.getDoc()).create({file: file});
 
+        this.tern.clear();
+
+        this.currentDocument = docMeta;
         providerExtensions(this).addDocument(docMeta);
         serverExtensions(this).addDocument(docMeta);
 
-        this.currentDocument = docMeta;
-
-        this.tern.clear();
         this.tern.setDocuments(this.documentRepository.items());
         this.tern.setCurrentDocument(docMeta);
         this.tern.loadSettings(file.parentPath);
@@ -76,6 +77,8 @@ define(function (require /*, exports, module*/) {
      * Will read file from storage and then pushes the content to the tern server.
      */
     TernProvider.prototype.loadDocument = function(filePath) {
+        logger.log("loadDocument", filePath);
+
         // Get the extension and make sure we have an extension before loading the file.
         var extension = fileUtils.getFileExtension(filePath);
 
@@ -85,20 +88,20 @@ define(function (require /*, exports, module*/) {
 
         //
         // TODO: Figure out a way to pass in full paths.  This would work
-        // well only if name resolution of modules was poperly done with
+        // well only if name resolution of modules was properly done with
         // something like browser-resolve or amd-resolve.
         //
         // For now we will just do a simple heuristic based on whether the
         // file is relative or absolute.
         //
-        filePath = fileReader.isAbsolute(filePath) ? filePath : (this.currentDocument.file.parentPath + '/' + filePath);
+        filePath = fileReader.isAbsolute(filePath) ? filePath : (this.currentDocument.file.parentPath + filePath);
 
         return fileReader
             .fromDirectory(filePath)
             .then(_read, reportError)
             .then(documentMetaFactory(filePath).create, reportError)
-            .then(providerExtensions(this).addDocument, reportError)
-            .then(serverExtensions(this).addDocument, reportError);
+            .then(providerExtensions(this).addDocument, reportError);
+            //.then(serverExtensions(this).addDocument, reportError);
     };
 
 
