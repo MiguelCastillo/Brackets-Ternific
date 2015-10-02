@@ -47,7 +47,7 @@ define(function(require /*, exports, module*/) {
         }
 
         var ternRequest   = ternDemo.buildRequest.apply((void 0), arguments);
-        ternRequest.query = $.extend(defaults, ternRequest.query);
+        ternRequest.query = $.extend({}, defaults, ternRequest.query);
         return this.request(ternRequest);
     };
 
