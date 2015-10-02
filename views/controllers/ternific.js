@@ -142,7 +142,6 @@ define(function(require /*, exports, module*/) {
         var replaceModel = this._replaceModel;
         var resultsView = this._resultsView;
 
-        replaceModel.clear();
         replaceModel.setQueryInfo({query: token});
         replaceModel.isReplace = true;
         replaceModel.replaceText = "";
@@ -171,10 +170,12 @@ define(function(require /*, exports, module*/) {
                 resultsView.close();
             }
 
-            var $data = resultsView._$summary.find(".contracting-col");
-            var $value = $data.eq(1);
+            //var $value = resultsView._$summary.find(".contracting-col").eq(1);
             var $input = $("<input class='replace-references'>").val(token);
-            $value.html($("<form class='replace-form'></form>").append($input));
+            resultsView._$summary
+              .find(".contracting-col")
+              .eq(1)
+              .html($("<form class='replace-form'></form>").append($input));
             setTimeout($input.focus.bind($input), 0);
         });
     };
