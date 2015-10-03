@@ -24,6 +24,8 @@ FAQ
   Live reload is only supported for project specific .tern-project.
 4. Is there a way to enable logging for debug details?<br>
   Yes, you need to bring up Chrome Developer Tools and from the console, type `ternificLogger.enableAll()`.  And to disable it, use `ternificLogger.disableAll()`.
+5. SUpport for ES6 (ES2015)?
+  Yes! You will need to specify `es_modules` in your .tern-project to take advantage of the new module syntax. Take a look at [this sample file](https://github.com/MiguelCastillo/Brackets-Ternific/blob/master/.tern-project) in the plugins definition.
 
 
 .tern-project
