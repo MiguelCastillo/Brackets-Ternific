@@ -27,7 +27,7 @@ define(function (require /*, exports, module*/) {
 
             handle.exists(function(err, exists) {
                 if (err || !exists) {
-                    err = err ? err : (exists ? "Unknown file error" : filePath + " was not found");
+                    err = err ? err : new Error(exists ? "Unknown file error" : filePath + " was not found");
                     reject(err);
                 }
                 else {
