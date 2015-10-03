@@ -10,13 +10,12 @@ define(function (/*require, exports, module*/) {
 
     function reportError(error) {
         if (error && !error.handled) {
+            if (!error.stack) {
+                error = new Error(error);
+            }
+
+            console.log(error.stack);
             error.handled = true;
-            if (error.stack) {
-                console.log(error.stack);
-            }
-            else {
-                console.error(error);
-            }
         }
 
         return error;
