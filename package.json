@@ -15,7 +15,7 @@
     "url": "git://github.com/MiguelCastillo/Brackets-Ternific.git"
   },
   "engines": {
-    "brackets": ">=0.42.0"
+    "brackets": ">=1.4.0"
   },
   "dependencies": {
     "spromise": "^0.9.3",
