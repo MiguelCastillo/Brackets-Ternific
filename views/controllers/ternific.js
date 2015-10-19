@@ -138,15 +138,21 @@ define(function(require /*, exports, module*/) {
 
 
     Ternific.prototype.processReferences = function(ternManager, references, token) {
-        var promises;
         var replaceModel = this._replaceModel;
         var resultsView = this._resultsView;
+
+        // The result view needs to be closed first to prevent the replaceMode.clear
+        // from causing a double render, which replaces the `input` we are injecting
+        // in the resultsView.  The side effect is that the closing of the window
+        // cause a bit of a visual flicker or closing then opening the window again.
+        resultsView.close();
+        replaceModel.clear();
 
         replaceModel.setQueryInfo({query: token});
         replaceModel.isReplace = true;
         replaceModel.replaceText = "";
 
-        promises = Object.keys(references).map(function(reference) {
+        var promises = Object.keys(references).map(function(reference) {
             return ternManager.getDocument(reference).done(function(docMeta) {
                 var data = {
                     matches: [],
@@ -166,16 +172,13 @@ define(function(require /*, exports, module*/) {
             if (promises.length) {
                 resultsView.open();
             }
-            else {
-                resultsView.close();
-            }
 
-            //var $value = resultsView._$summary.find(".contracting-col").eq(1);
             var $input = $("<input class='replace-references'>").val(token);
             resultsView._$summary
               .find(".contracting-col")
               .eq(1)
               .html($("<form class='replace-form'></form>").append($input));
+
             setTimeout($input.focus.bind($input), 0);
         });
     };
@@ -190,7 +193,6 @@ define(function(require /*, exports, module*/) {
         FindUtils.performReplacements(resultsClone, replaceModel.replaceText, { forceFilesOpen: true, isRegexp: false });
         resultsView.close();
     };
-
 
 
     return Ternific;
