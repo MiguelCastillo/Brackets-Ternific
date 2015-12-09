@@ -69,7 +69,8 @@ define(function (require /*, exports, module*/) {
 
     TernHints.prototype.getHints = function (implicitChar) {
         var _self = this,
-            newSession = this._newSession;
+            newSession = this._newSession,
+            token = this._cm.getTokenAt(this._cm.getCursor());
 
         if (newSession) {
             _self._codeHintList = CodeHintManager._getCodeHintList();
@@ -85,10 +86,14 @@ define(function (require /*, exports, module*/) {
                 }
             });
         }
-
-        // Condition to make we are providing hints for characters we know are valid
-        if (implicitChar !== null && hintHelper.maybeIdentifier(implicitChar) === false) {
-            return null;
+        else {
+            // Condition to make we are providing hints for characters we know are valid
+            if (implicitChar !== null && hintHelper.maybeIdentifier(implicitChar) === false) {
+                return null;
+            }
+            else if (!implicitChar && !token.type && token.string.trim() === "") {
+                return  null;
+            }
         }
 
         // New session is important because we want to get everything we can from
