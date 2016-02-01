@@ -19,6 +19,6 @@
   },
   "dependencies": {
     "spromise": "^0.9.3",
-    "tern": "^0.16.0"
+    "tern": "^0.17.0"
   }
 }
