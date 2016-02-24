@@ -16,6 +16,8 @@ define(function (require /*, exports, module*/) {
     var EventDispatcher = brackets.getModule("utils/EventDispatcher");
     var Promise         = require("node_modules/spromise/dist/spromise.min");
 
+    var TERN_ROOT     = "node_modules/tern/";
+    var TERNIFIC_ROOT = "./";
 
     function Settings(filePath, watchProject) {
         this.project = ProjectManager.getProjectRoot();
@@ -137,6 +139,7 @@ define(function (require /*, exports, module*/) {
             }
             else {
                 return readFile(file)
+                    .then(configurePaths(settings), _.noop)
                     .then(parseSettings, _.noop)
                     .then(function(data) {
                         return {
@@ -160,7 +163,30 @@ define(function (require /*, exports, module*/) {
     }
 
 
-   /**
+    function configurePaths(settings) {
+        return function(settingsString) {
+            if (/{\w+}/.test(settingsString)) {
+                settingsString = settingsString.replace(/{\w+}/g, function(w) {
+                    if (w === "{project}") {
+                        return settings.baseUrl;
+                    }
+                    else if (w === "{tern}") {
+                        return TERN_ROOT;
+                    }
+                    else if (w === "{ternific}") {
+                        return TERNIFIC_ROOT;
+                    }
+
+                    return w;
+                });
+            }
+
+            return normalizePath(settingsString);
+        }
+    }
+
+
+    /**
      * Cleans out settings data. It removes all comments from the file before
      * it is converted to a JSON structure.
      *

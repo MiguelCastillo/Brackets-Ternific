@@ -33,7 +33,22 @@ FAQ
 
 `.tern-project` is the configuration file that ternific picks up to configure tern. This file can exist in any directory, and ternific will navigate up the directory hierarchy (up to the project), and use the first it finds.
 
-You can specify all you standard [tern](http://ternjs.net/doc/manual.html#configuration) settings. Additionally, you can specify directory *path* for `libs`, which allows you to specify custom definitions in your project. Take a look at [this](https://github.com/MiguelCastillo/Brackets-Ternific/blob/master/.tern-project#L3) example where ternific itself ships with a couple of custom lib definitions.
+You can specify all you standard [tern](http://ternjs.net/doc/manual.html#configuration) settings. Additionally, you can specify directory *path* for `libs` and `plugins` to load custom definitions and plugins. There are also a few template strings you can use to help you define paths relative to the your current project, ternific, or tern itself.
+
+```
+{
+  "libs": [
+    "{ternific}/libs/tern/defs/reserved",
+    "{ternific}/libs/tern/defs/lodash",
+    "browser",
+    "jquery"
+  ],
+  "plugins": {
+    "{project}/custom-plugin": {}
+  }
+}
+```
+
 
 
 Screenshots
