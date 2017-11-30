@@ -1,6 +1,8 @@
 Brackets-Tern
 =============
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/MiguelCastillo/Brackets-Ternific.svg)](https://greenkeeper.io/)
+
 [Tern](http://ternjs.net/) integration in brackets.<br>
 
 1. Integration with brackets' native hint manager system.
